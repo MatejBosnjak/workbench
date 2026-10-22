@@ -169,7 +169,7 @@ Keeps the Mac awake while sessions run.
 ### Shell chrome
 
 - **TopBar.** Today and Local are fixed places in their own group, followed by the session tabs and ⌘K.
-- **⌘K.** Searches workstreams, PRs and Productive tasks, and can run a slash command in the current session.
+- **⌘K.** Searches sessions, workstreams, PRs and Productive tasks, and runs a slash command in the current session (`/model` and `/effort` are refused there because they rewrite the global defaults; the picker covers them).
 - **StatusBar.** Always visible, showing:
   - the active session's context, with `/compact` suggested at 60% or more and shown red at 75% or more
   - the 5h limit and when it resets
@@ -177,16 +177,28 @@ Keeps the Mac awake while sessions run.
   - the model · effort · permissions picker
 - **Theme.** v1 ships **Dusk** only: muted synthwave on a graphite base, with a purple accent. Colours are CSS variable tokens, so more themes can be added later; the design also explores Graphite, Midnight, Forest and Synthwave.
 
+### Task workstream (v1.1)
+
+- **What.** One screen per milestone or parent task with all its subtasks. It opens from the task preview ("Workstream"), a context header in My tasks, or ⌘K, and shows as a temporary place in the TopBar until closed.
+- **Data.** Loaded when opened and on Refresh, never polled. The tree (root plus 3 levels, including other people's and closed subtasks) and its history (subtasks created, status changes) come from Productive. PRs come from a GitHub search in the `productiveio` org for the tree's task ids; release-style PRs that mention many tasks are skipped unless their branch names the task. Session cards read line counts and duration from the transcripts.
+- **Timeline.** Sessions, PR events (opened, merged, closed) and task events in time order, filterable by subtask. Closed subtasks that aren't mine and have no sessions or PRs stay out of it.
+- **Sessions.** Resume, or Fork with context: a new tab started with `claude --resume <id> --fork-session`, linked to the same tasks.
+- **Structure.** The tree with status, PR, worktree and session chips; closed subtasks are folded.
+- **Start work.** Per open subtask of mine: switch to its running session, or start one in its worktree. Without a worktree, pick a repo and Workbench runs `git fetch` + `git worktree add -b feature/<taskId>-<slug> <worktrees>/<repo>-<taskId>-<slug> origin/<default>` after a confirm that shows the exact commands.
+- **Where I left off, Notes.** Summaries of the latest sessions (Summarize on demand) and a local free-text note per workstream.
+- **Post update to task** uses the Productive comment draft and its confirm.
+
 ## Data model (SQLite)
 
 | table | columns |
 |---|---|
-| `sessions` | id, cwd, transcript_path, started_at, last_event_at, state, external, title, tab_order, claude_id, model, effort, permission_mode, first_prompt |
+| `sessions` | id, cwd, transcript_path, started_at, last_event_at, state, external, title, tab_order, claude_id, model, effort, permission_mode, first_prompt, fork_from |
 | `links` | session_id, task_id, via, created_by (auto/manual), created_at |
 | `link_tombstones` | session_id, task_id (links removed by hand) |
 | `seen` | thread_key, last_seen_message_id, seen_at |
 | `drafts` | id, target (gh thread / productive task), body, status, created_at |
 | `summaries` | session_id, text, model, created_at |
+| `notes` | workstream_id, body, updated_at |
 | `settings` | key, value |
 
 ## Phases

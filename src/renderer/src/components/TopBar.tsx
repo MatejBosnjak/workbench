@@ -11,7 +11,7 @@ const STATE_LABEL: Record<SessionState, string> = {
 }
 
 export function TopBar({ onNew }: { onNew: () => void }) {
-  const { sessions, view, show, caf, local } = useStore()
+  const { sessions, view, show, caf, local, wsPlace, closeWorkstream } = useStore()
   const inProfile = local?.services.filter((s) => s.def.profiles.includes(local.profile) && !s.transient) ?? []
   const up = inProfile.filter((s) => s.status === 'running').length
   const caffeinated = (s: Session) => {
@@ -45,6 +45,17 @@ export function TopBar({ onNew }: { onNew: () => void }) {
             </span>
           )}
         </button>
+        {wsPlace && (
+          <span className="place ws-place" aria-current={view.kind === 'workstream' ? 'page' : undefined}>
+            <button className="ws-place-open" title={wsPlace.title} onClick={() => show({ kind: 'workstream', id: wsPlace.id })}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z" /></svg>
+              {wsPlace.title}
+            </button>
+            <button className="ws-place-close" aria-label="Close workstream" onClick={closeWorkstream}>
+              ×
+            </button>
+          </span>
+        )}
       </nav>
 
       <span className="divider" />

@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import type { TasksSnapshot } from '@shared/tasks'
+import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
 import { CaffeinateControl } from './components/CaffeinateControl'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
 import { TodayView } from './components/TodayView'
+import { WorkstreamView } from './components/WorkstreamView'
 import { Palette } from './components/Palette'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
@@ -65,8 +65,9 @@ export function App() {
   }, [])
   useEffect(() => window.workbench.reportView(activeSessionId(view)), [view])
 
-  const [tasks, setTasks] = useState<TasksSnapshot | null>(null)
+  const tasks = useStore((s) => s.tasks)
   useEffect(() => {
+    const { setTasks } = useStore.getState()
     void window.workbench.tasks.snapshot().then(setTasks)
     return window.workbench.tasks.onChanged(setTasks)
   }, [])
@@ -117,6 +118,7 @@ export function App() {
         {active?.external && <ExternalPanel session={active} />}
         <TodayView snapshot={tasks} git={git} active={view.kind === 'today'} />
         <LocalView snapshot={local} active={view.kind === 'local'} />
+        {view.kind === 'workstream' && <WorkstreamView key={view.id} rootId={view.id} />}
       </main>
       <StatusBar>
         <span className="sb-sep" />

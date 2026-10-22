@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
+import type { TasksSnapshot } from '@shared/tasks'
+import { rootOf } from '@shared/workstream'
 import type { CaffeinateState, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
 
-export type View = { kind: 'today' } | { kind: 'local' } | { kind: 'session'; id: string }
+export type View = { kind: 'today' } | { kind: 'local' } | { kind: 'session'; id: string } | { kind: 'workstream'; id: string }
 export type TodayTab = 'tasks' | 'git' | 'reviews'
 
 const LAST_VIEW = 'workbench.lastView'
@@ -27,6 +29,9 @@ interface State {
   paletteOpen: boolean
   local: LocalSnapshot | null
   git: GitSnapshot | null
+  tasks: TasksSnapshot | null
+  /** The workstream shown as a temporary place in the TopBar. */
+  wsPlace: { id: string; title: string } | null
   todayTab: TodayTab
   /** The task open in the preview. */
   peekTask: string | null
@@ -36,6 +41,8 @@ interface State {
   draft: DraftTarget | null
   setLocal(l: LocalSnapshot): void
   setGit(g: GitSnapshot): void
+  setTasks(t: TasksSnapshot): void
+  closeWorkstream(): void
   setTodayTab(t: TodayTab): void
   setPeekTask(id: string | null): void
   setFocusPr(id: string | null): void
@@ -58,12 +65,20 @@ export const useStore = create<State>((set, get) => ({
   paletteOpen: false,
   local: null,
   git: null,
+  tasks: null,
+  wsPlace: loadWsPlace(),
   todayTab: loadTab(),
   peekTask: null,
   focusPr: null,
   draft: null,
   setLocal: (local) => set({ local }),
   setGit: (git) => set({ git }),
+  setTasks: (tasks) => set({ tasks }),
+  closeWorkstream: () => {
+    set({ wsPlace: null })
+    saveWsPlace(null)
+    if (get().view.kind === 'workstream') get().show({ kind: 'today' })
+  },
   setTodayTab: (todayTab) => {
     set({ todayTab })
     try {
@@ -95,6 +110,34 @@ export const useStore = create<State>((set, get) => ({
 }))
 
 const TODAY_TAB = 'workbench.todayTab'
+const WS_PLACE = 'workbench.wsPlace'
+
+function loadWsPlace(): { id: string; title: string } | null {
+  try {
+    return JSON.parse(localStorage.getItem(WS_PLACE) ?? 'null') as { id: string; title: string } | null
+  } catch {
+    return null
+  }
+}
+
+function saveWsPlace(p: { id: string; title: string } | null): void {
+  try {
+    localStorage.setItem(WS_PLACE, JSON.stringify(p))
+  } catch {
+    // not important
+  }
+}
+
+/** Opens the workstream a task belongs to: its topmost known parent (milestone or parent task). */
+export function openWorkstream(taskId: string): void {
+  const st = useStore.getState()
+  const tasks = st.tasks?.tasks ?? []
+  const id = rootOf(taskId, tasks)
+  const wsPlace = { id, title: tasks.find((t) => t.id === id)?.title ?? 'Workstream' }
+  useStore.setState({ wsPlace, draft: null })
+  saveWsPlace(wsPlace)
+  st.show({ kind: 'workstream', id })
+}
 
 function loadTab(): TodayTab {
   try {

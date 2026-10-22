@@ -3,7 +3,7 @@ import { groupTasks, type Task, type TaskLine, type TasksSnapshot } from '@share
 import type { Session } from '@shared/types'
 import type { GitSnapshot } from '@shared/git'
 import { needsReply } from '@shared/git'
-import { useStore, type TodayTab } from '../store'
+import { openWorkstream, useStore, type TodayTab } from '../store'
 import { DraftPanel } from './DraftPanel'
 import { GitView, ReviewsView } from './GitView'
 import { TaskPreview } from './TaskPreview'
@@ -222,7 +222,9 @@ function TasksTab({ snapshot }: { snapshot: TasksSnapshot }) {
                             {folded ? '▸' : '▾'}
                           </button>
                           {t.milestone && <Diamond />}
-                          <span className="task-title">{t.title}</span>
+                          <button className="task-title ctx-open" title="Open workstream" onClick={() => openWorkstream(t.id)}>
+                            {t.title}
+                          </button>
                           <span className="muted ctx-note">{l.header === 'milestone' ? 'milestone · not mine' : 'filtered out'}</span>
                         </div>
                       )

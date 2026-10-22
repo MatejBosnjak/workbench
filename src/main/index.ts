@@ -13,6 +13,7 @@ import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScri
 import { loadConfig } from './local/config'
 import { Supervisor } from './local/supervisor'
 import { Linker } from './linker'
+import { createWorktree, planWorktree, repoRoots } from './local/git'
 import { Notifier } from './notify'
 import { TasksPoller } from './productive/tasks'
 import { Sessions } from './sessions'
@@ -20,6 +21,8 @@ import { shellEnv, which } from './shell-env'
 import { startSignalServer, stopSignalServer } from './signal-server'
 import { openDb } from './store/db'
 import { Repo } from './store/repo'
+import { Workstreams } from './workstreams'
+import { slug } from '@shared/workstream'
 
 app.setName('Workbench')
 
@@ -229,8 +232,18 @@ void app.whenReady().then(() => {
   const confirmPost = async (message: string, detail: string) =>
     (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Post', 'Cancel'], defaultId: 1, cancelId: 1, message, detail })).response === 0
   const drafts = new Drafts(repo, git, tasks, linker, confirmPost, gitChanged, dataDir())
+  const workstreams = new Workstreams(repo, tasks, git, linker, (ws) => win?.webContents.send('ws:changed', ws))
   tasks.start()
   git.start()
+
+  /** A new tab for a task, linked to it, titled after it. */
+  const startForTask = (taskId: string, cwd: string | undefined, title?: string) => {
+    const task = tasks.tasks.find((t) => t.id === taskId)
+    const s = sessions.create({ cwd })
+    if (task ?? title) sessions.setTitle(s.id, task?.title ?? title!)
+    linker.link(s.id, taskId, 'started from this task', 'manual')
+    return sessions.get(s.id)
+  }
 
   const signals = startSignalServer(socketPath(), (sig) => sessions.handleSignal(sig))
   // Keep installed client scripts in step with this build.
@@ -266,12 +279,36 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('tasks:snapshot', () => linker.snapshot())
   ipcMain.handle('tasks:refresh', () => tasks.refresh())
-  ipcMain.handle('tasks:start', (_e, taskId: string) => {
-    const task = tasks.tasks.find((t) => t.id === taskId)
-    const s = sessions.create({ cwd: linker.worktreeFor(taskId) ?? undefined })
-    if (task) sessions.setTitle(s.id, task.title)
-    linker.link(s.id, taskId, 'started from this task', 'manual')
-    return sessions.get(s.id)
+  ipcMain.handle('tasks:start', (_e, taskId: string) => startForTask(taskId, linker.worktreeFor(taskId) ?? undefined))
+  ipcMain.handle('ws:open', (_e, rootId: string) => workstreams.open(rootId))
+  ipcMain.handle('ws:refresh', (_e, rootId: string) => workstreams.refresh(rootId))
+  ipcMain.handle('ws:note', (_e, rootId: string, body: string) => workstreams.setNote(rootId, body))
+  ipcMain.handle('ws:repos', () => [...repoRoots().keys()])
+  ipcMain.handle('ws:start', async (_e, taskId: string, repoName: string | null) => {
+    const existing = linker.worktreeFor(taskId)
+    const title = workstreams.title(taskId)
+    if (existing || !repoName) return startForTask(taskId, existing ?? undefined, title)
+    const plan = await planWorktree(repoName, taskId, slug(title ?? taskId))
+    if (!plan) throw new Error(`No checkout of ${repoName} under the .wtrc repos folders`)
+    const res = await dialog.showMessageBox(win!, {
+      type: 'question',
+      buttons: ['Create and Start', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      message: `Create a worktree for “${title ?? taskId}”?`,
+      detail: `Runs:\n\n${plan.commands.join('\n')}\n\nThen starts a session there.`,
+    })
+    if (res.response !== 0) return null
+    const err = await createWorktree(plan)
+    if (err) throw new Error(err)
+    return startForTask(taskId, plan.path, title)
+  })
+  ipcMain.handle('sessions:fork', (_e, id: string) => {
+    const s = sessions.fork(id)
+    if (!s) return null
+    const src = sessions.get(id)
+    for (const l of repo.links().filter((x) => x.sessionId === id)) linker.link(s.id, l.taskId, `forked from ${src?.title ?? 'a session'}`, 'manual')
+    return s
   })
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))

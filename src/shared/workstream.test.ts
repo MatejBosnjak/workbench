@@ -1,0 +1,81 @@
+import { describe, expect, it } from 'vitest'
+import { rootOf, slug, subtree, timeline, treeOrder, type WsPr, type WsTask } from './workstream'
+
+const t = (id: string, parentId: string | null, p: Partial<WsTask> = {}): WsTask => ({
+  id,
+  number: null,
+  title: id,
+  milestone: false,
+  projectId: 'p',
+  projectName: 'P',
+  taskListId: null,
+  taskListName: null,
+  parentId,
+  statusName: 'Working',
+  statusCategory: 2,
+  statusColorId: null,
+  dueDate: null,
+  lastActivityAt: null,
+  placement: 0,
+  url: '',
+  context: false,
+  depth: 0,
+  assignee: null,
+  mine: false,
+  closed: false,
+  createdAt: null,
+  ...p,
+})
+
+describe('rootOf', () => {
+  it('climbs to the topmost known parent', () => {
+    const tasks = [t('M', null), t('A', 'M'), t('A1', 'A'), t('X', 'unknown')]
+    expect(rootOf('A1', tasks)).toBe('M')
+    expect(rootOf('X', tasks)).toBe('X')
+    expect(rootOf('M', tasks)).toBe('M')
+  })
+})
+
+describe('treeOrder', () => {
+  it('walks depth-first by placement and drops strays', () => {
+    const out = treeOrder('M', [t('B', 'M', { placement: 2 }), t('A', 'M', { placement: 1 }), t('A1', 'A'), t('M', null), t('Z', 'other')])
+    expect(out.map((x) => [x.id, x.depth])).toEqual([
+      ['M', 0],
+      ['A', 1],
+      ['A1', 2],
+      ['B', 1],
+    ])
+    expect([...subtree({ tasks: out }, 'A')]).toEqual(['A', 'A1'])
+  })
+})
+
+describe('timeline', () => {
+  it('merges sessions, PRs and task history in time order, skipping closed tasks nobody worked on', () => {
+    const tasks = treeOrder('M', [t('M', null), t('A', 'M', { mine: true }), t('B', 'M', { closed: true }), t('C', 'M', { closed: true })])
+    const pr: WsPr = { url: 'u', repo: 'o/fe', repoName: 'fe', number: 1, title: 'x', state: 'MERGED', draft: false, branch: 'b', createdAt: '2026-10-02T00:00:00Z', mergedAt: '2026-10-04T00:00:00Z', closedAt: '2026-10-04T00:00:00Z', taskIds: ['C'] }
+    const items = timeline(
+      {
+        rootId: 'M',
+        tasks,
+        prs: [pr],
+        activity: [
+          { at: '2026-10-01T00:00:00Z', taskId: 'A', kind: 'created' },
+          { at: '2026-10-05T00:00:00Z', taskId: 'B', kind: 'status', from: 'Working', to: 'Done' },
+          { at: '2026-10-06T00:00:00Z', taskId: 'C', kind: 'status', from: 'Working', to: 'Done' },
+        ],
+      },
+      [
+        { sessionId: 's1', taskId: 'M', startedAt: Date.parse('2026-10-03T00:00:00Z') },
+        { sessionId: 's1', taskId: 'A', startedAt: Date.parse('2026-10-03T00:00:00Z') },
+      ],
+    )
+    expect(items.map((i) => `${i.kind}:${i.taskId}${i.kind === 'pr' ? `:${i.what}` : ''}`)).toEqual(['task:A', 'pr:C:opened', 'session:A', 'pr:C:merged', 'task:C'])
+  })
+})
+
+describe('slug', () => {
+  it('makes a short ascii name from a task title', () => {
+    expect(slug('FE: Service markup in fixed amount — rate cards (Add from rate card)')).toBe('service-markup-fixed-amount-rate-cards')
+    expect(slug('Scenarios: različita marža u pregledu')).toBe('scenarios-razlicita-marza-pregledu')
+  })
+})

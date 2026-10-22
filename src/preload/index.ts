@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
+import type { Workstream } from '@shared/workstream'
 import type { TasksSnapshot } from '@shared/tasks'
 import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type NavigateTarget, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
@@ -52,6 +53,15 @@ const api: WorkbenchApi = {
     discardDraft: (id) => ipcRenderer.invoke('drafts:discard', id),
     send: (id, body) => ipcRenderer.invoke('drafts:send', id, body),
   },
+  ws: {
+    open: (rootId) => ipcRenderer.invoke('ws:open', rootId),
+    refresh: (rootId) => ipcRenderer.invoke('ws:refresh', rootId),
+    onChanged: (cb) => on('ws:changed', (_e, ws: Workstream) => cb(ws)),
+    setNote: (rootId, body) => ipcRenderer.invoke('ws:note', rootId, body),
+    repos: () => ipcRenderer.invoke('ws:repos'),
+    start: (taskId, repo) => ipcRenderer.invoke('ws:start', taskId, repo),
+  },
+  forkSession: (id) => ipcRenderer.invoke('sessions:fork', id),
   onNavigate: (cb) => on('navigate', (_e, t: NavigateTarget) => cb(t)),
   reportView: (sessionId) => ipcRenderer.send('ui:view', sessionId),
   local: {

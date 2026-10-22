@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { prRef } from '@shared/git'
 import type { Task, TaskLink, TasksSnapshot } from '@shared/tasks'
-import { useStore } from '../store'
+import { openWorkstream, useStore } from '../store'
 import { ago, Diamond, dueLabel, StatusGlyph } from './TodayView'
 
 export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
@@ -60,6 +60,9 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
         <StatusGlyph task={task} size={12} />
         <span className="peek-status">{task.statusName}</span>
         <span className="peek-tools">
+          <button className="link-btn" title="Milestone or parent task with all its subtasks" onClick={() => openWorkstream(task.id)}>
+            Workstream
+          </button>
           <button
             className="link-btn"
             onClick={() => {

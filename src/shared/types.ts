@@ -1,5 +1,6 @@
 import type { AgentSettings, ApplyResult } from './agent'
 import type { DraftTarget, GitSnapshot } from './git'
+import type { Workstream } from './workstream'
 import type { LocalSnapshot, Worktree } from './local'
 import type { TasksSnapshot } from './tasks'
 
@@ -156,6 +157,22 @@ export interface WorkbenchApi {
     /** Shows a confirm with the exact text and target, then posts. False when cancelled. */
     send(id: number, body: string): Promise<boolean>
   }
+  ws: {
+    /** The cached workstream now; a fresh load arrives through onChanged. */
+    open(rootId: string): Promise<Workstream>
+    refresh(rootId: string): Promise<void>
+    onChanged(cb: (ws: Workstream) => void): () => void
+    setNote(rootId: string, body: string): Promise<void>
+    /** Repo names from ~/.wtrc.json, for a new worktree. */
+    repos(): Promise<string[]>
+    /**
+     * Starts a session for a task in its worktree. With a repo and no worktree yet, creates one first
+     * after a confirm that shows the exact git commands. Null when cancelled.
+     */
+    start(taskId: string, repo: string | null): Promise<Session | null>
+  }
+  /** A new tab continuing a copy of the session's conversation (claude --fork-session), linked to the same tasks. */
+  forkSession(id: string): Promise<Session | null>
   onNavigate(cb: (t: NavigateTarget) => void): () => void
   /** Tells main which session is on screen, so its notifications can be skipped. */
   reportView(sessionId: string | null): void

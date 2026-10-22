@@ -69,6 +69,15 @@ const MIGRATIONS: string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  `
+  -- A fork's first start resumes this claude session with --fork-session.
+  ALTER TABLE sessions ADD COLUMN fork_from TEXT;
+  CREATE TABLE notes (
+    workstream_id TEXT PRIMARY KEY, -- the root task id
+    body          TEXT NOT NULL,
+    updated_at    INTEGER NOT NULL
+  );
+  `,
 ]
 
 export function openDb(file: string): Db {

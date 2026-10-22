@@ -98,6 +98,12 @@ export class Linker {
     return hits.sort((a, b) => b.mtime - a.mtime)[0]?.path ?? null
   }
 
+  /** The transcript file of a session, if claude wrote one. */
+  transcriptFor(sessionId: string): string | null {
+    const row = this.repo.get(sessionId)
+    return row ? transcriptOf(row.transcriptPath, row.claudeId ?? row.id) : null
+  }
+
   /** Summarizes the latest linked session's transcript tail with a headless claude. */
   async summarize(taskId: string): Promise<string> {
     const latest = this.repo

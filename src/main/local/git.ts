@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import type { Worktree } from '@shared/local'
@@ -113,4 +113,51 @@ export async function removeWorktree(path: string): Promise<string | null> {
   return new Promise((done) => {
     execFile('git', ['worktree', 'remove', path], { cwd: dirname(common) }, (err, _out, stderr) => done(err ? stderr.trim() || err.message : null))
   })
+}
+
+/** Repos (folders with a .git) under the .wtrc reposDirs, by name, first match wins. */
+export function repoRoots(): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const dir of readWtrc().reposDirs) {
+    if (!existsSync(dir)) continue
+    for (const name of readdirSync(dir).sort()) if (!out.has(name) && existsSync(join(dir, name, '.git'))) out.set(name, join(dir, name))
+  }
+  return out
+}
+
+export interface WorktreePlan {
+  root: string
+  path: string
+  branch: string
+  base: string
+  commands: string[]
+}
+
+/**
+ * Where a new worktree for a task goes: `<worktrees>/<repo>-<taskId>-<slug>` on `feature/<taskId>-<slug>`,
+ * branched from origin/<default>. The worktrees folder is the one next to the repo's reposDir when .wtrc lists it.
+ */
+export async function planWorktree(repo: string, taskId: string, slug: string): Promise<WorktreePlan | null> {
+  const root = repoRoots().get(repo)
+  if (!root) return null
+  const { worktreesDirs } = readWtrc()
+  const sibling = join(dirname(dirname(root)), 'worktrees')
+  const dir = worktreesDirs.find((d) => d === sibling) ?? worktreesDirs[0] ?? sibling
+  const base = await defaultBranch(root)
+  const name = `${taskId}-${slug}`.replace(/-+$/, '')
+  const path = join(dir, `${repo}-${name}`)
+  const branch = `feature/${name}`
+  return {
+    root,
+    path,
+    branch,
+    base,
+    commands: [`git -C ${root} fetch origin ${base}`, `git -C ${root} worktree add -b ${branch} ${path} origin/${base}`],
+  }
+}
+
+export async function createWorktree(p: WorktreePlan): Promise<string | null> {
+  const run = (args: string[]) =>
+    new Promise<string | null>((done) => execFile('git', args, { cwd: p.root, timeout: 120_000 }, (err, _o, stderr) => done(err ? stderr.trim() || err.message : null)))
+  return (await run(['fetch', 'origin', p.base])) ?? (await run(['worktree', 'add', '-b', p.branch, p.path, `origin/${p.base}`]))
 }

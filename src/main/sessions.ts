@@ -58,7 +58,16 @@ export class Sessions {
     return { sessions: Object.fromEntries(this.status), usage: this.usage }
   }
 
-  create(opts: { cwd?: string; model?: string | null; effort?: string | null; permissionMode?: string | null } = {}): Session {
+  /** A new tab that starts as a copy of another session's conversation (claude --fork-session). */
+  fork(sourceId: string): Session | null {
+    const src = this.repo.get(sourceId)
+    if (!src) return null
+    const s = this.create({ cwd: src.cwd, model: src.model, effort: src.effort, permissionMode: src.permissionMode, forkFrom: src.claudeId ?? src.id })
+    this.setTitle(s.id, `${src.title} (fork)`)
+    return this.get(s.id)
+  }
+
+  create(opts: { cwd?: string; model?: string | null; effort?: string | null; permissionMode?: string | null; forkFrom?: string } = {}): Session {
     const cwd = opts.cwd ?? this.repo.getSetting('defaultCwd', DEFAULT_CWD)
     const defaults = this.defaults()
     const now = Date.now()
@@ -75,6 +84,7 @@ export class Sessions {
       model: opts.model !== undefined ? opts.model : defaults.model,
       effort: opts.effort !== undefined ? opts.effort : defaults.effort,
       permissionMode: opts.permissionMode !== undefined ? opts.permissionMode : defaults.permissionMode,
+      forkFrom: opts.forkFrom ?? null,
     }
     this.repo.insertTab(row)
     this.events.sessionsChanged()
@@ -137,7 +147,11 @@ export class Sessions {
       if (!claude) throw new Error('claude not found on the login shell PATH')
       const claudeId = row.claudeId ?? row.id
       // A session that never got a prompt has no transcript, and --resume would fail on it.
-      const args = hasTranscript(claudeId) ? ['--resume', claudeId] : ['--session-id', row.id]
+      const args = hasTranscript(claudeId)
+        ? ['--resume', claudeId]
+        : row.forkFrom
+          ? ['--resume', row.forkFrom, '--fork-session', '--session-id', row.id]
+          : ['--session-id', row.id]
       if (row.model) args.push('--model', row.model)
       if (row.effort) args.push('--effort', row.effort)
       if (row.permissionMode) args.push('--permission-mode', row.permissionMode)

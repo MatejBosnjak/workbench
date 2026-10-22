@@ -65,10 +65,10 @@ export class TasksPoller {
   }
 
   /** The client with the org set, for callers outside the poll (drafts). */
-  async client(): Promise<{ api: Productive; personId: string }> {
+  async client(): Promise<{ api: Productive; personId: string; orgSlug: string }> {
     const account = await this.account()
     this.api.setOrg(account.orgId)
-    return { api: this.api, personId: account.personId }
+    return { api: this.api, personId: account.personId, orgSlug: account.orgSlug }
   }
 
   /** Org, person and filter: discovered on first use and stored in settings. */
@@ -95,11 +95,12 @@ export class TasksPoller {
   }
 }
 
-export function normalize(data: JsonApiResource[], included: JsonApiResource[], orgSlug: string): Task[] {
+/** Maps a JSON:API task (with its included project, list and status) to a Task. */
+export function taskMapper(included: JsonApiResource[], orgSlug: string): (t: JsonApiResource, context: boolean) => Task {
   const inc = new Map(included.map((i) => [`${i.type}:${i.id}`, i]))
   const rel = (r: JsonApiResource, name: string) => r.relationships?.[name]?.data ?? null
   const attr = <T>(r: JsonApiResource | undefined, k: string) => r?.attributes[k] as T | undefined
-  const toTask = (t: JsonApiResource, context: boolean): Task => {
+  return (t, context) => {
     const project = inc.get(`projects:${rel(t, 'project')?.id}`)
     const list = inc.get(`task_lists:${rel(t, 'task_list')?.id}`)
     const status = inc.get(`workflow_statuses:${rel(t, 'workflow_status')?.id}`)
@@ -123,6 +124,10 @@ export function normalize(data: JsonApiResource[], included: JsonApiResource[], 
       context,
     }
   }
+}
+
+export function normalize(data: JsonApiResource[], included: JsonApiResource[], orgSlug: string): Task[] {
+  const toTask = taskMapper(included, orgSlug)
   const mine = data.map((t) => toTask(t, false))
   const ids = new Set(mine.map((t) => t.id))
   // Parents outside the filter come back as included tasks; keep them as context headers.

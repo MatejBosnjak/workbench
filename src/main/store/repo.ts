@@ -15,6 +15,7 @@ export interface SessionRow {
   model: string | null
   effort: string | null
   permissionMode: string | null
+  forkFrom?: string | null
 }
 
 type Patch = Partial<Omit<SessionRow, 'id' | 'startedAt'>>
@@ -30,6 +31,7 @@ const COLUMNS: Record<keyof Patch, string> = {
   model: 'model',
   effort: 'effort',
   permissionMode: 'permission_mode',
+  forkFrom: 'fork_from',
 }
 
 interface RawSession {
@@ -45,6 +47,7 @@ interface RawSession {
   model: string | null
   effort: string | null
   permission_mode: string | null
+  fork_from: string | null
   tab_order: number | null
 }
 
@@ -61,6 +64,7 @@ const fromRaw = (r: RawSession): SessionRow => ({
   model: r.model,
   effort: r.effort,
   permissionMode: r.permission_mode,
+  forkFrom: r.fork_from,
 })
 
 export class Repo {
@@ -100,11 +104,11 @@ export class Repo {
   insertTab(s: SessionRow): void {
     this.db
       .prepare(
-        `INSERT INTO sessions (id, cwd, title, state, external, started_at, last_event_at, claude_id, transcript_path, model, effort, permission_mode, tab_order)
-         VALUES (@id, @cwd, @title, @state, @external, @startedAt, @lastEventAt, @claudeId, @transcriptPath, @model, @effort, @permissionMode, @tabOrder)
+        `INSERT INTO sessions (id, cwd, title, state, external, started_at, last_event_at, claude_id, transcript_path, model, effort, permission_mode, fork_from, tab_order)
+         VALUES (@id, @cwd, @title, @state, @external, @startedAt, @lastEventAt, @claudeId, @transcriptPath, @model, @effort, @permissionMode, @forkFrom, @tabOrder)
          ON CONFLICT(id) DO UPDATE SET tab_order = excluded.tab_order`,
       )
-      .run({ ...s, external: s.external ? 1 : 0, tabOrder: this.nextOrder() })
+      .run({ ...s, forkFrom: s.forkFrom ?? null, external: s.external ? 1 : 0, tabOrder: this.nextOrder() })
   }
 
   reopenTab(id: string): void {
@@ -222,6 +226,18 @@ export class Repo {
 
   deleteDraft(id: number): void {
     this.db.prepare('DELETE FROM drafts WHERE id = ?').run(id)
+  }
+
+  // --- workstream notes ---
+
+  note(workstreamId: string): string {
+    return (this.db.prepare('SELECT body FROM notes WHERE workstream_id = ?').get(workstreamId) as { body: string } | undefined)?.body ?? ''
+  }
+
+  setNote(workstreamId: string, body: string): void {
+    this.db
+      .prepare('INSERT INTO notes (workstream_id, body, updated_at) VALUES (?, ?, ?) ON CONFLICT(workstream_id) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at')
+      .run(workstreamId, body, Date.now())
   }
 
   getSetting<T>(key: string, fallback: T): T {

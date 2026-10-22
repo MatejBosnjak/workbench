@@ -1,0 +1,5 @@
+# Electron fetches its binary on first run; node-pty and better-sqlite3 ship N-API prebuilds.
+allowBuilds:
+  better-sqlite3: false
+  node-pty: false
+  electron-winstaller: false

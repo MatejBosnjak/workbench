@@ -1,0 +1,94 @@
+@import './theme.css';
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+
+.app { height: 100%; display: flex; flex-direction: column; }
+.main { flex: 1; min-height: 0; position: relative; background: var(--bg); background-image: var(--bg-img); }
+
+/* Top bar */
+.topbar {
+  height: 48px; flex-shrink: 0;
+  display: flex; align-items: center;
+  padding: 0 12px 0 84px; /* room for the traffic lights */
+  background: var(--chrome);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--chrome-edge);
+  position: relative; z-index: 1;
+  color: var(--text-3);
+  -webkit-app-region: drag;
+}
+.topbar button, .topbar .tab { -webkit-app-region: no-drag; }
+
+.places { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9px; background: var(--bg); border: 1px solid var(--line); }
+.place {
+  display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px;
+  border: 0; border-radius: 6px; background: transparent; cursor: pointer;
+  font-weight: 500; color: var(--text-2);
+}
+.place[aria-current='page'] { font-weight: 600; color: var(--on-accent); background: var(--text); }
+
+.divider { width: 1px; height: 24px; background: var(--line-strong); margin: 0 14px; flex-shrink: 0; }
+
+.tabs { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 2px; overflow: hidden; }
+.tabs-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: var(--faint); margin-right: 8px; flex-shrink: 0; }
+.tab {
+  position: relative; display: flex; align-items: center; gap: 6px;
+  height: 100%; padding: 0 10px 0 14px; min-width: 0; max-width: 240px;
+  border: 0; background: transparent; cursor: pointer;
+  font-size: 13px; color: var(--text-3);
+}
+.tab[aria-selected='true'] { color: var(--text); background: var(--line-soft); font-weight: 500; }
+.tab.dead .tab-title { opacity: 0.6; }
+.tab.drop-before { box-shadow: inset 2px 0 0 var(--accent); }
+.tab-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab-line { position: absolute; left: 8px; right: 8px; top: 0; height: 2px; border-radius: 0 0 2px 2px; }
+.tab[aria-selected='true'] .tab-line { top: auto; bottom: -1px; height: 3px; border-radius: 2px 2px 0 0; }
+.tab-close {
+  width: 18px; height: 18px; display: grid; place-items: center; flex-shrink: 0;
+  border: 0; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer;
+  visibility: hidden; font-size: 14px; line-height: 1;
+}
+.tab:hover .tab-close, .tab[aria-selected='true'] .tab-close { visibility: visible; }
+.tab-close:hover { background: var(--raised); color: var(--text); }
+
+.state-running { background: var(--info); }
+.state-waiting { background: var(--accent); }
+.state-failed { background: var(--bad); }
+.state-idle { background: var(--faint); }
+
+.icon-btn { height: 30px; width: 30px; flex-shrink: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-3); font-size: 16px; cursor: pointer; }
+.icon-btn:hover { background: var(--raised); color: var(--text); }
+
+.kbar {
+  display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; flex-shrink: 0;
+  border-radius: 7px; border: 1px solid var(--line); background: transparent;
+  font-size: 12px; color: var(--muted);
+}
+.kbar kbd { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+
+/* Terminal */
+.term { position: absolute; inset: 0; padding: 14px 0 6px 18px; background: var(--bg); }
+.term[hidden] { display: block; visibility: hidden; }
+.term .xterm { height: 100%; }
+.term .xterm-viewport { scrollbar-width: thin; scrollbar-color: var(--line-heavy) transparent; }
+
+/* Placeholder places */
+.empty { height: 100%; display: grid; place-content: center; justify-items: center; gap: 14px; color: var(--muted); }
+.empty h1 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 500; color: var(--text); text-shadow: var(--title-glow); letter-spacing: 0.04em; }
+.empty p { margin: 0; }
+.primary {
+  height: 32px; padding: 0 14px; border: 0; border-radius: 7px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); font-weight: 600; box-shadow: var(--accent-shadow);
+}
+.empty kbd { font-family: var(--mono); font-size: 11px; color: var(--text-3); }

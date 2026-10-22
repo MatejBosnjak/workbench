@@ -23,5 +23,5 @@ Personal Electron desktop app for working with Claude Code. Read these first:
 - Stack: Electron, TypeScript, node-pty, xterm.js, SQLite (better-sqlite3). Renderer framework is not decided yet; propose one.
 - Never post to GitHub, Productive or Slack without an explicit confirm from me.
 - Global changes to `~/.claude/settings.json` (hooks, statusline) go only through the app's Install hooks / Uninstall flow, always with a backup. Don't edit that file by hand during development.
-- Secrets: the Productive token lives in the macOS keychain (env `PRODUCTIVE_API_TOKEN` in my shell); GitHub access goes through `gh`. Never hardcode either.
+- Secrets: the Productive token lives in the macOS keychain (env `PRODUCTIVE_AUTH_TOKEN` in my shell, loaded by `~/.zprofile`); GitHub access goes through `gh`. Never hardcode either.
 - Keep replies terse; no trailing summaries.

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
 import { CaffeinateControl } from './components/CaffeinateControl'
 import { ExternalPanel } from './components/ExternalPanel'
+import { LocalView } from './components/LocalView'
 import { Palette } from './components/Palette'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
@@ -47,7 +48,12 @@ function onMenu(cmd: MenuCommand): void {
 }
 
 export function App() {
-  const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen } = useStore()
+  const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen, local, setLocal } = useStore()
+
+  useEffect(() => {
+    void window.workbench.local.snapshot().then(setLocal)
+    return window.workbench.local.onChanged(setLocal)
+  }, [setLocal])
 
   useEffect(() => {
     void window.workbench.getStatus().then(setStatus)
@@ -91,7 +97,7 @@ export function App() {
         {view.kind === 'today' && (
           <Placeholder title="Today" note="My tasks, My git and My reviews arrive in phases 3 and 4." />
         )}
-        {view.kind === 'local' && <Placeholder title="Local" note="Local services and worktrees arrive in phase 2." />}
+        <LocalView snapshot={local} active={view.kind === 'local'} />
       </main>
       <StatusBar>
         <span className="sb-sep" />

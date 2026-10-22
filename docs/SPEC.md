@@ -156,9 +156,9 @@ Keeps the Mac awake while sessions run.
   | pdf-viewer | `npm run start` |
   | AI | `DEV_API_ENV=production pnpm start` |
 
-  Each service has a cwd, a command, a health port, and extra shell panes.
-- **Supervision.** Workbench spawns each service in a pty and handles start, stop and restart, the logs and a health check. Quitting asks whether to stop the services or leave them running.
-- **Docker infra.** Status chips, plus `docker compose up` when something is missing.
+  Each service has a cwd (`~/Productive/<service>`, `~/Productive/ai-agent` for AI), a command, a health port where known, extra shell panes, and profile tags (prd · full, Frontend only, AI work, Exports & PDF). The config is a JSON file in Workbench's data folder, seeded from `prd`.
+- **Supervision.** Workbench spawns each service in a pty and handles start, stop and restart, the logs and a health check. Services run inside the app, so quitting Workbench stops them (it asks first while any are running).
+- **Infra.** mysql, redis, memcached, meilisearch and nginx run as Homebrew services on this machine, not Docker. Status chips come from `brew services list`, and a stopped one can be started with `brew services start`.
 - **Panes.** Panes split and resize like tmux. The header shows only the branch, worktree path and how far it is behind develop.
 - **Worktrees.** Reads `~/.wtrc.json`.
   - The list is ordered by recency, with badges for merged / gone / dirty / unmerged and the same keys as `wt`.

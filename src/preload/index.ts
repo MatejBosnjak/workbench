@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import type { LocalSnapshot } from '@shared/local'
 import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
 function on<A extends unknown[]>(channel: string, handler: (e: IpcRendererEvent, ...args: A) => void): () => void {
@@ -29,6 +30,28 @@ const api: WorkbenchApi = {
   onCaffeinate: (cb) => on('caf:changed', (_e, s: CaffeinateState) => cb(s)),
   prInfo: (url) => ipcRenderer.invoke('gh:pr', url),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
+  local: {
+    snapshot: () => ipcRenderer.invoke('local:snapshot'),
+    onChanged: (cb) => on('local:changed', (_e, s: LocalSnapshot) => cb(s)),
+    onPaneExit: (cb) => on('local:pane-exit', (_e, id: string) => cb(id)),
+    setProfile: (id) => ipcRenderer.invoke('local:profile', id),
+    start: (name) => ipcRenderer.invoke('local:start', name),
+    stop: (name) => ipcRenderer.invoke('local:stop', name),
+    restart: (name) => ipcRenderer.invoke('local:restart', name),
+    stopAll: () => ipcRenderer.invoke('local:stop-all'),
+    startMissing: (profile) => ipcRenderer.invoke('local:start-missing', profile),
+    openPane: (id, size) => ipcRenderer.invoke('local:open-pane', id, size),
+    closePane: (id) => ipcRenderer.invoke('local:close-pane', id),
+    worktrees: (name) => ipcRenderer.invoke('local:worktrees', name),
+    switchWorktree: (name, path, run) => ipcRenderer.invoke('local:switch', name, path, run),
+    runAlongside: (name, path) => ipcRenderer.invoke('local:alongside', name, path),
+    removeWorktree: (path) => ipcRenderer.invoke('local:remove-worktree', path),
+    startInfra: (name) => ipcRenderer.invoke('local:infra-start', name),
+    refreshInfra: () => ipcRenderer.invoke('local:infra-refresh'),
+  },
+  openInEditor: (path) => ipcRenderer.invoke('editor:open', path),
+  getSetting: (key, fallback) => ipcRenderer.invoke('settings:get', key, fallback),
+  setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   getStatus: () => ipcRenderer.invoke('status:get'),
   onStatus: (cb) => on('status:changed', (_e, s: StatusSnapshot) => cb(s)),
   hooksStatus: () => ipcRenderer.invoke('hooks:status'),

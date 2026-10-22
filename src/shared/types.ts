@@ -1,4 +1,5 @@
 import type { AgentSettings, ApplyResult } from './agent'
+import type { LocalSnapshot, Worktree } from './local'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -126,6 +127,29 @@ export interface WorkbenchApi {
   onCaffeinate(cb: (s: CaffeinateState) => void): () => void
   prInfo(url: string): Promise<PrInfo | null>
   openExternal(url: string): Promise<void>
+  local: {
+    snapshot(): Promise<LocalSnapshot>
+    onChanged(cb: (s: LocalSnapshot) => void): () => void
+    onPaneExit(cb: (id: string) => void): () => void
+    setProfile(id: string): Promise<void>
+    start(name: string): Promise<void>
+    stop(name: string): Promise<void>
+    restart(name: string): Promise<void>
+    stopAll(): Promise<void>
+    startMissing(profile: string): Promise<void>
+    openPane(id: string, size: { cols: number; rows: number }): Promise<void>
+    closePane(id: string): Promise<void>
+    worktrees(name: string): Promise<Worktree[]>
+    switchWorktree(name: string, path: string, run: boolean): Promise<void>
+    runAlongside(name: string, path: string): Promise<string | null>
+    removeWorktree(path: string): Promise<string>
+    startInfra(name: string): Promise<void>
+    refreshInfra(): Promise<void>
+  }
+  openInEditor(path: string): Promise<void>
+  /** UI state kept in SQLite; keys start with "ui:". */
+  getSetting<T>(key: string, fallback: T): Promise<T>
+  setSetting(key: string, value: unknown): Promise<void>
   getStatus(): Promise<StatusSnapshot>
   onStatus(cb: (s: StatusSnapshot) => void): () => void
   hooksStatus(): Promise<HooksStatus>

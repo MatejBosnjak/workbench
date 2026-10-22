@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
@@ -6,8 +7,10 @@ import type { HooksStatus, MenuCommand } from '@shared/types'
 import { Caffeinate } from './caffeinate'
 import { prInfo } from './github'
 import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
+import { loadConfig } from './local/config'
+import { Supervisor } from './local/supervisor'
 import { Sessions } from './sessions'
-import { shellEnv } from './shell-env'
+import { shellEnv, which } from './shell-env'
 import { startSignalServer, stopSignalServer } from './signal-server'
 import { openDb } from './store/db'
 import { Repo } from './store/repo'
@@ -146,7 +149,15 @@ function buildMenu(): void {
 void app.whenReady().then(() => {
   void shellEnv() // warm up; the first session would otherwise wait on it
   const caffeinate = new Caffeinate((s) => win?.webContents.send('caf:changed', s))
-  const sessions = new Sessions(new Repo(openDb(join(dataDir(), 'workbench.db'))), {
+  const repo = new Repo(openDb(join(dataDir(), 'workbench.db')))
+  const local = new Supervisor(
+    loadConfig(join(dataDir(), 'services.json')),
+    repo,
+    () => win?.webContents,
+    (s) => win?.webContents.send('local:changed', s),
+    (id) => win?.webContents.send('local:pane-exit', id),
+  )
+  const sessions = new Sessions(repo, {
     sessionsChanged: () => {
       const list = sessions.list()
       caffeinate.sessionsChanged(list)
@@ -187,15 +198,68 @@ void app.whenReady().then(() => {
   ipcMain.handle('shell:open', (_e, url: string) => {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url)
   })
+  ipcMain.handle('local:snapshot', () => local.snapshot())
+  ipcMain.handle('local:profile', (_e, id: string) => local.setProfile(id))
+  ipcMain.handle('local:start', (_e, name: string) => local.start(name))
+  ipcMain.handle('local:stop', (_e, name: string) => local.stop(name))
+  ipcMain.handle('local:restart', (_e, name: string) => local.restart(name))
+  ipcMain.handle('local:stop-all', () => local.stopAll())
+  ipcMain.handle('local:start-missing', (_e, profile: string) => local.startMissing(profile))
+  ipcMain.handle('local:open-pane', (e, id: string, size: { cols: number; rows: number }) => local.openPane(id, size, e.sender))
+  ipcMain.handle('local:close-pane', (_e, id: string) => local.closePane(id))
+  ipcMain.handle('local:worktrees', (_e, name: string) => local.worktrees(name))
+  ipcMain.handle('local:switch', (_e, name: string, path: string, run: boolean) => local.switchWorktree(name, path, run))
+  ipcMain.handle('local:alongside', (_e, name: string, path: string) => local.runAlongside(name, path))
+  ipcMain.handle('local:infra-start', (_e, name: string) => local.startInfra(name))
+  ipcMain.handle('local:infra-refresh', () => local.refreshInfra())
+  ipcMain.handle('local:remove-worktree', async (_e, path: string) => {
+    const res = await dialog.showMessageBox(win!, {
+      type: 'warning',
+      buttons: ['Remove', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      message: 'Remove this worktree?',
+      detail: `${path}\n\nRuns git worktree remove (no --force): git refuses if there are uncommitted or untracked changes. The branch is kept.`,
+    })
+    return res.response === 0 ? ((await local.removeWorktree(path)) ?? 'removed') : 'cancelled'
+  })
+  ipcMain.handle('editor:open', async (_e, path: string) => {
+    const env = await shellEnv()
+    const code = which('code', env)
+    if (code) execFile(code, [path], { env })
+    else void shell.openPath(path)
+  })
+  ipcMain.handle('settings:get', (_e, key: string, fallback: unknown) => (key.startsWith('ui:') ? repo.getSetting(key, fallback) : fallback))
+  ipcMain.handle('settings:set', (_e, key: string, value: unknown) => {
+    if (key.startsWith('ui:')) repo.setSetting(key, value)
+  })
   ipcMain.handle('status:get', () => sessions.statusSnapshot())
   ipcMain.handle('hooks:status', () => currentStatus(installPaths()))
   const hooksChanged = (s: HooksStatus) => (win?.webContents.send('hooks:changed', s), s)
   ipcMain.handle('hooks:install', () => confirmInstall().then(hooksChanged))
   ipcMain.handle('hooks:uninstall', () => confirmUninstall().then(hooksChanged))
 
-  app.on('before-quit', () => {
+  let quitting = false
+  app.on('before-quit', (e) => {
+    const running = local.running()
+    if (!quitting && running.length) {
+      e.preventDefault()
+      const answer = dialog.showMessageBoxSync({
+        type: 'question',
+        buttons: ['Stop and Quit', 'Cancel'],
+        defaultId: 0,
+        cancelId: 1,
+        message: `Stop ${running.length} local service${running.length > 1 ? 's' : ''} and quit?`,
+        detail: running.map((s) => s.name).join(', '),
+      })
+      if (answer !== 0) return
+      quitting = true
+      void local.stopAll().finally(() => app.quit())
+      return
+    }
     caffeinate.stop()
     sessions.shutdown()
+    local.dispose()
     stopSignalServer(signals, socketPath())
   })
 

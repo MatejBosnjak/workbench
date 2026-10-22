@@ -11,7 +11,9 @@ const STATE_LABEL: Record<SessionState, string> = {
 }
 
 export function TopBar({ onNew }: { onNew: () => void }) {
-  const { sessions, view, show, caf } = useStore()
+  const { sessions, view, show, caf, local } = useStore()
+  const inProfile = local?.services.filter((s) => s.def.profiles.includes(local.profile) && !s.transient) ?? []
+  const up = inProfile.filter((s) => s.status === 'running').length
   const caffeinated = (s: Session) => {
     if (!caf || caf.mode === 'off') return null
     return (caf.scope === 'all' ? s.alive : caf.sessionId === s.id) ? caf.mode : null
@@ -37,6 +39,11 @@ export function TopBar({ onNew }: { onNew: () => void }) {
         <button className="place" aria-current={view.kind === 'local' ? 'page' : undefined} onClick={() => show({ kind: 'local' })}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5" /><rect x="3" y="14" width="18" height="6" rx="1.5" /><path d="M7 7h.01M7 17h.01" /></svg>
           Local
+          {up > 0 && (
+            <span className="place-count" title={`${up} of ${inProfile.length} services running`}>
+              {up}/{inProfile.length}
+            </span>
+          )}
         </button>
       </nav>
 

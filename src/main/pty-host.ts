@@ -108,6 +108,24 @@ export class PtyHost {
     clearTimeout(timer)
   }
 
+  /**
+   * Stops a process tree the way Ctrl+C would, escalating: each signal goes to the whole
+   * process group (the pty child is its session leader) and waits before the next.
+   */
+  async stopGroup(id: string, steps: [NodeJS.Signals, number][] = [['SIGINT', 5000], ['SIGTERM', 3000], ['SIGKILL', 1000]]): Promise<void> {
+    const e = this.entries.get(id)
+    if (!e) return
+    for (const [sig, ms] of steps) {
+      try {
+        process.kill(-e.proc.pid, sig)
+      } catch {
+        e.proc.kill(sig)
+      }
+      const exited = await Promise.race([e.exited.then(() => true), new Promise<boolean>((r) => setTimeout(() => r(false), ms))])
+      if (exited) return
+    }
+  }
+
   kill(id: string): void {
     this.entries.get(id)?.proc.kill('SIGHUP')
   }

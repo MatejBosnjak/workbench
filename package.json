@@ -11,7 +11,9 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
-    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper"
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper",
+    "dist": "electron-vite build && electron-builder --mac dir",
+    "install-app": "pnpm dist && rm -rf /Applications/Workbench.app && ditto dist/mac-arm64/Workbench.app /Applications/Workbench.app"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

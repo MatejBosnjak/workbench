@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workbench — Task workstream</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Orbitron:wght@500;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0B0C;--chrome:#111316;--panel:#0F1113;--card:#14171A;--raised:#1C1F24;--popover:#16191D;--line-soft:#1E2227;--line:#23272D;--line-strong:#2A2F36;--line-heavy:#343941;--text:#E7E9EC;--text-2:#C9CED4;--text-3:#A0A7B1;--muted:#8B93A0;--faint:#6B7380;--accent:#E8A15C;--on-accent:#0D0E10;--accent-bg:#2A2113;--accent-line:#5A4325;--accent-ring:rgba(232,161,92,0.12);--warn:#F0B27A;--ok:#5CC98A;--ok-bg:#0F1A14;--ok-line:#2E5A40;--ok-glow:rgba(92,201,138,0.2);--bad:#F2726A;--bad-bg:#2A1517;--info:#6CB6FF;--info-bg:#1A2433;--link:#9CC9FF;--link-hover:#C7E0FF;--link-line:#4A6A8F;--violet:#C3A4FF;--teal:#4FC1C9;--prio-high:rgba(242,114,106,0.13);--prio-mid:rgba(240,178,122,0.09);--prio-low:rgba(160,167,177,0.06);--shadow:rgba(0,0,0,0.6);--scrim:rgba(5,6,7,0.55);--display:Inter, system-ui, sans-serif;--title-glow:none;--accent-shadow:none;--chrome-edge:none;--bg-img:none}
+body{margin:0;background:var(--bg)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="{{themeVars}} width: 1440px; height: 1216px; box-sizing: border-box; background: var(--bg); background-image: var(--bg-img); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 13px; display: flex; flex-direction: column; overflow: hidden">
+
+  <dc-import name="TopBar" theme="{{theme}}" active="markup" hint-size="100%,48px"></dc-import>
+
+  <!-- Header -->
+  <div style="padding: 20px 28px 0; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line-soft)">
+    <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted)">
+      <span>Product: CRM</span><span>›</span><span>Services</span><span>›</span><span style="display: flex; align-items: center; gap: 5px"><svg style="stroke: var(--muted)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2.2" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path></svg>Milestone</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px">
+      <h1 style="font-family: var(--display); text-shadow: var(--title-glow); margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Service markup in fixed amount</h1>
+      <span style="display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--info)"><span style="{{headGlyph}}" aria-hidden="true"><span style="{{headCore}}"></span></span>Working</span>
+      <div style="margin-left: auto; display: flex; gap: 8px">
+        <a href="#" style="height: 34px; display: flex; align-items: center; padding: 0 12px; border-radius: 7px; border: 1px solid var(--line-strong); color: var(--text); text-decoration: none">Open in Productive</a>
+        <button style="height: 34px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); cursor: pointer">Post update to task</button>
+        <a href="Focus.dc.html" style="height: 34px; display: flex; align-items: center; padding: 0 14px; border-radius: 7px; background: {{accent}}; color: var(--on-accent); box-shadow: var(--accent-shadow); font-weight: 600; text-decoration: none">Resume last session</a>
+      </div>
+    </div>
+    <div role="tablist" style="display: flex; gap: 4px">
+      <button role="tab" aria-selected="true" style="height: 36px; padding: 0 12px; border: 0; border-bottom: 2px solid {{accent}}; background: transparent; color: var(--text); font-weight: 500; cursor: pointer">Timeline</button>
+      <button role="tab" aria-selected="false" style="height: 36px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-3); cursor: pointer">Sessions · 7</button>
+      <button role="tab" aria-selected="false" style="height: 36px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-3); cursor: pointer">PRs · 5</button>
+      <button role="tab" aria-selected="false" style="height: 36px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-3); cursor: pointer">Notes</button>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; display: flex">
+
+    <!-- Timeline -->
+    <main style="flex: 1; min-width: 0; padding: 20px 28px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="font-size: 12px; color: var(--text-3)">Show</span>
+        <sc-for list="{{scopes}}" as="s" hint-placeholder-count="4">
+          <button onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-direction: column">
+        <sc-for list="{{events}}" as="e" hint-placeholder-count="8">
+          <div style="display: flex; gap: 14px">
+            <div style="width: 70px; flex-shrink: 0; padding-top: 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.5; white-space: pre-line">{{e.when}}</div>
+            <div style="width: 14px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center">
+              <span style="width: 1px; height: 14px; background: var(--line)"></span>
+              <span style="{{e.nodeStyle}}"></span>
+              <span style="flex: 1; width: 1px; background: var(--line)"></span>
+            </div>
+            <sc-if value="{{e.isSession}}" hint-placeholder-val="{{true}}">
+              <div style="{{e.cardStyle}}">
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <svg style="stroke: var(--text-3)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><path d="M4 17l6-5-6-5"></path><path d="M12 19h8"></path></svg>
+                  <span style="font-weight: 600">{{e.title}}</span>
+                  <sc-if value="{{e.live}}" hint-placeholder-val="{{false}}">
+                    <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--ok)"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-glow)"></span>Running in this tab</span>
+                  </sc-if>
+                  <span style="margin-left: auto; display: flex; gap: 6px">
+                    <span style="{{e.subtaskStyle}}"><span style="{{e.subGlyph}}" aria-hidden="true"><span style="{{e.subCore}}"></span></span>{{e.subtask}}</span>
+                    <span style="font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--raised); color: var(--text-3)">linked via {{e.via}}</span>
+                  </span>
+                </div>
+                <span style="font-size: 12px; color: var(--text-2); line-height: 1.5">{{e.summary}}</span>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="font-size: 11px; color: var(--muted)">{{e.meta}}</span>
+                  <span style="margin-left: auto; display: flex; gap: 6px">
+                    <button style="height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font-size: 12px; cursor: pointer">Resume</button>
+                    <button style="height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font-size: 12px; cursor: pointer">Fork with context</button>
+                  </span>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{e.isEvent}}" hint-placeholder-val="{{false}}">
+              <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 12px; color: var(--text-3)">
+                <span style="{{e.chipStyle}}">{{e.chip}}</span>
+                <span>{{e.title}}</span>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </main>
+
+    <!-- Right: structure + linking -->
+    <aside aria-label="Linked work" style="width: 420px; flex-shrink: 0; border-left: 1px solid var(--line-soft); background: var(--panel); padding: 20px; display: flex; flex-direction: column; gap: 20px">
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Structure</span>
+        <div style="display: flex; flex-direction: column; border-radius: 10px; border: 1px solid var(--line); background: var(--card); overflow: hidden">
+          <sc-for list="{{tree}}" as="n" hint-placeholder-count="4">
+            <div style="{{n.rowStyle}}">
+              <div style="display: flex; align-items: center; gap: 10px">
+                <span style="{{n.glyph}}" title="{{n.status}}" role="img" aria-label="{{n.status}}"><span style="{{n.core}}"></span></span>
+                <sc-if value="{{n.ms}}" hint-placeholder-val="{{false}}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2.2" style="stroke: var(--text-2); flex-shrink: 0" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path></svg>
+                </sc-if>
+                <span style="{{n.titleStyle}}">{{n.title}}</span>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 4px; padding-left: 26px">
+                <sc-for list="{{n.links}}" as="l" hint-placeholder-count="2">
+                  <span style="{{l.style}}">{{l.label}}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Start work</span>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <button style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; font: inherit; text-align: left">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-glow)"></span>
+            <span style="flex: 1">Rate cards · running in this tab</span>
+            <span style="font-size: 11px; color: var(--muted)">since 14:04</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; font: inherit; text-align: left">
+            <span style="width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--faint); box-sizing: border-box"></span>
+            <span style="flex: 1">New session for Scenarios</span>
+            <span style="font-size: 11px; color: var(--muted)">creates worktree</span>
+          </button>
+        </div>
+      </section>
+
+      <section style="margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 10px; border: 1px dashed var(--line-heavy)">
+        <span style="font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Where I left off</span>
+        <span style="font-size: 12px; color: var(--text-2); line-height: 1.5">Rate cards: review comments on fe #30227 addressed, waiting on re-review. Scenarios: draft fe #30228, still needs tests.</span>
+        <span style="font-size: 11px; color: var(--muted)">From the last 2 sessions · 22 Oct 14:04</span>
+      </section>
+    </aside>
+  </div>
+  <dc-import name="StatusBar" theme="{{theme}}" session="Address review on fe #30227" ctx="{{ctxHigh}}" hint-size="100%,36px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["graphite", "midnight", "forest", "dusk", "synthwave"], "default": "graphite"}, "$preview": {"width": 1440, "height": 1216}}'>
+// THEMES:start (generated — same block in every C board)
+const THEMES = {
+  "graphite": {
+    "bg": "#0A0B0C",
+    "chrome": "#111316",
+    "panel": "#0F1113",
+    "card": "#14171A",
+    "raised": "#1C1F24",
+    "popover": "#16191D",
+    "line-soft": "#1E2227",
+    "line": "#23272D",
+    "line-strong": "#2A2F36",
+    "line-heavy": "#343941",
+    "text": "#E7E9EC",
+    "text-2": "#C9CED4",
+    "text-3": "#A0A7B1",
+    "muted": "#8B93A0",
+    "faint": "#6B7380",
+    "accent": "#E8A15C",
+    "on-accent": "#0D0E10",
+    "accent-bg": "#2A2113",
+    "accent-line": "#5A4325",
+    "accent-ring": "rgba(232,161,92,0.12)",
+    "warn": "#F0B27A",
+    "ok": "#5CC98A",
+    "ok-bg": "#0F1A14",
+    "ok-line": "#2E5A40",
+    "ok-glow": "rgba(92,201,138,0.2)",
+    "bad": "#F2726A",
+    "bad-bg": "#2A1517",
+    "info": "#6CB6FF",
+    "info-bg": "#1A2433",
+    "link": "#9CC9FF",
+    "link-hover": "#C7E0FF",
+    "link-line": "#4A6A8F",
+    "violet": "#C3A4FF",
+    "teal": "#4FC1C9",
+    "prio-high": "rgba(242,114,106,0.13)",
+    "prio-mid": "rgba(240,178,122,0.09)",
+    "prio-low": "rgba(160,167,177,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(5,6,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "midnight": {
+    "bg": "#0B1020",
+    "chrome": "#0F1629",
+    "panel": "#0D1326",
+    "card": "#121A2E",
+    "raised": "#18213A",
+    "popover": "#141C33",
+    "line-soft": "#18213A",
+    "line": "#1F2944",
+    "line-strong": "#29344F",
+    "line-heavy": "#36425F",
+    "text": "#E4E9F5",
+    "text-2": "#C2CBE0",
+    "text-3": "#9AA5BF",
+    "muted": "#8390AD",
+    "faint": "#5F6A87",
+    "accent": "#7AA2FF",
+    "on-accent": "#0B1020",
+    "accent-bg": "#18234A",
+    "accent-line": "#3A4E86",
+    "accent-ring": "rgba(122,162,255,0.16)",
+    "warn": "#E6B673",
+    "ok": "#6FD3A0",
+    "ok-bg": "#0F1E22",
+    "ok-line": "#2A5A4E",
+    "ok-glow": "rgba(111,211,160,0.2)",
+    "bad": "#FF7A85",
+    "bad-bg": "#2A1425",
+    "info": "#7DCFFF",
+    "info-bg": "#14223F",
+    "link": "#A9C7FF",
+    "link-hover": "#D0E0FF",
+    "link-line": "#41598C",
+    "violet": "#BB9AF7",
+    "teal": "#5ED4D0",
+    "prio-high": "rgba(255,122,133,0.13)",
+    "prio-mid": "rgba(230,182,115,0.09)",
+    "prio-low": "rgba(154,165,191,0.06)",
+    "shadow": "rgba(2,4,12,0.65)",
+    "scrim": "rgba(5,8,18,0.6)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "forest": {
+    "bg": "#0F1411",
+    "chrome": "#131A16",
+    "panel": "#111814",
+    "card": "#161E19",
+    "raised": "#1C2620",
+    "popover": "#19221C",
+    "line-soft": "#1C2620",
+    "line": "#232E27",
+    "line-strong": "#2C3A31",
+    "line-heavy": "#38483E",
+    "text": "#E3EADF",
+    "text-2": "#C5D0C1",
+    "text-3": "#9FAC9C",
+    "muted": "#879483",
+    "faint": "#637061",
+    "accent": "#A7C080",
+    "on-accent": "#0F1411",
+    "accent-bg": "#1F2A1C",
+    "accent-line": "#4A5E3A",
+    "accent-ring": "rgba(167,192,128,0.14)",
+    "warn": "#DBBC7F",
+    "ok": "#83C092",
+    "ok-bg": "#132019",
+    "ok-line": "#355A43",
+    "ok-glow": "rgba(131,192,146,0.2)",
+    "bad": "#E67E80",
+    "bad-bg": "#2A1819",
+    "info": "#7FBBB3",
+    "info-bg": "#162624",
+    "link": "#9CCFC4",
+    "link-hover": "#C6E6DF",
+    "link-line": "#3F6A61",
+    "violet": "#D699B6",
+    "teal": "#83C0B5",
+    "prio-high": "rgba(230,126,128,0.13)",
+    "prio-mid": "rgba(219,188,127,0.09)",
+    "prio-low": "rgba(159,172,156,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,9,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "dusk": {
+    "bg": "#0E0D12",
+    "chrome": "#14131A",
+    "panel": "#121117",
+    "card": "#17161D",
+    "raised": "#1E1C26",
+    "popover": "#1A1921",
+    "line-soft": "#1E1C25",
+    "line": "#25232E",
+    "line-strong": "#2E2B39",
+    "line-heavy": "#3A3647",
+    "text": "#ECE8F2",
+    "text-2": "#CDC7D8",
+    "text-3": "#A69FB4",
+    "muted": "#8E879E",
+    "faint": "#6A647A",
+    "accent": "#A07EEA",
+    "on-accent": "#120E16",
+    "accent-bg": "#211A30",
+    "accent-line": "#4A3A72",
+    "accent-ring": "rgba(160,126,234,0.14)",
+    "warn": "#E8B07A",
+    "ok": "#5FD0B0",
+    "ok-bg": "#10201D",
+    "ok-line": "#2C5A50",
+    "ok-glow": "rgba(95,208,176,0.2)",
+    "bad": "#EE6F86",
+    "bad-bg": "#2A151D",
+    "info": "#6FC3E0",
+    "info-bg": "#16202C",
+    "link": "#8FD3EA",
+    "link-hover": "#C2E9F5",
+    "link-line": "#3E6475",
+    "violet": "#D3A6E8",
+    "teal": "#57C7CC",
+    "prio-high": "rgba(238,111,134,0.13)",
+    "prio-mid": "rgba(232,176,122,0.09)",
+    "prio-low": "rgba(166,159,180,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,5,10,0.58)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 10px rgba(160,126,234,0.22)",
+    "accent-shadow": "0 0 10px rgba(160,126,234,0.25)",
+    "chrome-edge": "0 1px 0 rgba(160,126,234,0.4)",
+    "bg-img": "linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px)"
+  },
+  "synthwave": {
+    "bg": "#140B26",
+    "chrome": "#1B0F33",
+    "panel": "#180D2E",
+    "card": "#1E1238",
+    "raised": "#271847",
+    "popover": "#22143F",
+    "line-soft": "#2A1A4A",
+    "line": "#33205A",
+    "line-strong": "#432B70",
+    "line-heavy": "#553889",
+    "text": "#F7EEFF",
+    "text-2": "#DCCBF5",
+    "text-3": "#B9A3DE",
+    "muted": "#9C86C4",
+    "faint": "#7461A0",
+    "accent": "#FF2E97",
+    "on-accent": "#1A0820",
+    "accent-bg": "#3A1240",
+    "accent-line": "#8A1F6A",
+    "accent-ring": "rgba(255,46,151,0.22)",
+    "warn": "#FFB454",
+    "ok": "#36F9C5",
+    "ok-bg": "#0E2A33",
+    "ok-line": "#1D6B62",
+    "ok-glow": "rgba(54,249,197,0.28)",
+    "bad": "#FF4F6D",
+    "bad-bg": "#3A0F25",
+    "info": "#3DE0FF",
+    "info-bg": "#13204A",
+    "link": "#6BEFFF",
+    "link-hover": "#B5F7FF",
+    "link-line": "#2E6E8A",
+    "violet": "#C77DFF",
+    "teal": "#2DE2E6",
+    "prio-high": "rgba(255,79,109,0.16)",
+    "prio-mid": "rgba(255,180,84,0.11)",
+    "prio-low": "rgba(185,163,222,0.07)",
+    "shadow": "rgba(8,0,20,0.7)",
+    "scrim": "rgba(10,3,22,0.6)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 14px rgba(255,46,151,0.55), 0 0 2px rgba(255,46,151,0.9)",
+    "accent-shadow": "0 0 18px rgba(255,46,151,0.55)",
+    "chrome-edge": "0 1px 0 #FF2E97, 0 2px 18px rgba(255,46,151,0.35)",
+    "bg-img": "linear-gradient(180deg, rgba(20,11,38,0) 0%, rgba(20,11,38,0) 55%, rgba(255,46,151,0.07) 100%), repeating-linear-gradient(90deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px)"
+  }
+};
+const themeVars = (name) => Object.entries(THEMES[name] || THEMES.graphite).map(([k, v]) => `--${k}:${v}`).join(';') + ';';
+// THEMES:end
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { scope: 'all' };
+  }
+  renderVals() {
+    const accent = 'var(--accent)';
+    // Same status scheme as Today › My tasks.
+    const STATUS = { Working: { c: 'var(--info)' }, 'Peer Review': { c: 'var(--warn)' }, 'On Latest': { c: 'var(--violet)' } };
+    const glyph = (st, size = 16) => `width:${size}px;height:${size}px;flex-shrink:0;box-sizing:border-box;border-radius:50%;border:${st.hollow ? '2.5px dashed' : '2px solid'} ${st.c};${st.hollow ? `background:color-mix(in srgb, ${st.c} 22%, transparent);` : ''}display:flex;align-items:center;justify-content:center`;
+    const core = (st, size = 6) => st.hollow ? 'display:none' : `width:${size}px;height:${size}px;border-radius:50%;background:${st.c}`;
+    const SUB = { base: { name: 'Base', status: 'On Latest' }, rate: { name: 'Rate cards', status: 'Peer Review' }, scen: { name: 'Scenarios', status: 'Working' }, spec: { name: 'specs #391', status: 'Working' } };
+    const S = (o) => ({ ...o, isSession: true, isEvent: false });
+    const E = (o) => ({ ...o, isSession: false, isEvent: true });
+    const all = [
+      E({ when: '20 Oct', title: 'fe #30181 opened — flat amount option for Markup column', chip: 'PR', sub: 'base' }),
+      S({ when: '20 Oct\n19:19', title: 'Review fe #30181', subtask: 'base', via: 'PR #30181', summary: 'Reviewed the flat-amount Markup column; flagged a serializer change to double-check.', meta: '1,328 lines · 2h 10m' }),
+      S({ when: '21 Oct\n09:57', title: 'Split 3 PRs into 3 tasks', subtask: 'base', via: 'task URL', summary: 'Created the rate cards and scenarios subtasks; moved fe #30227 and #30228 under them.', meta: '111 lines · 14m' }),
+      E({ when: '21 Oct', title: 'Subtasks Rate cards and Scenarios created', chip: 'TASK', sub: 'base' }),
+      S({ when: '21 Oct\n10:47', title: 'Resolve the frontend task', subtask: 'spec', via: 'task URL', summary: 'Worked through the specs #391 draft and aligned FE scope with it.', meta: '2,277 lines · 3h 05m' }),
+      S({ when: '21 Oct\n10:47', title: 'Why the serializer changed in #30181', subtask: 'base', via: 'PR #30181', summary: 'Confirmed the serializer change is needed for markup_amount; replied on the PR.', meta: '445 lines · 35m' }),
+      S({ when: '21 Oct\n14:26', title: 'Resolve merge conflicts on fe #30227', subtask: 'rate', via: 'PR #30227', summary: 'Merged develop into the rate cards branch; conflicts in the rate card service form.', meta: '651 lines · 50m' }),
+      E({ when: '21 Oct', title: 'Base moved to On Latest', chip: 'STATUS', sub: 'base' }),
+      S({ when: '22 Oct\n14:04', title: 'Address review on fe #30227', subtask: 'rate', via: 'PR #30227', live: true, summary: 'Went through review comments one by one, pushed fixes, drafted replies (not yet posted).', meta: '1,048 lines · 1h 20m' }),
+    ];
+    const scopes = [
+      { key: 'all', label: 'Everything' },
+      { key: 'base', label: 'Base' },
+      { key: 'rate', label: 'Rate cards' },
+      { key: 'scen', label: 'Scenarios' },
+    ];
+    const scope = this.state.scope;
+    const events = all.filter((e) => scope === 'all' || (e.subtask || e.sub) === scope);
+    const tone = {
+      pr: 'background:var(--info-bg);color:var(--link)',
+      draft: 'background:var(--raised);color:var(--text-3)',
+      wt: 'background:var(--ok-bg);color:var(--ok)',
+      sess: 'background:var(--accent-bg);color:var(--warn)',
+      live: 'background:var(--ok-bg);color:var(--ok)',
+    };
+    const L = (label, t) => ({ label, style: `font-size:11px;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;white-space:nowrap;${tone[t]}` });
+    return {
+      themeVars: themeVars(this.props.theme),
+      theme: this.props.theme || 'graphite',
+      accent,
+      ctxHigh: 68,
+      scopes: scopes.map((s) => ({
+        ...s,
+        pick: () => this.setState({ scope: s.key }),
+        style: `height:30px;padding:0 12px;border-radius:15px;cursor:pointer;font:inherit;font-size:12px;border:1px solid ${scope === s.key ? accent : 'var(--line-strong)'};background:${scope === s.key ? 'var(--accent-bg)' : 'transparent'};color:${scope === s.key ? 'var(--warn)' : 'var(--text-2)'}`,
+      })),
+      events: events.map((e) => {
+        const sub = SUB[e.subtask || e.sub];
+        const st = STATUS[sub.status];
+        return {
+          ...e,
+          live: !!e.live,
+          subtask: e.subtask ? sub.name : '',
+          subGlyph: glyph(st, 12),
+          subCore: core(st, 4),
+          cardStyle: `flex:1;min-width:0;margin:4px 0 8px;padding:12px 14px;border-radius:10px;display:flex;flex-direction:column;gap:8px;background:${e.live ? 'var(--ok-bg)' : 'var(--card)'};border:1px solid ${e.live ? 'var(--ok-line)' : 'var(--line)'}`,
+          nodeStyle: e.isSession
+            ? `width:12px;height:12px;border-radius:50%;flex-shrink:0;border:2px solid ${e.live ? 'var(--ok)' : 'var(--faint)'};background:var(--bg);box-sizing:border-box`
+            : `width:8px;height:8px;border-radius:2px;flex-shrink:0;margin:2px 0;background:var(--line-heavy)`,
+          subtaskStyle: 'display:flex;align-items:center;gap:6px;font-size:11px;padding:2px 8px 2px 6px;border-radius:4px;background:var(--raised);color:var(--text-2)',
+          chipStyle: 'font-size:10px;font-weight:600;letter-spacing:0.04em;padding:2px 6px;border-radius:4px;background:var(--raised);color:var(--text-3)',
+        };
+      }),
+      headGlyph: glyph(STATUS.Working, 14),
+      headCore: core(STATUS.Working, 5),
+      tree: [
+        { title: 'Service markup in fixed amount', status: 'Working', ms: true, links: [L('specs #391', 'pr'), L('1 session', 'sess')] },
+        { title: 'FE: flat amount option for Markup column', status: 'On Latest', links: [L('fe #30181', 'pr'), L('frontend-20360127-service-markup-amount', 'wt'), L('3 sessions', 'sess')] },
+        { title: 'FE: rate cards (Add from rate card)', status: 'Peer Review', links: [L('fe #30227', 'pr'), L('frontend-20360127-rate-card-markup-amount', 'wt'), L('2 sessions · 1 running', 'live')] },
+        { title: 'FE: scenarios', status: 'Working', links: [L('fe #30228 draft', 'draft'), L('no worktree', 'draft'), L('0 sessions', 'sess')] },
+      ].map((n) => ({
+        ...n,
+        glyph: glyph(STATUS[n.status]),
+        core: core(STATUS[n.status]),
+        rowStyle: `display:flex;flex-direction:column;gap:6px;padding:12px 14px 12px ${n.ms ? 14 : 40}px;border-top:1px solid var(--line-soft);box-shadow:inset 3px 0 0 ${STATUS[n.status].c}`,
+        titleStyle: `flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:${n.ms ? 600 : 400}`,
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

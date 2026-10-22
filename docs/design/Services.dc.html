@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workbench — Local services</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Orbitron:wght@500;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0B0C;--chrome:#111316;--panel:#0F1113;--card:#14171A;--raised:#1C1F24;--popover:#16191D;--line-soft:#1E2227;--line:#23272D;--line-strong:#2A2F36;--line-heavy:#343941;--text:#E7E9EC;--text-2:#C9CED4;--text-3:#A0A7B1;--muted:#8B93A0;--faint:#6B7380;--accent:#E8A15C;--on-accent:#0D0E10;--accent-bg:#2A2113;--accent-line:#5A4325;--accent-ring:rgba(232,161,92,0.12);--warn:#F0B27A;--ok:#5CC98A;--ok-bg:#0F1A14;--ok-line:#2E5A40;--ok-glow:rgba(92,201,138,0.2);--bad:#F2726A;--bad-bg:#2A1517;--info:#6CB6FF;--info-bg:#1A2433;--link:#9CC9FF;--link-hover:#C7E0FF;--link-line:#4A6A8F;--violet:#C3A4FF;--teal:#4FC1C9;--prio-high:rgba(242,114,106,0.13);--prio-mid:rgba(240,178,122,0.09);--prio-low:rgba(160,167,177,0.06);--shadow:rgba(0,0,0,0.6);--scrim:rgba(5,6,7,0.55);--display:Inter, system-ui, sans-serif;--title-glow:none;--accent-shadow:none;--chrome-edge:none;--bg-img:none}
+body{margin:0;background:var(--bg)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="{{themeVars}} width: 1440px; height: 900px; box-sizing: border-box; background: var(--bg); background-image: var(--bg-img); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 13px; display: flex; flex-direction: column; overflow: hidden">
+
+  <dc-import name="TopBar" theme="{{theme}}" active="local" hint-size="100%,48px"></dc-import>
+
+  <!-- Header -->
+  <div style="display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--line-soft)">
+    <h1 style="font-family: var(--display); text-shadow: var(--title-glow); margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Local services</h1>
+    <div role="radiogroup" aria-label="Profile" style="display: flex; padding: 3px; gap: 2px; border-radius: 8px; background: var(--popover); border: 1px solid var(--line)">
+      <button role="radio" aria-checked="true" style="height: 30px; padding: 0 12px; border-radius: 6px; border: 0; background: var(--line); color: var(--text); font-weight: 500; cursor: pointer">prd · full</button>
+      <button role="radio" aria-checked="false" style="height: 30px; padding: 0 12px; border-radius: 6px; border: 0; background: transparent; color: var(--text-3); cursor: pointer">Frontend only</button>
+      <button role="radio" aria-checked="false" style="height: 30px; padding: 0 12px; border-radius: 6px; border: 0; background: transparent; color: var(--text-3); cursor: pointer">AI work</button>
+      <button role="radio" aria-checked="false" style="height: 30px; padding: 0 12px; border-radius: 6px; border: 0; background: transparent; color: var(--text-3); cursor: pointer">Exports &amp; PDF</button>
+    </div>
+    <div style="margin-left: auto; display: flex; gap: 8px">
+      <button style="height: 34px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); cursor: pointer">Stop all</button>
+      <button style="height: 34px; padding: 0 14px; border-radius: 7px; border: 0; background: {{accent}}; color: var(--on-accent); box-shadow: var(--accent-shadow); font-weight: 600; cursor: pointer">Start missing (2)</button>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; display: flex">
+
+    <!-- Service list -->
+    <section aria-label="Services" style="width: 300px; flex-shrink: 0; border-right: 1px solid var(--line-soft); background: var(--panel); display: flex; flex-direction: column; padding: 10px; gap: 2px; overflow: hidden">
+      <sc-for list="{{services}}" as="s" hint-placeholder-count="8">
+        <sc-if value="{{s.active}}" hint-placeholder-val="{{false}}">
+          <button style="display: flex; flex-direction: column; gap: 8px; margin: 4px 0; padding: 12px 12px 12px 14px; border-radius: 10px; border: 1px solid {{accent}}; background: var(--raised); color: var(--text); text-align: left; cursor: pointer; font: inherit; box-shadow: 0 0 0 3px var(--accent-ring)">
+            <span style="display: flex; align-items: center; gap: 10px; width: 100%">
+              <span style="{{s.dotStyle}}"></span>
+              <span style="font-size: 15px; font-weight: 600">{{s.name}}</span>
+              <span style="margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3)">{{s.uptime}}</span>
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px; padding-left: 18px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--warn)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><path d="M6 8.5v7"></path><path d="M18 10.5c0 4-6 3-11 5.5"></path></svg>
+              {{branch}}
+            </span>
+            <span style="padding-left: 18px; font-size: 11px; color: var(--text-3)">{{s.state}} · localhost:4200</span>
+          </button>
+        </sc-if>
+        <sc-if value="{{s.inactive}}" hint-placeholder-val="{{true}}">
+          <button style="display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 12px 0 14px; border-radius: 8px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit">
+            <span style="{{s.dotStyle}}"></span>
+            <span style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+              <span style="font-weight: 500">{{s.name}}</span>
+              <span style="{{s.stateStyle}}">{{s.state}}</span>
+            </span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted)">{{s.uptime}}</span>
+          </button>
+        </sc-if>
+      </sc-for>
+
+      <div style="margin-top: auto; padding: 12px 4px 4px; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Infra · docker</span>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <span style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 12px; background: var(--popover); border: 1px solid var(--line); font-family: 'JetBrains Mono', monospace; font-size: 11px"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ok)"></span>mysql</span>
+          <span style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 12px; background: var(--popover); border: 1px solid var(--line); font-family: 'JetBrains Mono', monospace; font-size: 11px"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ok)"></span>redis</span>
+          <span style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 12px; background: var(--popover); border: 1px solid var(--line); font-family: 'JetBrains Mono', monospace; font-size: 11px"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ok)"></span>meili</span>
+          <span style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 12px; background: var(--popover); border: 1px solid var(--line); font-family: 'JetBrains Mono', monospace; font-size: 11px"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--faint)"></span>memcached</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detail -->
+    <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-soft)">
+        <button onClick="{{toggleSwitcher}}" aria-expanded="{{switcherExpanded}}" aria-label="Switch worktree" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-heavy); background: var(--popover); color: var(--text); cursor: pointer; font: inherit">
+          <svg style="stroke: var(--warn)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><path d="M6 8.5v7"></path><path d="M18 10.5c0 4-6 3-11 5.5"></path></svg>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500">{{branch}}</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); padding: 2px 6px; border: 1px solid var(--line-heavy); border-radius: 4px">⌘W</span>
+          <svg style="stroke: var(--text-3)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <span style="font-size: 12px; color: var(--muted)">worktrees/frontend-pr-30197 · 2 behind develop</span>
+        <div style="margin-left: auto; display: flex; gap: 6px">
+          <button style="height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); cursor: pointer">Open in browser</button>
+          <button style="height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); cursor: pointer">Restart</button>
+          <button style="height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); cursor: pointer">Stop</button>
+        </div>
+      </div>
+
+      <!-- Split panes -->
+      <div style="flex: 1; min-height: 0; display: flex; padding: 8px">
+        <div style="{{leftStyle}}">
+          <div style="height: 32px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line-soft); background: var(--panel)">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ok)"></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text)">1 · pnpm start</span>
+            <span style="margin-left: auto; display: flex; gap: 2px">
+              <button aria-label="Split right" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M12 4v16"></path></svg></button>
+              <button aria-label="Split down" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 12h18"></path></svg></button>
+              <button aria-label="Maximize pane" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+            </span>
+          </div>
+          <div style="flex: 1; min-height: 0; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.75; color: var(--text-2); display: flex; flex-direction: column; overflow: hidden">
+            <span style="color: var(--muted)">$ pnpm i &amp;&amp; pnpm start</span>
+            <span>Lockfile is up to date, resolution step is skipped</span>
+            <span>  VITE ready in 8.4 s</span>
+            <span>  ➜  Local:   <span style="color: var(--link)">http://localhost:4200/</span></span>
+            <span style="color: var(--muted)">09:12:04 [vite] hmr update /app/components/deal/filters.gts</span>
+            <span style="color: var(--muted)">09:14:51 [vite] hmr update /app/components/deal/filters.gts</span>
+            <span style="color: var(--warn)">09:15:02 [glint] warning: unused import 'cached'</span>
+            <span style="color: var(--muted)">09:21:37 [vite] page reload app/routes/deal.ts</span>
+            <span style="color: var(--bad); background: var(--bad-bg); padding: 0 6px; margin: 2px -6px">09:22:10 [vite] Failed to resolve import "@productive/ui/dropdown"</span>
+            <span>09:22:41 [vite] ✓ resolved after rebuild of packages/ui</span>
+            <span style="margin-top: auto; display: flex; gap: 8px; font-family: Inter, system-ui, sans-serif">
+              <button style="height: 28px; padding: 0 10px; border-radius: 6px; border: 0; background: {{accent}}; color: var(--on-accent); box-shadow: var(--accent-shadow); font-weight: 600; font-size: 12px; cursor: pointer">Ask Claude about 09:22 error</button>
+            </span>
+          </div>
+        </div>
+
+        <div role="separator" aria-orientation="vertical" aria-label="Resize panes" onPointerDown="{{startColDrag}}" style="width: 8px; flex-shrink: 0; cursor: col-resize; display: flex; align-items: center; justify-content: center">
+          <span style="width: 2px; height: 32px; border-radius: 1px; background: var(--line-heavy)"></span>
+        </div>
+
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+          <div style="{{topStyle}}">
+            <div style="height: 32px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line-soft); background: var(--panel)">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3)">2 · zsh</span>
+              <span style="margin-left: auto; display: flex; gap: 2px">
+                <button aria-label="Split right" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M12 4v16"></path></svg></button>
+                <button aria-label="Split down" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 12h18"></path></svg></button>
+                <button aria-label="Close pane" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+              </span>
+            </div>
+            <div style="position: relative; flex: 1; min-height: 0; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.75; color: var(--text-2); display: flex; flex-direction: column; overflow: hidden">
+              <span><span style="color: var(--ok)">frontend-pr-30197</span> <span style="color: var(--warn)">(feat/deal-page-filters)</span> $ git push</span>
+              <span style="color: var(--muted)">To github.com:productiveio/frontend.git</span>
+              <span style="color: var(--muted)">   7be0d13..a41c9e2  feat/deal-page-filters -&gt; feat/deal-page-filters</span>
+              <span style="color: var(--muted)">remote: View pull request:</span>
+              <span>remote:   <a href="#" onMouseEnter="{{showPr}}" onClick="{{showPr}}" style="color: var(--link); text-decoration: underline; text-decoration-color: var(--link-line); text-underline-offset: 3px; background: var(--info-bg); border-radius: 3px; padding: 0 2px">https://github.com/productiveio/frontend/pull/30197</a></span>
+              <span><span style="color: var(--ok)">frontend-pr-30197</span> <span style="color: var(--warn)">(feat/deal-page-filters)</span> $ <span style="display: inline-block; width: 7px; height: 14px; background: var(--text-2); vertical-align: middle"></span></span>
+
+              <sc-if value="{{prCard}}" hint-placeholder-val="{{true}}">
+                <div role="dialog" aria-label="Pull request" style="position: absolute; left: 92px; top: 126px; width: 340px; padding: 12px 14px; border-radius: 10px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 16px 48px var(--shadow); font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; gap: 8px; z-index: 5">
+                  <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted)">
+                    <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-3)">fe #30197</span>
+                    <span>·</span><span style="color: var(--text-3)">Review required</span>
+                    <span style="margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--ok)" aria-label="CI passing"></span>
+                  </span>
+                  <span style="font-size: 13px; color: var(--text); font-weight: 500">feat(deal): filter by pipeline stage</span>
+                  <span style="display: flex; gap: 8px; margin-top: 2px">
+                    <a href="Today.dc.html" style="height: 28px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; background: {{accent}}; color: var(--on-accent); box-shadow: var(--accent-shadow); font-size: 12px; font-weight: 600; text-decoration: none">Open in Workbench</a>
+                    <a href="#" style="height: 28px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--text-2); font-size: 12px; text-decoration: none">GitHub</a>
+                    <button onClick="{{hidePr}}" aria-label="Dismiss" style="margin-left: auto; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer">×</button>
+                  </span>
+                  <span style="font-size: 11px; color: var(--faint)">Click opens in Workbench · ⌘-click opens GitHub</span>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <div role="separator" aria-orientation="horizontal" aria-label="Resize panes" onPointerDown="{{startRowDrag}}" style="height: 8px; flex-shrink: 0; cursor: row-resize; display: flex; align-items: center; justify-content: center">
+            <span style="width: 32px; height: 2px; border-radius: 1px; background: var(--line-heavy)"></span>
+          </div>
+
+          <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; border-radius: 8px; border: 1px solid var(--line-soft); background: var(--panel); overflow: hidden">
+            <div style="height: 32px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line-soft); background: var(--panel)">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3)">3 · zsh</span>
+              <span style="margin-left: auto; display: flex; gap: 2px">
+                <button aria-label="Split right" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M12 4v16"></path></svg></button>
+                <button aria-label="Split down" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 12h18"></path></svg></button>
+                <button aria-label="Close pane" style="width: 26px; height: 26px; border-radius: 5px; border: 0; background: transparent; color: var(--text-3); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+              </span>
+            </div>
+            <div style="flex: 1; min-height: 0; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.75; color: var(--text-2); display: flex; flex-direction: column; overflow: hidden">
+              <span><span style="color: var(--ok)">frontend-pr-30197</span> <span style="color: var(--warn)">(feat/deal-page-filters)</span> $ pnpm lint:types</span>
+              <span style="color: var(--muted)">running glint…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Worktree switcher -->
+      <sc-if value="{{switcherOpen}}" hint-placeholder-val="{{true}}">
+        <div role="dialog" aria-label="Switch app worktree" style="position: absolute; top: 56px; left: 16px; width: 640px; border-radius: 12px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 24px 64px var(--shadow); display: flex; flex-direction: column; overflow: hidden">
+          <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line)">
+            <svg style="stroke: var(--text-3)" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <input aria-label="Filter worktrees" placeholder="Filter frontend worktrees…" style="flex: 1; background: transparent; border: 0; outline: none; color: var(--text); font: inherit; font-size: 14px">
+            <span style="font-size: 11px; color: var(--muted)">7 worktrees · by recent activity</span>
+          </label>
+          <div style="padding: 6px; display: flex; flex-direction: column; gap: 1px">
+            <sc-for list="{{worktrees}}" as="w" hint-placeholder-count="7">
+              <button onClick="{{w.pick}}" style="{{w.rowStyle}}">
+                <span style="width: 12px; color: {{accent}}; font-weight: 700">{{w.marker}}</span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{w.branch}}</span>
+                  <span style="font-size: 11px; color: var(--muted)">{{w.dir}}</span>
+                </span>
+                <span style="{{w.badgeStyle}}">{{w.badge}}</span>
+                <span style="width: 44px; text-align: right; font-size: 11px; color: var(--muted)">{{w.age}}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace">
+            <span><span style="color: var(--text-2)">↵</span> switch &amp; run pnpm i &amp;&amp; pnpm start</span>
+            <span><span style="color: var(--text-2)">⌘O</span> switch only</span>
+            <span><span style="color: var(--text-2)">⌘.</span> VS Code</span>
+            <span><span style="color: var(--text-2)">⌘X</span> cleanup</span>
+            <button style="margin-left: auto; height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-heavy); background: transparent; color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 12px; cursor: pointer">Run alongside on new port</button>
+          </div>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+  <dc-import name="StatusBar" theme="{{theme}}" session="app · frontend-pr-30197 shell" hint-size="100%,36px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["graphite", "midnight", "forest", "dusk", "synthwave"], "default": "graphite"}, "$preview": {"width": 1440, "height": 900}}'>
+// THEMES:start (generated — same block in every C board)
+const THEMES = {
+  "graphite": {
+    "bg": "#0A0B0C",
+    "chrome": "#111316",
+    "panel": "#0F1113",
+    "card": "#14171A",
+    "raised": "#1C1F24",
+    "popover": "#16191D",
+    "line-soft": "#1E2227",
+    "line": "#23272D",
+    "line-strong": "#2A2F36",
+    "line-heavy": "#343941",
+    "text": "#E7E9EC",
+    "text-2": "#C9CED4",
+    "text-3": "#A0A7B1",
+    "muted": "#8B93A0",
+    "faint": "#6B7380",
+    "accent": "#E8A15C",
+    "on-accent": "#0D0E10",
+    "accent-bg": "#2A2113",
+    "accent-line": "#5A4325",
+    "accent-ring": "rgba(232,161,92,0.12)",
+    "warn": "#F0B27A",
+    "ok": "#5CC98A",
+    "ok-bg": "#0F1A14",
+    "ok-line": "#2E5A40",
+    "ok-glow": "rgba(92,201,138,0.2)",
+    "bad": "#F2726A",
+    "bad-bg": "#2A1517",
+    "info": "#6CB6FF",
+    "info-bg": "#1A2433",
+    "link": "#9CC9FF",
+    "link-hover": "#C7E0FF",
+    "link-line": "#4A6A8F",
+    "violet": "#C3A4FF",
+    "teal": "#4FC1C9",
+    "prio-high": "rgba(242,114,106,0.13)",
+    "prio-mid": "rgba(240,178,122,0.09)",
+    "prio-low": "rgba(160,167,177,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(5,6,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "midnight": {
+    "bg": "#0B1020",
+    "chrome": "#0F1629",
+    "panel": "#0D1326",
+    "card": "#121A2E",
+    "raised": "#18213A",
+    "popover": "#141C33",
+    "line-soft": "#18213A",
+    "line": "#1F2944",
+    "line-strong": "#29344F",
+    "line-heavy": "#36425F",
+    "text": "#E4E9F5",
+    "text-2": "#C2CBE0",
+    "text-3": "#9AA5BF",
+    "muted": "#8390AD",
+    "faint": "#5F6A87",
+    "accent": "#7AA2FF",
+    "on-accent": "#0B1020",
+    "accent-bg": "#18234A",
+    "accent-line": "#3A4E86",
+    "accent-ring": "rgba(122,162,255,0.16)",
+    "warn": "#E6B673",
+    "ok": "#6FD3A0",
+    "ok-bg": "#0F1E22",
+    "ok-line": "#2A5A4E",
+    "ok-glow": "rgba(111,211,160,0.2)",
+    "bad": "#FF7A85",
+    "bad-bg": "#2A1425",
+    "info": "#7DCFFF",
+    "info-bg": "#14223F",
+    "link": "#A9C7FF",
+    "link-hover": "#D0E0FF",
+    "link-line": "#41598C",
+    "violet": "#BB9AF7",
+    "teal": "#5ED4D0",
+    "prio-high": "rgba(255,122,133,0.13)",
+    "prio-mid": "rgba(230,182,115,0.09)",
+    "prio-low": "rgba(154,165,191,0.06)",
+    "shadow": "rgba(2,4,12,0.65)",
+    "scrim": "rgba(5,8,18,0.6)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "forest": {
+    "bg": "#0F1411",
+    "chrome": "#131A16",
+    "panel": "#111814",
+    "card": "#161E19",
+    "raised": "#1C2620",
+    "popover": "#19221C",
+    "line-soft": "#1C2620",
+    "line": "#232E27",
+    "line-strong": "#2C3A31",
+    "line-heavy": "#38483E",
+    "text": "#E3EADF",
+    "text-2": "#C5D0C1",
+    "text-3": "#9FAC9C",
+    "muted": "#879483",
+    "faint": "#637061",
+    "accent": "#A7C080",
+    "on-accent": "#0F1411",
+    "accent-bg": "#1F2A1C",
+    "accent-line": "#4A5E3A",
+    "accent-ring": "rgba(167,192,128,0.14)",
+    "warn": "#DBBC7F",
+    "ok": "#83C092",
+    "ok-bg": "#132019",
+    "ok-line": "#355A43",
+    "ok-glow": "rgba(131,192,146,0.2)",
+    "bad": "#E67E80",
+    "bad-bg": "#2A1819",
+    "info": "#7FBBB3",
+    "info-bg": "#162624",
+    "link": "#9CCFC4",
+    "link-hover": "#C6E6DF",
+    "link-line": "#3F6A61",
+    "violet": "#D699B6",
+    "teal": "#83C0B5",
+    "prio-high": "rgba(230,126,128,0.13)",
+    "prio-mid": "rgba(219,188,127,0.09)",
+    "prio-low": "rgba(159,172,156,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,9,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "dusk": {
+    "bg": "#0E0D12",
+    "chrome": "#14131A",
+    "panel": "#121117",
+    "card": "#17161D",
+    "raised": "#1E1C26",
+    "popover": "#1A1921",
+    "line-soft": "#1E1C25",
+    "line": "#25232E",
+    "line-strong": "#2E2B39",
+    "line-heavy": "#3A3647",
+    "text": "#ECE8F2",
+    "text-2": "#CDC7D8",
+    "text-3": "#A69FB4",
+    "muted": "#8E879E",
+    "faint": "#6A647A",
+    "accent": "#A07EEA",
+    "on-accent": "#120E16",
+    "accent-bg": "#211A30",
+    "accent-line": "#4A3A72",
+    "accent-ring": "rgba(160,126,234,0.14)",
+    "warn": "#E8B07A",
+    "ok": "#5FD0B0",
+    "ok-bg": "#10201D",
+    "ok-line": "#2C5A50",
+    "ok-glow": "rgba(95,208,176,0.2)",
+    "bad": "#EE6F86",
+    "bad-bg": "#2A151D",
+    "info": "#6FC3E0",
+    "info-bg": "#16202C",
+    "link": "#8FD3EA",
+    "link-hover": "#C2E9F5",
+    "link-line": "#3E6475",
+    "violet": "#D3A6E8",
+    "teal": "#57C7CC",
+    "prio-high": "rgba(238,111,134,0.13)",
+    "prio-mid": "rgba(232,176,122,0.09)",
+    "prio-low": "rgba(166,159,180,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,5,10,0.58)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 10px rgba(160,126,234,0.22)",
+    "accent-shadow": "0 0 10px rgba(160,126,234,0.25)",
+    "chrome-edge": "0 1px 0 rgba(160,126,234,0.4)",
+    "bg-img": "linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px)"
+  },
+  "synthwave": {
+    "bg": "#140B26",
+    "chrome": "#1B0F33",
+    "panel": "#180D2E",
+    "card": "#1E1238",
+    "raised": "#271847",
+    "popover": "#22143F",
+    "line-soft": "#2A1A4A",
+    "line": "#33205A",
+    "line-strong": "#432B70",
+    "line-heavy": "#553889",
+    "text": "#F7EEFF",
+    "text-2": "#DCCBF5",
+    "text-3": "#B9A3DE",
+    "muted": "#9C86C4",
+    "faint": "#7461A0",
+    "accent": "#FF2E97",
+    "on-accent": "#1A0820",
+    "accent-bg": "#3A1240",
+    "accent-line": "#8A1F6A",
+    "accent-ring": "rgba(255,46,151,0.22)",
+    "warn": "#FFB454",
+    "ok": "#36F9C5",
+    "ok-bg": "#0E2A33",
+    "ok-line": "#1D6B62",
+    "ok-glow": "rgba(54,249,197,0.28)",
+    "bad": "#FF4F6D",
+    "bad-bg": "#3A0F25",
+    "info": "#3DE0FF",
+    "info-bg": "#13204A",
+    "link": "#6BEFFF",
+    "link-hover": "#B5F7FF",
+    "link-line": "#2E6E8A",
+    "violet": "#C77DFF",
+    "teal": "#2DE2E6",
+    "prio-high": "rgba(255,79,109,0.16)",
+    "prio-mid": "rgba(255,180,84,0.11)",
+    "prio-low": "rgba(185,163,222,0.07)",
+    "shadow": "rgba(8,0,20,0.7)",
+    "scrim": "rgba(10,3,22,0.6)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 14px rgba(255,46,151,0.55), 0 0 2px rgba(255,46,151,0.9)",
+    "accent-shadow": "0 0 18px rgba(255,46,151,0.55)",
+    "chrome-edge": "0 1px 0 #FF2E97, 0 2px 18px rgba(255,46,151,0.35)",
+    "bg-img": "linear-gradient(180deg, rgba(20,11,38,0) 0%, rgba(20,11,38,0) 55%, rgba(255,46,151,0.07) 100%), repeating-linear-gradient(90deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px)"
+  }
+};
+const themeVars = (name) => Object.entries(THEMES[name] || THEMES.graphite).map(([k, v]) => `--${k}:${v}`).join(';') + ';';
+// THEMES:end
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { switcherOpen: true, picked: 1, col: 58, row: 55, prCard: true };
+  }
+  drag(e, axis) {
+    const box = e.currentTarget.parentElement.getBoundingClientRect();
+    const move = (ev) => {
+      const pct = axis === 'col'
+        ? ((ev.clientX - box.left) / box.width) * 100
+        : ((ev.clientY - box.top) / box.height) * 100;
+      this.setState({ [axis]: Math.min(80, Math.max(20, pct)) });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+  renderVals() {
+    const accent = 'var(--accent)';
+    const look = {
+      running: ['var(--ok)', 'var(--ok)'],
+      interactive: ['var(--info)', 'var(--link)'],
+      crashed: ['var(--bad)', 'var(--bad)'],
+      stopped: ['var(--faint)', 'var(--muted)'],
+    };
+    const services = [
+      { name: 'work', status: 'interactive', state: 'Claude session', uptime: '3h 12m' },
+      { name: 'app', status: 'running', state: 'running · 3 panes', uptime: '3h 12m', active: true },
+      { name: 'api', status: 'running', state: 'sidekiq only', uptime: '3h 11m' },
+      { name: 'e2e-tests', status: 'interactive', state: 'waiting for input', uptime: '3h 11m' },
+      { name: 'exporter', status: 'running', state: 'running', uptime: '3h 11m' },
+      { name: 'pdf-generator', status: 'crashed', state: 'exited · code 1', uptime: '—' },
+      { name: 'pdf-viewer', status: 'stopped', state: 'stopped', uptime: '—' },
+      { name: 'AI', status: 'running', state: 'prod API', uptime: '2h 48m' },
+    ];
+    const badge = {
+      base: ['base', 'background:var(--raised);color:var(--text-2)'],
+      dirty: ['● dirty', 'background:var(--accent-bg);color:var(--warn)'],
+      unmerged: ['⚠ unmerged', 'background:var(--info-bg);color:var(--link)'],
+      merged: ['✓ merged', 'background:var(--ok-bg);color:var(--ok)'],
+      gone: ['⬆ gone', 'background:var(--ok-bg);color:var(--ok)'],
+    };
+    const wts = [
+      { branch: 'develop', dir: 'repos/frontend', b: 'base', age: '1h' },
+      { branch: 'feat/deal-page-filters', dir: 'worktrees/frontend-pr-30197', b: 'dirty', age: '12m' },
+      { branch: 'feat/company-email-label', dir: 'worktrees/frontend-19953433-company-email-label', b: 'unmerged', age: '2h' },
+      { branch: 'feat/proposals-discount-amount', dir: 'worktrees/frontend-proposals-decorator-discount-amount', b: 'unmerged', age: '1d' },
+      { branch: 'review/29430', dir: 'worktrees/frontend-review-29430', b: 'unmerged', age: '1d' },
+      { branch: 'fix/modal-swap', dir: 'worktrees/frontend-28162-modal-swap', b: 'merged', age: '6d' },
+      { branch: 'review/29068', dir: 'worktrees/frontend-review-29068', b: 'gone', age: '9d' },
+    ];
+    const picked = this.state.picked;
+    return {
+      themeVars: themeVars(this.props.theme),
+      theme: this.props.theme || 'graphite',
+      accent,
+      prCard: this.state.prCard,
+      showPr: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ prCard: true }); },
+      hidePr: () => this.setState({ prCard: false }),
+      branch: wts[picked].branch,
+      switcherOpen: this.state.switcherOpen,
+      switcherExpanded: this.state.switcherOpen ? 'true' : 'false',
+      toggleSwitcher: () => this.setState({ switcherOpen: !this.state.switcherOpen }),
+      startColDrag: (e) => this.drag(e, 'col'),
+      startRowDrag: (e) => this.drag(e, 'row'),
+      leftStyle: `flex:0 0 ${this.state.col}%;min-width:0;display:flex;flex-direction:column;border-radius:8px;border:1px solid var(--line-strong);background:var(--panel);overflow:hidden`,
+      topStyle: `flex:0 0 ${this.state.row}%;min-height:0;display:flex;flex-direction:column;border-radius:8px;border:1px solid var(--line-soft);background:var(--panel);overflow:hidden`,
+      services: services.map((s) => {
+        const [dot, text] = look[s.status];
+        return {
+          ...s,
+          active: !!s.active,
+          inactive: !s.active,
+          dotStyle: `width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${dot}`,
+          stateStyle: `font-size:11px;color:${text}`,
+        };
+      }),
+      worktrees: wts.map((w, i) => ({
+        ...w,
+        marker: i === picked ? '▸' : '',
+        badge: badge[w.b][0],
+        badgeStyle: `font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;white-space:nowrap;${badge[w.b][1]}`,
+        rowStyle: `display:flex;align-items:center;gap:10px;min-height:46px;padding:0 10px;border-radius:7px;border:0;cursor:pointer;font:inherit;width:100%;color:var(--text);background:${i === picked ? 'var(--raised)' : 'transparent'}`,
+        pick: () => this.setState({ picked: i, switcherOpen: false }),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

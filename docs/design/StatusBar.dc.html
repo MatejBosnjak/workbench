@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workbench — Status bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Orbitron:wght@500;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0B0C;--chrome:#111316;--panel:#0F1113;--card:#14171A;--raised:#1C1F24;--popover:#16191D;--line-soft:#1E2227;--line:#23272D;--line-strong:#2A2F36;--line-heavy:#343941;--text:#E7E9EC;--text-2:#C9CED4;--text-3:#A0A7B1;--muted:#8B93A0;--faint:#6B7380;--accent:#E8A15C;--on-accent:#0D0E10;--accent-bg:#2A2113;--accent-line:#5A4325;--accent-ring:rgba(232,161,92,0.12);--warn:#F0B27A;--ok:#5CC98A;--ok-bg:#0F1A14;--ok-line:#2E5A40;--ok-glow:rgba(92,201,138,0.2);--bad:#F2726A;--bad-bg:#2A1517;--info:#6CB6FF;--info-bg:#1A2433;--link:#9CC9FF;--link-hover:#C7E0FF;--link-line:#4A6A8F;--violet:#C3A4FF;--teal:#4FC1C9;--prio-high:rgba(242,114,106,0.13);--prio-mid:rgba(240,178,122,0.09);--prio-low:rgba(160,167,177,0.06);--shadow:rgba(0,0,0,0.6);--scrim:rgba(5,6,7,0.55);--display:Inter, system-ui, sans-serif;--title-glow:none;--accent-shadow:none;--chrome-edge:none;--bg-img:none}
+body{margin:0}
+.steam path{animation:steam 2.4s ease-in-out infinite;transform-box:fill-box}
+.steam path:nth-child(2){animation-delay:.8s}
+@keyframes steam{0%{opacity:0;transform:translateY(1.5px)}40%{opacity:1}100%{opacity:0;transform:translateY(-2px)}}
+@media (prefers-reduced-motion: reduce){.steam path{animation:none}}
+
+</style>
+</helmet>
+<div style="{{themeVars}} position: relative; width: 100%; height: 36px; box-sizing: border-box; display: flex; align-items: center; gap: 18px; padding: 0 12px 0 16px; background: var(--chrome); border-top: 1px solid var(--line); color: var(--text-3); font-family: Inter, system-ui, sans-serif; font-size: 12px">
+
+  <span style="display: flex; align-items: center; gap: 8px; min-width: 0">
+    <span style="width: 7px; height: 7px; border-radius: 50%; background: {{dot}}"></span>
+    <span style="color: var(--text); white-space: nowrap">{{session}}</span>
+    <span style="font-family: 'JetBrains Mono', monospace; color: var(--muted)">1h 20m</span>
+  </span>
+
+  <span style="margin-left: auto; display: flex; align-items: center; gap: 8px" title="Context window of the active session">
+    <span>Context</span>
+    <span style="width: 72px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex">
+      <span style="{{ctxFill}}"></span>
+    </span>
+    <span style="font-family: 'JetBrains Mono', monospace; color: {{ctxColor}}">{{ctx}}% <span style="color: var(--muted)">of 1M</span></span>
+    <sc-if value="{{ctxWarn}}" hint-placeholder-val="{{false}}">
+      <button style="height: 24px; padding: 0 8px; border-radius: 5px; border: 1px solid var(--accent-line); background: var(--accent-bg); color: var(--warn); font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer">/compact</button>
+    </sc-if>
+  </span>
+
+  <span style="width: 1px; height: 16px; background: var(--line-strong)"></span>
+
+  <span style="display: flex; align-items: center; gap: 8px" title="Plan usage">
+    <span>5h limit</span>
+    <span style="width: 72px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex">
+      <span style="width: 63%; background: var(--accent)"></span>
+    </span>
+    <span style="font-family: 'JetBrains Mono', monospace; color: var(--text)">63%</span>
+    <span style="color: var(--muted)">resets 16:00</span>
+  </span>
+
+  <span style="display: flex; align-items: center; gap: 8px">
+    <span>Week</span>
+    <span style="width: 48px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex">
+      <span style="width: 38%; background: var(--info)"></span>
+    </span>
+    <span style="font-family: 'JetBrains Mono', monospace; color: var(--text)">38%</span>
+  </span>
+
+  <span style="width: 1px; height: 16px; background: var(--line-strong)"></span>
+
+  <button onClick="{{cafToggle}}" aria-expanded="{{cafExpanded}}" aria-label="Caffeinate: {{cafLabel}}" title="{{cafLabel}}" style="{{cafBtnStyle}}">
+    <sc-if value="{{cafOff}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted); overflow: visible; flex-shrink: 0" aria-hidden="true"><path d="M7 11h9v3.5a3.5 3.5 0 0 1-3.5 3.5h-2A3.5 3.5 0 0 1 7 14.5z"/><path d="M16 12.2h1a1.6 1.6 0 0 1 0 3.2h-1"/><path d="M4 20.5h16"/></svg></sc-if>
+    <sc-if value="{{cafOn}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); overflow: visible; flex-shrink: 0" aria-hidden="true"><path d="M7 11h9v3.5a3.5 3.5 0 0 1-3.5 3.5h-2A3.5 3.5 0 0 1 7 14.5z" fill="currentColor"/><path d="M16 12.2h1a1.6 1.6 0 0 1 0 3.2h-1"/><path d="M4 20.5h16"/><g class="steam"><path d="M10 5.5c-.8 1 .8 1.8 0 3"/><path d="M13.2 5.5c-.8 1 .8 1.8 0 3"/></g></svg></sc-if>
+    <sc-if value="{{cafLid}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); overflow: visible; flex-shrink: 0" aria-hidden="true"><path d="M7 11h9v3.5a3.5 3.5 0 0 1-3.5 3.5h-2A3.5 3.5 0 0 1 7 14.5z" fill="currentColor"/><path d="M16 12.2h1a1.6 1.6 0 0 1 0 3.2h-1"/><path d="M4 20.5h16"/><g class="steam"><path d="M10 5.5c-.8 1 .8 1.8 0 3"/><path d="M13.2 5.5c-.8 1 .8 1.8 0 3"/></g><circle cx="19" cy="6" r="4.4" fill="var(--ko)" stroke="none"/><g style="color: var(--info)"><path d="M15.8 5.6h6.4" stroke-width="2.2"/><path d="M15 7.8h8"/></g></svg></sc-if>
+    <span>{{cafShort}}</span>
+  </button>
+
+  <sc-if value="{{cafOpen}}" hint-placeholder-val="{{false}}">
+    <div role="dialog" aria-label="Caffeinate" style="position: absolute; right: 250px; bottom: 44px; width: 320px; border-radius: 12px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 24px 64px var(--shadow); display: flex; flex-direction: column; padding: 8px; gap: 2px; color: var(--text); z-index: 10; --ko: var(--popover)">
+      <span style="padding: 8px 8px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Keep the Mac awake</span>
+      <sc-for list="{{cafOptions}}" as="o" hint-placeholder-count="3">
+        <button role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="{{o.style}}">
+          <sc-if value="{{o.isOff}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted); overflow: visible; flex-shrink: 0" aria-hidden="true"><path d="M7 11h9v3.5a3.5 3.5 0 0 1-3.5 3.5h-2A3.5 3.5 0 0 1 7 14.5z"/><path d="M16 12.2h1a1.6 1.6 0 0 1 0 3.2h-1"/><path d="M4 20.5h16"/></svg></sc-if>
+          <sc-if value="{{o.isOn}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); overflow: visible; flex-shrink: 0" aria-hidden="true"><path d="M7 11h9v3.5a3.5 3.5 0 0 1-3.5 3.5h-2A3.5 3.5 0 0 1 7 14.5z" fill="currentColor"/><path d="M16 12.2h1a1.6 1.6 0 0 1 0 3.2h-1"/><path d="M4 20.5h16"/><g class="steam"><path d="M10 5.5c-.8 1 .8 1.8 0 3"/><path d="M13.2 5.5c-.8 1 .8 1.8 0 3"/></g></svg></sc-if>
+          <sc-if value="{{o.isLid}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); overflow: visible; flex-shrink: 0" aria-hidden="true"><path d="M7 11h9v3.5a3.5 3.5 0 0 1-3.5 3.5h-2A3.5 3.5 0 0 1 7 14.5z" fill="currentColor"/><path d="M16 12.2h1a1.6 1.6 0 0 1 0 3.2h-1"/><path d="M4 20.5h16"/><g class="steam"><path d="M10 5.5c-.8 1 .8 1.8 0 3"/><path d="M13.2 5.5c-.8 1 .8 1.8 0 3"/></g><circle cx="19" cy="6" r="4.4" fill="var(--ko)" stroke="none"/><g style="color: var(--info)"><path d="M15.8 5.6h6.4" stroke-width="2.2"/><path d="M15 7.8h8"/></g></svg></sc-if>
+          <span style="flex: 1; text-align: left; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-weight: 500">{{o.label}}</span>
+            <span style="font-size: 11px; color: var(--muted)">{{o.note}}</span>
+          </span>
+          <span style="width: 14px; color: var(--accent); font-weight: 700">{{o.check}}</span>
+        </button>
+      </sc-for>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 10px 8px 4px; margin-top: 6px; border-top: 1px solid var(--line); font-size: 12px; color: var(--text-3)">
+        <span>Applies to</span>
+        <div role="radiogroup" aria-label="Scope" style="margin-left: auto; display: flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line)">
+          <sc-for list="{{cafScopes}}" as="c" hint-placeholder-count="2">
+            <button role="radio" aria-checked="{{c.checked}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <span style="width: 1px; height: 16px; background: var(--line-strong)"></span>
+
+  <button onClick="{{toggle}}" aria-expanded="{{expanded}}" aria-label="Change agent, model and effort" style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid {{pickerBorder}}; background: var(--raised); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; cursor: pointer">
+    <span style="width: 16px; height: 16px; border-radius: 4px; background: {{accent}}; color: var(--on-accent); box-shadow: var(--accent-shadow); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700">C</span>
+    {{modelLabel}}
+    <span style="color: var(--muted)">·</span>
+    <span style="color: var(--warn)">{{effort}}</span>
+    <span style="color: var(--muted)">·</span>
+    <span style="color: var(--text-3)">{{mode}}</span>
+    <svg style="stroke: var(--text-3)" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke-width="2.5" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
+  </button>
+
+  <sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+    <div role="dialog" aria-label="Agent and model" style="position: absolute; right: 12px; bottom: 44px; width: 380px; border-radius: 12px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 24px 64px var(--shadow); display: flex; flex-direction: column; padding: 8px; gap: 4px; color: var(--text); z-index: 10">
+      <span style="padding: 8px 8px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Agent</span>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 0 4px">
+        <button style="height: 36px; border-radius: 8px; border: 1px solid {{accent}}; background: var(--accent-bg); color: var(--warn); font-weight: 600; cursor: pointer">Claude Code</button>
+        <button style="height: 36px; border-radius: 8px; border: 1px solid var(--line-strong); background: transparent; color: var(--text-2); cursor: pointer">Codex</button>
+      </div>
+
+      <span style="padding: 12px 8px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Model</span>
+      <sc-for list="{{models}}" as="m" hint-placeholder-count="4">
+        <button onClick="{{m.pick}}" style="{{m.style}}">
+          <span style="width: 14px; color: {{accent}}; font-weight: 700">{{m.check}}</span>
+          <span style="flex: 1; text-align: left; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-weight: 500">{{m.label}}</span>
+            <span style="font-size: 11px; color: var(--muted)">{{m.note}}</span>
+          </span>
+        </button>
+      </sc-for>
+
+      <span style="padding: 12px 8px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Effort</span>
+      <div role="radiogroup" aria-label="Effort" style="display: flex; gap: 2px; margin: 0 4px; padding: 3px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line)">
+        <sc-for list="{{efforts}}" as="e" hint-placeholder-count="5">
+          <button role="radio" aria-checked="{{e.checked}}" onClick="{{e.pick}}" style="{{e.style}}">{{e.label}}</button>
+        </sc-for>
+      </div>
+
+      <span style="padding: 12px 8px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Permissions</span>
+      <div role="radiogroup" aria-label="Permission mode" style="display: flex; gap: 2px; margin: 0 4px; padding: 3px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line)">
+        <sc-for list="{{modes}}" as="p" hint-placeholder-count="4">
+          <button role="radio" aria-checked="{{p.checked}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 12px 8px 6px; margin-top: 6px; border-top: 1px solid var(--line); font-size: 12px; color: var(--text-3)">
+        <span>Applies to this session</span>
+        <button style="margin-left: auto; height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font-size: 12px; cursor: pointer">Make default</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["graphite", "midnight", "forest", "dusk", "synthwave"], "default": "graphite"}, "session": {"editor": "text", "default": "Markup · scenarios"}, "open": {"editor": "boolean", "default": false}, "ctx": {"editor": "range", "default": 42, "min": 0, "max": 100, "step": 1}, "$preview": {"width": 1440, "height": 36}, "caffeine": {"editor": "enum", "options": ["off", "on", "lid"], "default": "on"}}'>
+// THEMES:start (generated — same block in every C board)
+const THEMES = {
+  "graphite": {
+    "bg": "#0A0B0C",
+    "chrome": "#111316",
+    "panel": "#0F1113",
+    "card": "#14171A",
+    "raised": "#1C1F24",
+    "popover": "#16191D",
+    "line-soft": "#1E2227",
+    "line": "#23272D",
+    "line-strong": "#2A2F36",
+    "line-heavy": "#343941",
+    "text": "#E7E9EC",
+    "text-2": "#C9CED4",
+    "text-3": "#A0A7B1",
+    "muted": "#8B93A0",
+    "faint": "#6B7380",
+    "accent": "#E8A15C",
+    "on-accent": "#0D0E10",
+    "accent-bg": "#2A2113",
+    "accent-line": "#5A4325",
+    "accent-ring": "rgba(232,161,92,0.12)",
+    "warn": "#F0B27A",
+    "ok": "#5CC98A",
+    "ok-bg": "#0F1A14",
+    "ok-line": "#2E5A40",
+    "ok-glow": "rgba(92,201,138,0.2)",
+    "bad": "#F2726A",
+    "bad-bg": "#2A1517",
+    "info": "#6CB6FF",
+    "info-bg": "#1A2433",
+    "link": "#9CC9FF",
+    "link-hover": "#C7E0FF",
+    "link-line": "#4A6A8F",
+    "violet": "#C3A4FF",
+    "teal": "#4FC1C9",
+    "prio-high": "rgba(242,114,106,0.13)",
+    "prio-mid": "rgba(240,178,122,0.09)",
+    "prio-low": "rgba(160,167,177,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(5,6,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "midnight": {
+    "bg": "#0B1020",
+    "chrome": "#0F1629",
+    "panel": "#0D1326",
+    "card": "#121A2E",
+    "raised": "#18213A",
+    "popover": "#141C33",
+    "line-soft": "#18213A",
+    "line": "#1F2944",
+    "line-strong": "#29344F",
+    "line-heavy": "#36425F",
+    "text": "#E4E9F5",
+    "text-2": "#C2CBE0",
+    "text-3": "#9AA5BF",
+    "muted": "#8390AD",
+    "faint": "#5F6A87",
+    "accent": "#7AA2FF",
+    "on-accent": "#0B1020",
+    "accent-bg": "#18234A",
+    "accent-line": "#3A4E86",
+    "accent-ring": "rgba(122,162,255,0.16)",
+    "warn": "#E6B673",
+    "ok": "#6FD3A0",
+    "ok-bg": "#0F1E22",
+    "ok-line": "#2A5A4E",
+    "ok-glow": "rgba(111,211,160,0.2)",
+    "bad": "#FF7A85",
+    "bad-bg": "#2A1425",
+    "info": "#7DCFFF",
+    "info-bg": "#14223F",
+    "link": "#A9C7FF",
+    "link-hover": "#D0E0FF",
+    "link-line": "#41598C",
+    "violet": "#BB9AF7",
+    "teal": "#5ED4D0",
+    "prio-high": "rgba(255,122,133,0.13)",
+    "prio-mid": "rgba(230,182,115,0.09)",
+    "prio-low": "rgba(154,165,191,0.06)",
+    "shadow": "rgba(2,4,12,0.65)",
+    "scrim": "rgba(5,8,18,0.6)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "forest": {
+    "bg": "#0F1411",
+    "chrome": "#131A16",
+    "panel": "#111814",
+    "card": "#161E19",
+    "raised": "#1C2620",
+    "popover": "#19221C",
+    "line-soft": "#1C2620",
+    "line": "#232E27",
+    "line-strong": "#2C3A31",
+    "line-heavy": "#38483E",
+    "text": "#E3EADF",
+    "text-2": "#C5D0C1",
+    "text-3": "#9FAC9C",
+    "muted": "#879483",
+    "faint": "#637061",
+    "accent": "#A7C080",
+    "on-accent": "#0F1411",
+    "accent-bg": "#1F2A1C",
+    "accent-line": "#4A5E3A",
+    "accent-ring": "rgba(167,192,128,0.14)",
+    "warn": "#DBBC7F",
+    "ok": "#83C092",
+    "ok-bg": "#132019",
+    "ok-line": "#355A43",
+    "ok-glow": "rgba(131,192,146,0.2)",
+    "bad": "#E67E80",
+    "bad-bg": "#2A1819",
+    "info": "#7FBBB3",
+    "info-bg": "#162624",
+    "link": "#9CCFC4",
+    "link-hover": "#C6E6DF",
+    "link-line": "#3F6A61",
+    "violet": "#D699B6",
+    "teal": "#83C0B5",
+    "prio-high": "rgba(230,126,128,0.13)",
+    "prio-mid": "rgba(219,188,127,0.09)",
+    "prio-low": "rgba(159,172,156,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,9,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "dusk": {
+    "bg": "#0E0D12",
+    "chrome": "#14131A",
+    "panel": "#121117",
+    "card": "#17161D",
+    "raised": "#1E1C26",
+    "popover": "#1A1921",
+    "line-soft": "#1E1C25",
+    "line": "#25232E",
+    "line-strong": "#2E2B39",
+    "line-heavy": "#3A3647",
+    "text": "#ECE8F2",
+    "text-2": "#CDC7D8",
+    "text-3": "#A69FB4",
+    "muted": "#8E879E",
+    "faint": "#6A647A",
+    "accent": "#A07EEA",
+    "on-accent": "#120E16",
+    "accent-bg": "#211A30",
+    "accent-line": "#4A3A72",
+    "accent-ring": "rgba(160,126,234,0.14)",
+    "warn": "#E8B07A",
+    "ok": "#5FD0B0",
+    "ok-bg": "#10201D",
+    "ok-line": "#2C5A50",
+    "ok-glow": "rgba(95,208,176,0.2)",
+    "bad": "#EE6F86",
+    "bad-bg": "#2A151D",
+    "info": "#6FC3E0",
+    "info-bg": "#16202C",
+    "link": "#8FD3EA",
+    "link-hover": "#C2E9F5",
+    "link-line": "#3E6475",
+    "violet": "#D3A6E8",
+    "teal": "#57C7CC",
+    "prio-high": "rgba(238,111,134,0.13)",
+    "prio-mid": "rgba(232,176,122,0.09)",
+    "prio-low": "rgba(166,159,180,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,5,10,0.58)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 10px rgba(160,126,234,0.22)",
+    "accent-shadow": "0 0 10px rgba(160,126,234,0.25)",
+    "chrome-edge": "0 1px 0 rgba(160,126,234,0.4)",
+    "bg-img": "linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px)"
+  },
+  "synthwave": {
+    "bg": "#140B26",
+    "chrome": "#1B0F33",
+    "panel": "#180D2E",
+    "card": "#1E1238",
+    "raised": "#271847",
+    "popover": "#22143F",
+    "line-soft": "#2A1A4A",
+    "line": "#33205A",
+    "line-strong": "#432B70",
+    "line-heavy": "#553889",
+    "text": "#F7EEFF",
+    "text-2": "#DCCBF5",
+    "text-3": "#B9A3DE",
+    "muted": "#9C86C4",
+    "faint": "#7461A0",
+    "accent": "#FF2E97",
+    "on-accent": "#1A0820",
+    "accent-bg": "#3A1240",
+    "accent-line": "#8A1F6A",
+    "accent-ring": "rgba(255,46,151,0.22)",
+    "warn": "#FFB454",
+    "ok": "#36F9C5",
+    "ok-bg": "#0E2A33",
+    "ok-line": "#1D6B62",
+    "ok-glow": "rgba(54,249,197,0.28)",
+    "bad": "#FF4F6D",
+    "bad-bg": "#3A0F25",
+    "info": "#3DE0FF",
+    "info-bg": "#13204A",
+    "link": "#6BEFFF",
+    "link-hover": "#B5F7FF",
+    "link-line": "#2E6E8A",
+    "violet": "#C77DFF",
+    "teal": "#2DE2E6",
+    "prio-high": "rgba(255,79,109,0.16)",
+    "prio-mid": "rgba(255,180,84,0.11)",
+    "prio-low": "rgba(185,163,222,0.07)",
+    "shadow": "rgba(8,0,20,0.7)",
+    "scrim": "rgba(10,3,22,0.6)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 14px rgba(255,46,151,0.55), 0 0 2px rgba(255,46,151,0.9)",
+    "accent-shadow": "0 0 18px rgba(255,46,151,0.55)",
+    "chrome-edge": "0 1px 0 #FF2E97, 0 2px 18px rgba(255,46,151,0.35)",
+    "bg-img": "linear-gradient(180deg, rgba(20,11,38,0) 0%, rgba(20,11,38,0) 55%, rgba(255,46,151,0.07) 100%), repeating-linear-gradient(90deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px)"
+  }
+};
+const themeVars = (name) => Object.entries(THEMES[name] || THEMES.graphite).map(([k, v]) => `--${k}:${v}`).join(';') + ';';
+// THEMES:end
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: !!props.open, model: 0, effort: 2, mode: 0, caf: props.caffeine || 'on', cafOpen: false, cafScope: 'session' };
+  }
+  renderVals() {
+    const accent = 'var(--accent)';
+    const ctx = this.props.ctx ?? 42;
+    const ctxColor = ctx >= 75 ? 'var(--bad)' : ctx >= 60 ? 'var(--warn)' : 'var(--text)';
+    const models = [
+      { label: 'Opus 5.5 · 1M', short: 'opus-5.5 1M', note: 'Default for coding sessions' },
+      { label: 'Opus 5.5 · 200K', short: 'opus-5.5', note: 'Smaller context, compacts sooner' },
+      { label: 'Sonnet 5.5', short: 'sonnet-5.5', note: 'Faster, lighter on the 5h limit' },
+      { label: 'Haiku 5.5', short: 'haiku-5.5', note: 'Quick lookups and triage' },
+    ];
+    const efforts = ['low', 'medium', 'high', 'xhigh', 'max'];
+    const modes = ['ask', 'accept edits', 'plan', 'bypass'];
+    const seg = (on) => `flex:1;height:28px;border-radius:6px;border:0;cursor:pointer;font-size:12px;font-family:Inter,system-ui,sans-serif;background:${on ? 'var(--line)' : 'transparent'};color:${on ? 'var(--text)' : 'var(--text-3)'};font-weight:${on ? 600 : 400}`;
+    const s = this.state;
+    // Caffeinate: off, awake while the session runs, or awake with the lid closed (on power).
+    const CAF = {
+      off: { label: 'Off', short: 'Sleep ok', note: 'The Mac sleeps as usual' },
+      on: { label: 'Awake', short: 'Awake', note: 'While this session is running' },
+      lid: { label: 'Awake, lid closed', short: 'Lid closed', note: 'Keeps running with the lid shut · needs power' },
+    };
+    const caf = s.caf;
+    const cafVals = {
+      cafOff: caf === 'off', cafOn: caf === 'on', cafLid: caf === 'lid',
+      cafShort: CAF[caf].short,
+      cafLabel: `${CAF[caf].label} (${s.cafScope === 'all' ? 'all sessions' : 'this session'})`,
+      cafOpen: s.cafOpen,
+      cafExpanded: s.cafOpen ? 'true' : 'false',
+      cafToggle: () => this.setState({ cafOpen: !s.cafOpen, open: false }),
+      cafBtnStyle: `--ko:${caf === 'off' ? 'var(--chrome)' : 'var(--accent-bg)'};display:flex;align-items:center;gap:7px;height:28px;padding:0 10px 0 8px;border-radius:6px;cursor:pointer;font-family:Inter,system-ui,sans-serif;font-size:12px;border:1px solid ${s.cafOpen ? 'var(--accent)' : caf === 'off' ? 'transparent' : 'var(--accent-line)'};background:${caf === 'off' ? 'transparent' : 'var(--accent-bg)'};color:${caf === 'off' ? 'var(--text-3)' : 'var(--text)'}`,
+      cafOptions: ['off', 'on', 'lid'].map((k) => ({
+        ...CAF[k], isOff: k === 'off', isOn: k === 'on', isLid: k === 'lid',
+        checked: k === caf ? 'true' : 'false', check: k === caf ? '✓' : '',
+        pick: () => this.setState({ caf: k }),
+        style: `display:flex;align-items:center;gap:12px;min-height:48px;padding:0 10px;border-radius:7px;border:0;cursor:pointer;font-family:Inter,system-ui,sans-serif;font-size:13px;color:var(--text);background:${k === caf ? 'var(--raised)' : 'transparent'}`,
+      })),
+      cafScopes: [['session', 'This session'], ['all', 'All sessions']].map(([k, label]) => ({
+        label, checked: s.cafScope === k ? 'true' : 'false', pick: () => this.setState({ cafScope: k }), style: seg(s.cafScope === k).replace('flex:1;', 'padding:0 10px;'),
+      })),
+    };
+    return {
+      ...cafVals,
+      themeVars: themeVars(this.props.theme),
+      theme: this.props.theme || 'graphite',
+      accent,
+      session: this.props.session ?? 'Markup · scenarios',
+      dot: 'var(--info)',
+      ctx,
+      ctxColor,
+      ctxWarn: ctx >= 60,
+      ctxFill: `width:${ctx}%;background:${ctx >= 75 ? 'var(--bad)' : ctx >= 60 ? 'var(--accent)' : 'var(--ok)'}`,
+      open: s.open,
+      expanded: s.open ? 'true' : 'false',
+      pickerBorder: s.open ? accent : 'var(--line-heavy)',
+      toggle: () => this.setState({ open: !s.open, cafOpen: false }),
+      modelLabel: models[s.model].short,
+      effort: efforts[s.effort],
+      mode: modes[s.mode],
+      models: models.map((m, i) => ({
+        ...m,
+        check: i === s.model ? '✓' : '',
+        pick: () => this.setState({ model: i }),
+        style: `display:flex;align-items:center;gap:8px;min-height:44px;padding:0 10px;border-radius:7px;border:0;cursor:pointer;font-family:Inter,system-ui,sans-serif;font-size:13px;color:var(--text);background:${i === s.model ? 'var(--raised)' : 'transparent'}`,
+      })),
+      efforts: efforts.map((label, i) => ({ label, checked: i === s.effort ? 'true' : 'false', pick: () => this.setState({ effort: i }), style: seg(i === s.effort) })),
+      modes: modes.map((label, i) => ({ label, checked: i === s.mode ? 'true' : 'false', pick: () => this.setState({ mode: i }), style: seg(i === s.mode) })),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workbench — Focus</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Orbitron:wght@500;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0B0C;--chrome:#111316;--panel:#0F1113;--card:#14171A;--raised:#1C1F24;--popover:#16191D;--line-soft:#1E2227;--line:#23272D;--line-strong:#2A2F36;--line-heavy:#343941;--text:#E7E9EC;--text-2:#C9CED4;--text-3:#A0A7B1;--muted:#8B93A0;--faint:#6B7380;--accent:#E8A15C;--on-accent:#0D0E10;--accent-bg:#2A2113;--accent-line:#5A4325;--accent-ring:rgba(232,161,92,0.12);--warn:#F0B27A;--ok:#5CC98A;--ok-bg:#0F1A14;--ok-line:#2E5A40;--ok-glow:rgba(92,201,138,0.2);--bad:#F2726A;--bad-bg:#2A1517;--info:#6CB6FF;--info-bg:#1A2433;--link:#9CC9FF;--link-hover:#C7E0FF;--link-line:#4A6A8F;--violet:#C3A4FF;--teal:#4FC1C9;--prio-high:rgba(242,114,106,0.13);--prio-mid:rgba(240,178,122,0.09);--prio-low:rgba(160,167,177,0.06);--shadow:rgba(0,0,0,0.6);--scrim:rgba(5,6,7,0.55);--display:Inter, system-ui, sans-serif;--title-glow:none;--accent-shadow:none;--chrome-edge:none;--bg-img:none}
+body{margin:0;background:var(--bg)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="{{themeVars}} width: 1440px; height: 900px; box-sizing: border-box; background: var(--bg); background-image: var(--bg-img); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 13px; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <dc-import name="TopBar" theme="{{theme}}" active="ci" hint-size="100%,48px"></dc-import>
+
+  <!-- Terminal -->
+  <div style="flex: 1; min-height: 0; padding: 22px 32px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; color: var(--text-2); display: flex; flex-direction: column; gap: 2px; filter: blur(1.5px); opacity: 0.55">
+    <span style="color: var(--muted)">╭─ Claude Code · ~/worktrees/frontend-ci-flakiness</span>
+    <span><span style="color: {{accent}}">&gt;</span> diff the failed test sets across the last three runs on this branch</span>
+    <span style="color: var(--muted)">⏺ Bash(tb-sem failures --branch ci-flakiness --last 3)</span>
+    <span style="color: var(--muted)">  ⎿ 3 runs · 41 failures · 38 unique</span>
+    <span>⏺ Only one test failed in all three runs:</span>
+    <span>  <span style="color: var(--bad)">Acceptance | deals | bulk edit services</span></span>
+    <span>  The rest differ every run, so they look like teardown flakes,</span>
+    <span>  not a regression. Next I'll isolate the bulk edit test.</span>
+    <span style="color: var(--muted)">⏺ Read(tests/acceptance/deals/bulk-edit-test.ts)</span>
+    <span style="color: var(--muted)">  ⎿ 212 lines</span>
+    <span>✻ Thinking…</span>
+  </div>
+
+  <!-- Status bar -->
+  <dc-import name="StatusBar" theme="{{theme}}" session="CI flakiness" hint-size="100%,36px"></dc-import>
+
+  <!-- Scrim -->
+  <div style="position: absolute; inset: 0; background: var(--scrim)"></div>
+
+  <!-- Command palette -->
+  <div role="dialog" aria-label="Switch or run" style="position: absolute; top: 120px; left: 50%; transform: translateX(-50%); width: 680px; border-radius: 14px; background: var(--popover); border: 1px solid var(--line-strong); box-shadow: 0 24px 80px var(--shadow); display: flex; flex-direction: column; overflow: hidden">
+    <label style="display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line)">
+      <svg style="stroke: var(--text-3)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <input aria-label="Search" value="disc" style="flex: 1; background: transparent; border: 0; outline: none; color: var(--text); font: inherit; font-size: 16px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); padding: 2px 6px; border: 1px solid var(--line-heavy); border-radius: 4px">esc</span>
+    </label>
+
+    <div style="padding: 8px; display: flex; flex-direction: column; gap: 2px">
+      <span style="padding: 8px 10px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Workstreams</span>
+      <button style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: 8px; border: 0; background: var(--raised); color: var(--text); text-align: left; cursor: pointer; font: inherit">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent)"></span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-weight: 500">Service discount e2e</span>
+          <span style="font-size: 11px; color: var(--text-3)">Waiting for permission · e2e #1132 CI failed</span>
+        </span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3)">↵ switch</span>
+      </button>
+      <button style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--faint)"></span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-weight: 500">Service discount demo video</span>
+          <span style="font-size: 11px; color: var(--text-3)">Parked 15 days · thread post not sent</span>
+        </span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted)">⌘2</span>
+      </button>
+
+      <span style="padding: 10px 10px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Pull requests</span>
+      <button style="display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); width: 120px">fe #29027</span>
+        <span style="flex: 1">Service discount fixed amount</span>
+        <span style="font-size: 11px; color: var(--ok)">approved</span>
+      </button>
+
+      <span style="padding: 10px 10px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Productive tasks</span>
+      <button style="display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); width: 120px">#5561</span>
+        <span style="flex: 1">FE: service markup / discount fixed amount</span>
+        <span style="font-size: 11px; color: var(--text-3)">start workstream</span>
+      </button>
+
+      <span style="padding: 10px 10px 4px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Run in current session</span>
+      <button style="display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: {{accent}}; width: 120px">/p-e2e:fix</span>
+        <span style="flex: 1; color: var(--text-2)">Fix broken e2e selectors</span>
+      </button>
+    </div>
+
+    <div style="display: flex; gap: 16px; padding: 10px 18px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace">
+      <span>↑↓ move</span><span>↵ open</span><span>⌘↵ open in split</span><span style="margin-left: auto">⇧⌘P park current</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["graphite", "midnight", "forest", "dusk", "synthwave"], "default": "graphite"}, "$preview": {"width": 1440, "height": 900}}'>
+// THEMES:start (generated — same block in every C board)
+const THEMES = {
+  "graphite": {
+    "bg": "#0A0B0C",
+    "chrome": "#111316",
+    "panel": "#0F1113",
+    "card": "#14171A",
+    "raised": "#1C1F24",
+    "popover": "#16191D",
+    "line-soft": "#1E2227",
+    "line": "#23272D",
+    "line-strong": "#2A2F36",
+    "line-heavy": "#343941",
+    "text": "#E7E9EC",
+    "text-2": "#C9CED4",
+    "text-3": "#A0A7B1",
+    "muted": "#8B93A0",
+    "faint": "#6B7380",
+    "accent": "#E8A15C",
+    "on-accent": "#0D0E10",
+    "accent-bg": "#2A2113",
+    "accent-line": "#5A4325",
+    "accent-ring": "rgba(232,161,92,0.12)",
+    "warn": "#F0B27A",
+    "ok": "#5CC98A",
+    "ok-bg": "#0F1A14",
+    "ok-line": "#2E5A40",
+    "ok-glow": "rgba(92,201,138,0.2)",
+    "bad": "#F2726A",
+    "bad-bg": "#2A1517",
+    "info": "#6CB6FF",
+    "info-bg": "#1A2433",
+    "link": "#9CC9FF",
+    "link-hover": "#C7E0FF",
+    "link-line": "#4A6A8F",
+    "violet": "#C3A4FF",
+    "teal": "#4FC1C9",
+    "prio-high": "rgba(242,114,106,0.13)",
+    "prio-mid": "rgba(240,178,122,0.09)",
+    "prio-low": "rgba(160,167,177,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(5,6,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "midnight": {
+    "bg": "#0B1020",
+    "chrome": "#0F1629",
+    "panel": "#0D1326",
+    "card": "#121A2E",
+    "raised": "#18213A",
+    "popover": "#141C33",
+    "line-soft": "#18213A",
+    "line": "#1F2944",
+    "line-strong": "#29344F",
+    "line-heavy": "#36425F",
+    "text": "#E4E9F5",
+    "text-2": "#C2CBE0",
+    "text-3": "#9AA5BF",
+    "muted": "#8390AD",
+    "faint": "#5F6A87",
+    "accent": "#7AA2FF",
+    "on-accent": "#0B1020",
+    "accent-bg": "#18234A",
+    "accent-line": "#3A4E86",
+    "accent-ring": "rgba(122,162,255,0.16)",
+    "warn": "#E6B673",
+    "ok": "#6FD3A0",
+    "ok-bg": "#0F1E22",
+    "ok-line": "#2A5A4E",
+    "ok-glow": "rgba(111,211,160,0.2)",
+    "bad": "#FF7A85",
+    "bad-bg": "#2A1425",
+    "info": "#7DCFFF",
+    "info-bg": "#14223F",
+    "link": "#A9C7FF",
+    "link-hover": "#D0E0FF",
+    "link-line": "#41598C",
+    "violet": "#BB9AF7",
+    "teal": "#5ED4D0",
+    "prio-high": "rgba(255,122,133,0.13)",
+    "prio-mid": "rgba(230,182,115,0.09)",
+    "prio-low": "rgba(154,165,191,0.06)",
+    "shadow": "rgba(2,4,12,0.65)",
+    "scrim": "rgba(5,8,18,0.6)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "forest": {
+    "bg": "#0F1411",
+    "chrome": "#131A16",
+    "panel": "#111814",
+    "card": "#161E19",
+    "raised": "#1C2620",
+    "popover": "#19221C",
+    "line-soft": "#1C2620",
+    "line": "#232E27",
+    "line-strong": "#2C3A31",
+    "line-heavy": "#38483E",
+    "text": "#E3EADF",
+    "text-2": "#C5D0C1",
+    "text-3": "#9FAC9C",
+    "muted": "#879483",
+    "faint": "#637061",
+    "accent": "#A7C080",
+    "on-accent": "#0F1411",
+    "accent-bg": "#1F2A1C",
+    "accent-line": "#4A5E3A",
+    "accent-ring": "rgba(167,192,128,0.14)",
+    "warn": "#DBBC7F",
+    "ok": "#83C092",
+    "ok-bg": "#132019",
+    "ok-line": "#355A43",
+    "ok-glow": "rgba(131,192,146,0.2)",
+    "bad": "#E67E80",
+    "bad-bg": "#2A1819",
+    "info": "#7FBBB3",
+    "info-bg": "#162624",
+    "link": "#9CCFC4",
+    "link-hover": "#C6E6DF",
+    "link-line": "#3F6A61",
+    "violet": "#D699B6",
+    "teal": "#83C0B5",
+    "prio-high": "rgba(230,126,128,0.13)",
+    "prio-mid": "rgba(219,188,127,0.09)",
+    "prio-low": "rgba(159,172,156,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,9,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "dusk": {
+    "bg": "#0E0D12",
+    "chrome": "#14131A",
+    "panel": "#121117",
+    "card": "#17161D",
+    "raised": "#1E1C26",
+    "popover": "#1A1921",
+    "line-soft": "#1E1C25",
+    "line": "#25232E",
+    "line-strong": "#2E2B39",
+    "line-heavy": "#3A3647",
+    "text": "#ECE8F2",
+    "text-2": "#CDC7D8",
+    "text-3": "#A69FB4",
+    "muted": "#8E879E",
+    "faint": "#6A647A",
+    "accent": "#A07EEA",
+    "on-accent": "#120E16",
+    "accent-bg": "#211A30",
+    "accent-line": "#4A3A72",
+    "accent-ring": "rgba(160,126,234,0.14)",
+    "warn": "#E8B07A",
+    "ok": "#5FD0B0",
+    "ok-bg": "#10201D",
+    "ok-line": "#2C5A50",
+    "ok-glow": "rgba(95,208,176,0.2)",
+    "bad": "#EE6F86",
+    "bad-bg": "#2A151D",
+    "info": "#6FC3E0",
+    "info-bg": "#16202C",
+    "link": "#8FD3EA",
+    "link-hover": "#C2E9F5",
+    "link-line": "#3E6475",
+    "violet": "#D3A6E8",
+    "teal": "#57C7CC",
+    "prio-high": "rgba(238,111,134,0.13)",
+    "prio-mid": "rgba(232,176,122,0.09)",
+    "prio-low": "rgba(166,159,180,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,5,10,0.58)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 10px rgba(160,126,234,0.22)",
+    "accent-shadow": "0 0 10px rgba(160,126,234,0.25)",
+    "chrome-edge": "0 1px 0 rgba(160,126,234,0.4)",
+    "bg-img": "linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px)"
+  },
+  "synthwave": {
+    "bg": "#140B26",
+    "chrome": "#1B0F33",
+    "panel": "#180D2E",
+    "card": "#1E1238",
+    "raised": "#271847",
+    "popover": "#22143F",
+    "line-soft": "#2A1A4A",
+    "line": "#33205A",
+    "line-strong": "#432B70",
+    "line-heavy": "#553889",
+    "text": "#F7EEFF",
+    "text-2": "#DCCBF5",
+    "text-3": "#B9A3DE",
+    "muted": "#9C86C4",
+    "faint": "#7461A0",
+    "accent": "#FF2E97",
+    "on-accent": "#1A0820",
+    "accent-bg": "#3A1240",
+    "accent-line": "#8A1F6A",
+    "accent-ring": "rgba(255,46,151,0.22)",
+    "warn": "#FFB454",
+    "ok": "#36F9C5",
+    "ok-bg": "#0E2A33",
+    "ok-line": "#1D6B62",
+    "ok-glow": "rgba(54,249,197,0.28)",
+    "bad": "#FF4F6D",
+    "bad-bg": "#3A0F25",
+    "info": "#3DE0FF",
+    "info-bg": "#13204A",
+    "link": "#6BEFFF",
+    "link-hover": "#B5F7FF",
+    "link-line": "#2E6E8A",
+    "violet": "#C77DFF",
+    "teal": "#2DE2E6",
+    "prio-high": "rgba(255,79,109,0.16)",
+    "prio-mid": "rgba(255,180,84,0.11)",
+    "prio-low": "rgba(185,163,222,0.07)",
+    "shadow": "rgba(8,0,20,0.7)",
+    "scrim": "rgba(10,3,22,0.6)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 14px rgba(255,46,151,0.55), 0 0 2px rgba(255,46,151,0.9)",
+    "accent-shadow": "0 0 18px rgba(255,46,151,0.55)",
+    "chrome-edge": "0 1px 0 #FF2E97, 0 2px 18px rgba(255,46,151,0.35)",
+    "bg-img": "linear-gradient(180deg, rgba(20,11,38,0) 0%, rgba(20,11,38,0) 55%, rgba(255,46,151,0.07) 100%), repeating-linear-gradient(90deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px)"
+  }
+};
+const themeVars = (name) => Object.entries(THEMES[name] || THEMES.graphite).map(([k, v]) => `--${k}:${v}`).join(';') + ';';
+// THEMES:end
+class Component extends DCLogic {
+  renderVals() {
+    const accent = 'var(--accent)';
+    const color = { waiting: 'var(--accent)', running: 'var(--info)', failing: 'var(--bad)', idle: 'var(--faint)' };
+    const tabs = [
+      { title: 'CI flakiness', state: 'running', selected: true },
+      { title: 'Service discount e2e', state: 'waiting' },
+      { title: 'Markup fixed amount', state: 'failing' },
+      { title: 'Contact form', state: 'idle' },
+    ];
+    return {
+      themeVars: themeVars(this.props.theme),
+      theme: this.props.theme || 'graphite',
+      accent,
+      tabs: tabs.map((t) => ({
+        ...t,
+        selected: t.selected ? 'true' : 'false',
+        style: `display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border:0;border-radius:8px 8px 0 0;cursor:pointer;font:inherit;font-size:13px;color:${t.selected ? 'var(--text)' : 'var(--text-3)'};background:${t.selected ? 'var(--bg)' : 'transparent'}`,
+        dotStyle: `width:7px;height:7px;border-radius:50%;background:${color[t.state]}`,
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

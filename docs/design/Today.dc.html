@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workbench — Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Orbitron:wght@500;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0B0C;--chrome:#111316;--panel:#0F1113;--card:#14171A;--raised:#1C1F24;--popover:#16191D;--line-soft:#1E2227;--line:#23272D;--line-strong:#2A2F36;--line-heavy:#343941;--text:#E7E9EC;--text-2:#C9CED4;--text-3:#A0A7B1;--muted:#8B93A0;--faint:#6B7380;--accent:#E8A15C;--on-accent:#0D0E10;--accent-bg:#2A2113;--accent-line:#5A4325;--accent-ring:rgba(232,161,92,0.12);--warn:#F0B27A;--ok:#5CC98A;--ok-bg:#0F1A14;--ok-line:#2E5A40;--ok-glow:rgba(92,201,138,0.2);--bad:#F2726A;--bad-bg:#2A1517;--info:#6CB6FF;--info-bg:#1A2433;--link:#9CC9FF;--link-hover:#C7E0FF;--link-line:#4A6A8F;--violet:#C3A4FF;--teal:#4FC1C9;--prio-high:rgba(242,114,106,0.13);--prio-mid:rgba(240,178,122,0.09);--prio-low:rgba(160,167,177,0.06);--shadow:rgba(0,0,0,0.6);--scrim:rgba(5,6,7,0.55);--display:Inter, system-ui, sans-serif;--title-glow:none;--accent-shadow:none;--chrome-edge:none;--bg-img:none}
+body{margin:0;background:var(--bg)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="{{themeVars}} width: 1440px; height: 2440px; box-sizing: border-box; background: var(--bg); background-image: var(--bg-img); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 13px; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <dc-import name="TopBar" theme="{{theme}}" active="today" hint-size="100%,48px"></dc-import>
+
+  <div style="flex: 1; min-height: 0; display: flex">
+  <main style="flex: 1; min-width: 0; max-width: 1200px; margin: 0 auto; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 22px">
+
+    <!-- Header -->
+    <div style="display: flex; align-items: center; gap: 24px">
+      <h1 style="font-family: var(--display); text-shadow: var(--title-glow); margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Today <span style="font-weight: 400; color: var(--muted); font-size: 15px; margin-left: 6px">Thu 22 Oct</span></h1>
+      <div role="tablist" aria-label="Today views" style="margin-left: auto; display: flex; gap: 4px">
+        <sc-for list="{{views}}" as="v" hint-placeholder-count="3">
+          <button role="tab" aria-selected="{{v.selected}}" onClick="{{v.pick}}" style="{{v.style}}">
+            {{v.label}}
+            <span style="{{v.countStyle}}">{{v.count}}</span>
+            <sc-if value="{{v.alert}}" hint-placeholder-val="{{false}}">
+              <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent)" aria-label="{{v.alert}}"></span>
+            </sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Needs you -->
+    <section aria-label="Needs you" style="display: flex; align-items: stretch; gap: 10px">
+      <sc-for list="{{needsYou}}" as="n" hint-placeholder-count="4">
+        <button style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line-soft); background: var(--chrome); color: var(--text); text-align: left; cursor: pointer; font: inherit">
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted)">
+            <span style="{{n.dot}}"></span>{{n.kind}}
+          </span>
+          <span style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{n.title}}</span>
+          <span style="font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{n.sub}}</span>
+        </button>
+      </sc-for>
+    </section>
+
+    <!-- Filter row -->
+    <div style="display: flex; align-items: center; gap: 2px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft)">
+      <sc-for list="{{chips}}" as="f" hint-placeholder-count="8">
+        <button onClick="{{f.pick}}" style="{{f.style}}">
+          <sc-if value="{{f.dot}}" hint-placeholder-val="{{false}}"><span style="{{f.dotStyle}}"></span></sc-if>
+          {{f.label}} <span style="color: var(--faint)">{{f.count}}</span>
+        </button>
+      </sc-for>
+      <sc-if value="{{showToggle}}" hint-placeholder-val="{{false}}">
+        <label style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer">
+          <input type="checkbox" checked="{{toggleOn}}" onChange="{{flipToggle}}" style="accent-color: {{accent}}">
+          {{toggleLabel}}
+        </label>
+      </sc-if>
+      <sc-if value="{{isTasks}}" hint-placeholder-val="{{true}}">
+      </sc-if>
+    </div>
+
+    <!-- MY TASKS -->
+    <sc-if value="{{isTasks}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-direction: column; gap: 18px">
+        <sc-for list="{{projects}}" as="g" hint-placeholder-count="6">
+          <section style="display: flex; flex-direction: column">
+            <button onClick="{{g.toggle}}" aria-expanded="{{g.expanded}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 4px; border: 0; background: transparent; color: var(--text); cursor: pointer; font: inherit; text-align: left">
+              <span style="color: var(--faint); width: 10px; font-size: 11px">{{g.chev}}</span>
+              <span style="font-weight: 600">{{g.name}}</span>
+              <span style="color: var(--faint)">{{g.count}}</span>
+              <span style="margin-left: auto; display: flex; align-items: center; gap: 4px">
+                <sc-for list="{{g.summary}}" as="m" hint-placeholder-count="3">
+                  <span style="{{m.style}}"></span>
+                </sc-for>
+              </span>
+            </button>
+            <sc-if value="{{g.open}}" hint-placeholder-val="{{true}}">
+              <sc-for list="{{g.lines}}" as="t" hint-placeholder-count="6">
+                <sc-if value="{{t.synthetic}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 4px 0 6px; border-top: 1px solid var(--card)">
+                    <button onClick="{{t.msToggle}}" aria-expanded="{{t.msExpanded}}" aria-label="Collapse milestone" style="width: 18px; height: 18px; border: 0; background: transparent; color: var(--faint); cursor: pointer; font-size: 10px; padding: 0">{{t.msChev}}</button>
+                    <svg style="stroke: var(--muted)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2.2" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path></svg>
+                    <span style="font-weight: 600; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span>
+                    <span style="margin-left: auto; font-size: 12px; color: var(--faint); white-space: nowrap">{{t.msMeta}}</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{t.isTask}}" hint-placeholder-val="{{true}}">
+                <div style="{{t.wrapStyle}}">
+                  <div style="display: flex; align-items: center">
+                  <span style="width: 24px; flex-shrink: 0; display: flex; justify-content: center">
+                    <sc-if value="{{t.isHead}}" hint-placeholder-val="{{false}}">
+                      <button onClick="{{t.msToggle}}" aria-expanded="{{t.msExpanded}}" aria-label="Collapse milestone" style="width: 18px; height: 18px; border: 0; background: transparent; color: var(--faint); cursor: pointer; font-size: 10px; padding: 0">{{t.msChev}}</button>
+                    </sc-if>
+                  </span>
+                  <button onClick="{{t.toggle}}" aria-expanded="{{t.expandedAttr}}" style="{{t.rowStyle}}">
+                    <span style="{{t.statusDot}}" title="{{t.status}}" role="img" aria-label="{{t.status}}"><span style="{{t.statusCore}}"></span></span>
+                    <span style="display: flex; align-items: center; gap: 8px; min-width: 0">
+                      <sc-if value="{{t.isMilestone}}" hint-placeholder-val="{{false}}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="2.2" style="stroke: var(--text-2); flex-shrink: 0" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{t.bug}}" hint-placeholder-val="{{false}}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" style="stroke: {{t.prioColor}}; flex-shrink: 0" role="img" aria-label="{{t.bugLabel}}"><rect x="8" y="6" width="8" height="14" rx="4"></rect><path d="M12 6V4M8 10H4M20 10h-4M8 15H4M20 15h-4"></path></svg>
+                      </sc-if>
+                      <span style="{{t.titleStyle}}">{{t.title}}</span>
+                      <sc-if value="{{t.msMeta}}" hint-placeholder-val="{{false}}">
+                        <span style="flex-shrink: 0; font-size: 12px; color: var(--faint)">{{t.msMeta}}</span>
+                      </sc-if>
+                    </span>
+                    <span style="font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.list}}</span>
+                    <span style="{{t.dueStyle}}">{{t.due}}</span>
+                    <span style="{{t.sessStyle}}" aria-label="{{t.sessLabel}}"><sc-if value="{{t.live}}" hint-placeholder-val="{{false}}"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-glow)"></span></sc-if>{{t.sessCount}}</span>
+                  </button>
+                  </div>
+                </div>
+                </sc-if>
+              </sc-for>
+            </sc-if>
+          </section>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- MY GIT -->
+    <sc-if value="{{isGit}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: 18px">
+        <sc-for list="{{prGroups}}" as="g" hint-placeholder-count="4">
+          <section style="display: flex; flex-direction: column">
+            <div style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 4px">
+              <span style="{{g.dotStyle}}"></span>
+              <span style="font-weight: 600">{{g.title}}</span>
+              <span style="color: var(--faint)">{{g.count}}</span>
+            </div>
+            <sc-for list="{{g.rows}}" as="p" hint-placeholder-count="3">
+              <div style="{{p.wrapStyle}}">
+                <div style="display: grid; grid-template-columns: 88px minmax(0, 1fr) 64px 130px 20px 84px 40px; gap: 14px; align-items: center; min-height: 44px; padding: 0 4px 0 24px">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted)">{{p.ref}}</span>
+                  <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{p.title}}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{p.branch}}</span>
+                  </span>
+                  <span style="{{p.taskStyle}}">{{p.task}}</span>
+                  <span style="{{p.stateStyle}}">{{p.state}}</span>
+                  <span style="{{p.ciStyle}}" aria-label="{{p.ciLabel}}"></span>
+                  <span style="{{p.talkStyle}}">{{p.talkLabel}}</span>
+                  <span style="font-size: 12px; color: var(--faint); text-align: right">{{p.age}}</span>
+                </div>
+                <sc-if value="{{p.hasTalk}}" hint-placeholder-val="{{false}}">
+                  <div style="{{p.quoteStyle}}">
+                    <span style="font-size: 12px; color: var(--text-3)"><span style="color: var(--text); font-weight: 600">{{p.talk.who}}</span> {{p.talk.what}} {{p.talk.path}} · {{p.talk.when}}</span>
+                    <span style="font-size: 12px; line-height: 1.55; color: var(--text-2)">{{p.talk.text}}</span>
+                    <sc-if value="{{p.talk.open}}" hint-placeholder-val="{{true}}">
+                      <span style="display: flex; gap: 14px; font-size: 12px">
+                        <a href="#">Draft reply with Claude</a>
+                        <a href="#" style="color: var(--muted)">Open on GitHub</a>
+                        <a href="#" style="color: var(--muted)">Mark as seen</a>
+                      </span>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </section>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- MY REVIEWS -->
+    <sc-if value="{{isReviews}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: 18px">
+        <sc-for list="{{revGroups}}" as="g" hint-placeholder-count="3">
+          <section style="display: flex; flex-direction: column">
+            <div style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 4px">
+              <span style="{{g.dotStyle}}"></span>
+              <span style="font-weight: 600">{{g.title}}</span>
+              <span style="color: var(--faint)">{{g.count}}</span>
+            </div>
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: grid; grid-template-columns: 88px minmax(0, 1fr) 160px 20px 40px; gap: 14px; align-items: center; min-height: 42px; padding: 0 4px 0 24px; border-top: 1px solid var(--card)">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted)">{{r.ref}}</span>
+                <span style="display: flex; align-items: center; gap: 8px; min-width: 0">
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
+                  <sc-if value="{{r.note}}" hint-placeholder-val="{{false}}">
+                    <span style="flex-shrink: 0; font-size: 11px; color: var(--link)">{{r.note}}</span>
+                  </sc-if>
+                </span>
+                <span style="font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.author}}</span>
+                <span style="{{r.ciStyle}}" aria-label="{{r.ciLabel}}"></span>
+                <span style="{{r.ageStyle}}">{{r.age}}</span>
+              </div>
+            </sc-for>
+          </section>
+        </sc-for>
+      </div>
+    </sc-if>
+  </main>
+
+  <!-- Task peek -->
+  <sc-if value="{{peek.on}}" hint-placeholder-val="{{true}}">
+    <aside aria-label="Task preview" style="width: 460px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid var(--line); background: var(--panel); padding: 20px 22px; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <span style="{{peek.statusDot}}" aria-hidden="true"><span style="{{peek.statusCore}}"></span></span>
+        <span style="{{peek.statusStyle}}">{{peek.status}}</span>
+        <span style="margin-left: auto; display: flex; gap: 4px">
+          <a href="#" style="height: 30px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--text-2); font-size: 12px; text-decoration: none">Open in Productive</a>
+          <button onClick="{{peek.close}}" aria-label="Close preview" style="width: 30px; height: 30px; border-radius: 6px; border: 0; background: transparent; color: var(--text-3); cursor: pointer; font-size: 16px">×</button>
+        </span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <sc-if value="{{peek.parent}}" hint-placeholder-val="{{true}}">
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted)">
+            <svg style="stroke: var(--muted)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2.2" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path></svg>
+            {{peek.parent}}
+          </span>
+        </sc-if>
+        <h2 style="font-family: var(--display); text-shadow: var(--title-glow); margin: 0; font-size: 18px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em">{{peek.title}}</h2>
+      </div>
+
+      <dl style="margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); row-gap: 10px; font-size: 12px">
+        <dt style="color: var(--muted)">Where</dt><dd style="margin: 0; color: var(--text-2)">{{peek.where}}</dd>
+        <dt style="color: var(--muted)">Due</dt><dd style="{{peek.dueStyle}}">{{peek.due}}</dd>
+        <dt style="color: var(--muted)">Last activity</dt><dd style="margin: 0; color: var(--text-2)">{{peek.act}}</dd>
+        <dt style="color: var(--muted)">Linked</dt>
+        <dd style="margin: 0; display: flex; flex-wrap: wrap; gap: 10px">
+          <sc-for list="{{peek.links}}" as="l" hint-placeholder-count="2">
+            <a href="#" style="{{l.style}}">{{l.label}}</a>
+          </sc-for>
+          <sc-if value="{{peek.noLinks}}" hint-placeholder-val="{{false}}"><span style="color: var(--faint)">Nothing yet</span></sc-if>
+        </dd>
+      </dl>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Sessions <span style="color: var(--faint)">{{peek.sessCount}}</span></span>
+        <sc-for list="{{peek.sessions}}" as="x" hint-placeholder-count="3">
+          <a href="{{x.href}}" style="{{x.style}}">
+            <span style="display: flex; align-items: center; gap: 8px">
+              <sc-if value="{{x.live}}" hint-placeholder-val="{{false}}">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-glow)"></span>
+              </sc-if>
+              <span style="{{x.whenStyle}}">{{x.when}}</span>
+              <span style="margin-left: auto; font-size: 12px; color: {{x.ctaColor}}">{{x.cta}}</span>
+            </span>
+            <span style="font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{x.prompt}}</span>
+          </a>
+        </sc-for>
+        <sc-if value="{{peek.noSessions}}" hint-placeholder-val="{{false}}">
+          <span style="font-size: 12px; color: var(--muted)">No sessions linked to this task yet.</span>
+        </sc-if>
+      </section>
+
+      <sc-if value="{{peek.leftOff}}" hint-placeholder-val="{{true}}">
+        <section style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--line-heavy)">
+          <span style="font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase">Where I left off</span>
+          <span style="font-size: 12px; color: var(--text-2); line-height: 1.5">{{peek.leftOff}}</span>
+        </section>
+      </sc-if>
+
+      <a href="{{peek.btnHref}}" style="height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: {{accent}}; color: var(--on-accent); box-shadow: var(--accent-shadow); font-weight: 600; text-decoration: none">{{peek.btn}}</a>
+    </aside>
+  </sc-if>
+  </div>
+
+  <dc-import name="StatusBar" theme="{{theme}}" session="Markup · scenarios" hint-size="100%,36px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["graphite", "midnight", "forest", "dusk", "synthwave"], "default": "graphite"}, "view": {"editor": "enum", "options": ["tasks", "git", "reviews"], "default": "tasks"}, "$preview": {"width": 1440, "height": 2440}}'>
+// THEMES:start (generated — same block in every C board)
+const THEMES = {
+  "graphite": {
+    "bg": "#0A0B0C",
+    "chrome": "#111316",
+    "panel": "#0F1113",
+    "card": "#14171A",
+    "raised": "#1C1F24",
+    "popover": "#16191D",
+    "line-soft": "#1E2227",
+    "line": "#23272D",
+    "line-strong": "#2A2F36",
+    "line-heavy": "#343941",
+    "text": "#E7E9EC",
+    "text-2": "#C9CED4",
+    "text-3": "#A0A7B1",
+    "muted": "#8B93A0",
+    "faint": "#6B7380",
+    "accent": "#E8A15C",
+    "on-accent": "#0D0E10",
+    "accent-bg": "#2A2113",
+    "accent-line": "#5A4325",
+    "accent-ring": "rgba(232,161,92,0.12)",
+    "warn": "#F0B27A",
+    "ok": "#5CC98A",
+    "ok-bg": "#0F1A14",
+    "ok-line": "#2E5A40",
+    "ok-glow": "rgba(92,201,138,0.2)",
+    "bad": "#F2726A",
+    "bad-bg": "#2A1517",
+    "info": "#6CB6FF",
+    "info-bg": "#1A2433",
+    "link": "#9CC9FF",
+    "link-hover": "#C7E0FF",
+    "link-line": "#4A6A8F",
+    "violet": "#C3A4FF",
+    "teal": "#4FC1C9",
+    "prio-high": "rgba(242,114,106,0.13)",
+    "prio-mid": "rgba(240,178,122,0.09)",
+    "prio-low": "rgba(160,167,177,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(5,6,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "midnight": {
+    "bg": "#0B1020",
+    "chrome": "#0F1629",
+    "panel": "#0D1326",
+    "card": "#121A2E",
+    "raised": "#18213A",
+    "popover": "#141C33",
+    "line-soft": "#18213A",
+    "line": "#1F2944",
+    "line-strong": "#29344F",
+    "line-heavy": "#36425F",
+    "text": "#E4E9F5",
+    "text-2": "#C2CBE0",
+    "text-3": "#9AA5BF",
+    "muted": "#8390AD",
+    "faint": "#5F6A87",
+    "accent": "#7AA2FF",
+    "on-accent": "#0B1020",
+    "accent-bg": "#18234A",
+    "accent-line": "#3A4E86",
+    "accent-ring": "rgba(122,162,255,0.16)",
+    "warn": "#E6B673",
+    "ok": "#6FD3A0",
+    "ok-bg": "#0F1E22",
+    "ok-line": "#2A5A4E",
+    "ok-glow": "rgba(111,211,160,0.2)",
+    "bad": "#FF7A85",
+    "bad-bg": "#2A1425",
+    "info": "#7DCFFF",
+    "info-bg": "#14223F",
+    "link": "#A9C7FF",
+    "link-hover": "#D0E0FF",
+    "link-line": "#41598C",
+    "violet": "#BB9AF7",
+    "teal": "#5ED4D0",
+    "prio-high": "rgba(255,122,133,0.13)",
+    "prio-mid": "rgba(230,182,115,0.09)",
+    "prio-low": "rgba(154,165,191,0.06)",
+    "shadow": "rgba(2,4,12,0.65)",
+    "scrim": "rgba(5,8,18,0.6)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "forest": {
+    "bg": "#0F1411",
+    "chrome": "#131A16",
+    "panel": "#111814",
+    "card": "#161E19",
+    "raised": "#1C2620",
+    "popover": "#19221C",
+    "line-soft": "#1C2620",
+    "line": "#232E27",
+    "line-strong": "#2C3A31",
+    "line-heavy": "#38483E",
+    "text": "#E3EADF",
+    "text-2": "#C5D0C1",
+    "text-3": "#9FAC9C",
+    "muted": "#879483",
+    "faint": "#637061",
+    "accent": "#A7C080",
+    "on-accent": "#0F1411",
+    "accent-bg": "#1F2A1C",
+    "accent-line": "#4A5E3A",
+    "accent-ring": "rgba(167,192,128,0.14)",
+    "warn": "#DBBC7F",
+    "ok": "#83C092",
+    "ok-bg": "#132019",
+    "ok-line": "#355A43",
+    "ok-glow": "rgba(131,192,146,0.2)",
+    "bad": "#E67E80",
+    "bad-bg": "#2A1819",
+    "info": "#7FBBB3",
+    "info-bg": "#162624",
+    "link": "#9CCFC4",
+    "link-hover": "#C6E6DF",
+    "link-line": "#3F6A61",
+    "violet": "#D699B6",
+    "teal": "#83C0B5",
+    "prio-high": "rgba(230,126,128,0.13)",
+    "prio-mid": "rgba(219,188,127,0.09)",
+    "prio-low": "rgba(159,172,156,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,9,7,0.55)",
+    "display": "Inter, system-ui, sans-serif",
+    "title-glow": "none",
+    "accent-shadow": "none",
+    "chrome-edge": "none",
+    "bg-img": "none"
+  },
+  "dusk": {
+    "bg": "#0E0D12",
+    "chrome": "#14131A",
+    "panel": "#121117",
+    "card": "#17161D",
+    "raised": "#1E1C26",
+    "popover": "#1A1921",
+    "line-soft": "#1E1C25",
+    "line": "#25232E",
+    "line-strong": "#2E2B39",
+    "line-heavy": "#3A3647",
+    "text": "#ECE8F2",
+    "text-2": "#CDC7D8",
+    "text-3": "#A69FB4",
+    "muted": "#8E879E",
+    "faint": "#6A647A",
+    "accent": "#A07EEA",
+    "on-accent": "#120E16",
+    "accent-bg": "#211A30",
+    "accent-line": "#4A3A72",
+    "accent-ring": "rgba(160,126,234,0.14)",
+    "warn": "#E8B07A",
+    "ok": "#5FD0B0",
+    "ok-bg": "#10201D",
+    "ok-line": "#2C5A50",
+    "ok-glow": "rgba(95,208,176,0.2)",
+    "bad": "#EE6F86",
+    "bad-bg": "#2A151D",
+    "info": "#6FC3E0",
+    "info-bg": "#16202C",
+    "link": "#8FD3EA",
+    "link-hover": "#C2E9F5",
+    "link-line": "#3E6475",
+    "violet": "#D3A6E8",
+    "teal": "#57C7CC",
+    "prio-high": "rgba(238,111,134,0.13)",
+    "prio-mid": "rgba(232,176,122,0.09)",
+    "prio-low": "rgba(166,159,180,0.06)",
+    "shadow": "rgba(0,0,0,0.6)",
+    "scrim": "rgba(6,5,10,0.58)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 10px rgba(160,126,234,0.22)",
+    "accent-shadow": "0 0 10px rgba(160,126,234,0.25)",
+    "chrome-edge": "0 1px 0 rgba(160,126,234,0.4)",
+    "bg-img": "linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px)"
+  },
+  "synthwave": {
+    "bg": "#140B26",
+    "chrome": "#1B0F33",
+    "panel": "#180D2E",
+    "card": "#1E1238",
+    "raised": "#271847",
+    "popover": "#22143F",
+    "line-soft": "#2A1A4A",
+    "line": "#33205A",
+    "line-strong": "#432B70",
+    "line-heavy": "#553889",
+    "text": "#F7EEFF",
+    "text-2": "#DCCBF5",
+    "text-3": "#B9A3DE",
+    "muted": "#9C86C4",
+    "faint": "#7461A0",
+    "accent": "#FF2E97",
+    "on-accent": "#1A0820",
+    "accent-bg": "#3A1240",
+    "accent-line": "#8A1F6A",
+    "accent-ring": "rgba(255,46,151,0.22)",
+    "warn": "#FFB454",
+    "ok": "#36F9C5",
+    "ok-bg": "#0E2A33",
+    "ok-line": "#1D6B62",
+    "ok-glow": "rgba(54,249,197,0.28)",
+    "bad": "#FF4F6D",
+    "bad-bg": "#3A0F25",
+    "info": "#3DE0FF",
+    "info-bg": "#13204A",
+    "link": "#6BEFFF",
+    "link-hover": "#B5F7FF",
+    "link-line": "#2E6E8A",
+    "violet": "#C77DFF",
+    "teal": "#2DE2E6",
+    "prio-high": "rgba(255,79,109,0.16)",
+    "prio-mid": "rgba(255,180,84,0.11)",
+    "prio-low": "rgba(185,163,222,0.07)",
+    "shadow": "rgba(8,0,20,0.7)",
+    "scrim": "rgba(10,3,22,0.6)",
+    "display": "Orbitron, Inter, system-ui, sans-serif",
+    "title-glow": "0 0 14px rgba(255,46,151,0.55), 0 0 2px rgba(255,46,151,0.9)",
+    "accent-shadow": "0 0 18px rgba(255,46,151,0.55)",
+    "chrome-edge": "0 1px 0 #FF2E97, 0 2px 18px rgba(255,46,151,0.35)",
+    "bg-img": "linear-gradient(180deg, rgba(20,11,38,0) 0%, rgba(20,11,38,0) 55%, rgba(255,46,151,0.07) 100%), repeating-linear-gradient(90deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(199,125,255,0.045) 0 1px, transparent 1px 56px)"
+  }
+};
+const themeVars = (name) => Object.entries(THEMES[name] || THEMES.graphite).map(([k, v]) => `--${k}:${v}`).join(';') + ';';
+// THEMES:end
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      view: props.view || 'tasks',
+      open: '21071355',
+      collapsed: {},
+      msCollapsed: {},
+      status: 'All',
+      gitRepo: 'All',
+      revRepo: 'All',
+      hideDrafts: false,
+      hideBots: true,
+    };
+  }
+  age(d) {
+    const days = Math.round((new Date('2026-10-22') - new Date(d)) / 86400000);
+    if (days <= 0) return 'today';
+    if (days < 60) return `${days}d`;
+    return `${Math.round(days / 30)}mo`;
+  }
+  chipStyle(on) {
+    return `display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:0;cursor:pointer;font:inherit;font-size:12px;background:${on ? 'var(--raised)' : 'transparent'};color:${on ? 'var(--text)' : 'var(--text-3)'};font-weight:${on ? 600 : 400}`;
+  }
+  repoChips(items, current, key) {
+    const repos = ['All', 'frontend', 'ai-agent', 'api', 'e2e-tests', 'specs'];
+    return repos
+      .map((r) => ({ r, n: r === 'All' ? items.length : items.filter((x) => x.repo === r).length }))
+      .filter((x) => x.n > 0)
+      .map(({ r, n }) => ({ label: r, count: n, dot: false, dotStyle: '', pick: () => this.setState({ [key]: r }), style: this.chipStyle(current === r) }));
+  }
+  renderVals() {
+    const accent = 'var(--accent)';
+    const s = this.state;
+    const L = (label) => ({ label, style: "font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--link)" });
+    const ses = (when, id, prompt) => ({ when, id, prompt });
+
+    // ---------- tasks ----------
+    const raw = [
+      ["9822475","1862","App: Service editor config is invalid: missing fields - hourlyRate, personId","Frontend Bugsnags","Folder","New list","Triage","","2026-10-06"],
+      ["9834578","1864","App: Budget handling service should not be present","Frontend Bugsnags","Folder","New list","Backlog","","2026-04-30"],
+      ["11360036","562","FE: Simple budget editor validation","Product: Budgeting","Folder","Budgets","Backlog","","2025-07-08"],
+      ["13677486","2589","App: Visit to MyCompany page","Frontend Bugsnags","Folder","New list","Backlog","","2026-03-23"],
+      ["19985369","5464","E: Redesign contact form E2E test","Product: CRM","Features","Contacts & Clients","Triage","","2026-10-20"],
+      ["20712498","217","Quote role values in ::-p-aria selectors","E2E","Folder","Maintenance","Backlog","","2026-10-06"],
+      ["20865758","5703","PM: Redesign contact form — confirm own login email change","Product: CRM","Features","Contacts & Clients","Triage","","2026-10-13"],
+      ["20871051","5704","Fixed discount amount lost when copying a deal / budget from template / recurring budget","Product: CRM","Features","Services","Triage","","2026-10-13"],
+      ["21098425","6079","FE: Extract shared percentage/amount cell from discount and markup cells","Product: CRM","Features","Services","Triage","","2026-10-21"],
+      ["21107835","11745","Frontend Ember CI: stop flaky red runs (browser hangs + racy tests)","Platform: Frontend","Platform squad","CI/CD","Triage","","2026-10-21"],
+      ["21129723","19894","Scenarios: used_quantity opis u ai-agentu i API dokumentaciji (sati, ne dani)","Bugs","Folder","CRM","Shortlist","","2026-10-22"],
+      ["21129724","19895","Scenarios: data migracija used_quantity (dani → sati) za day servise","Bugs","Folder","CRM","Shortlist","","2026-10-22"],
+      ["21135849","4299","App: Non-draft time entry has no project","Frontend Bugsnags","Folder","New list","Triage","","2026-10-22"],
+      ["12014975","3426","CRM Contacts copy update","Product: CRM","Features","Contacts & Clients","On Production / Followup","2026-10-21","2026-10-21"],
+      ["13146058","2488","App: Service editor config is invalid: unwanted fields - name","Frontend Bugsnags","Folder","New list","Paused","","2026-07-06"],
+      ["14274784","115","E2E selectors cleanup","E2E","Folder","Maintenance","Working","","2026-10-07"],
+      ["15654932","4336","Proposals v2","Product: CRM","Features","Proposals","On Production / Followup","2026-10-23","2026-10-19"],
+      ["15916881","4420","Redesign contact form","Product: CRM","Features","Contacts & Clients","Working","2026-10-30","2026-10-19"],
+      ["15917576","4422","Dev: Redesign contact form technical specification","Product: CRM","Features","Contacts & Clients","Peer Review","","2026-09-30"],
+      ["17361426","174","screens/doc/jwt.ts","E2E","Folder","Maintenance","Peer Review","","2026-10-20"],
+      ["17361450","194","ui/button.ts","E2E","Folder","Maintenance","On Latest","","2026-10-21"],
+      ["17701282","4870","Split deal-form","Product: CRM","Features","Feature cleanup","Paused","","2026-10-12"],
+      ["19884072","5398","Deal notifications - Mention user","Product: CRM","Features","Deals","Working","2026-10-30","2026-10-19"],
+      ["19997745","5467","API: reject custom document templates on proposals","Product: CRM","Features","Proposals","Peer Review","","2026-10-21"],
+      ["20317255","5547","BE: Parent company filter includes the parent company itself (all filters)","Product: CRM","Features","Companies","Peer Review","","2026-10-12"],
+      ["20360127","5561","FE: Service markup in fixed amount (flat amount option for Markup column)","Product: CRM","Features","Services","On Latest","","2026-10-21"],
+      ["20411410","5572","SPEC","Product: CRM","Features","Feature cleanup","Paused","","2026-10-12"],
+      ["20839606","5690","FE: Deal notifications - mention user","Product: CRM","Features","Deals","Working","","2026-10-12"],
+      ["20856578","5711","[FE] Show three subtask levels in the Gantt and its PDF","Product: Collaboration","Folder","Tasks","Peer Review","","2026-10-22"],
+      ["20971870","19877","Scenarios: različita marža u pregledu i uređivanju scenarija (Ustwo)","Bugs","Folder","CRM","On Latest","","2026-10-22"],
+      ["21023697","6059","FE: Guard login mail change","Product: CRM","Features","Contacts & Clients","On Production / Followup","","2026-10-22"],
+      ["21030991","6066","FE: Parent company filter & grouping include the parent company itself (all reports)","Product: CRM","Features","Companies","Working","","2026-10-19"],
+      ["21064255","19885","Additional stage appearing in Deals (Acrecom Pty Ltd)","Bugs","Folder","CRM","Working","","2026-10-22"],
+      ["21070149","6069","FE: Design review","Product: CRM","Features","Contacts & Clients","On Production / Followup","","2026-10-22"],
+      ["21071355","6070","FE: Service markup in fixed amount — rate cards (Add from rate card)","Product: CRM","Features","Services","Peer Review","","2026-10-21"],
+      ["21071362","6071","FE: Service markup in fixed amount — scenarios","Product: CRM","Features","Services","Working","","2026-10-20"],
+      ["21102414","6082","AI agent: proposals skill should fall back to a standard document template","Product: CRM","Features","Proposals","Peer Review","","2026-10-21"],
+      ["21107840","11746","[frontend] Log heap and machine memory in Ember exam CI jobs","Platform: Frontend","Platform squad","CI/CD","Peer Review","","2026-10-22"],
+      ["21107842","11748","[frontend] app-block loading test: hold the request behind a gate","Platform: Frontend","Platform squad","CI/CD","Peer Review","","2026-10-22"],
+      ["21107843","11749","[frontend] Cancel TimelineGrid throttled updates on teardown","Platform: Frontend","Platform squad","CI/CD","Peer Review","","2026-10-22"],
+      ["21107844","11750","[frontend] ViewSetup: skip error flash when the store is destroyed","Platform: Frontend","Platform squad","CI/CD","On Latest","","2026-10-22"],
+    ];
+    // Productive's List layout groups by `project,task` when the view has no grouping, and orders tasks by placement.
+    const PLACEMENT = {"9822475":18310000,"9834578":18330000,"11360036":54760000,"12014975":35390000,"13146058":24530000,"13677486":25530000,"14274784":35331000,"15654932":42970000,"15916881":43660000,"15917576":43680000,"17361426":60591000,"17361450":60791000,"17701282":47510000,"19884072":51930000,"19985369":52480000,"19997745":52520000,"20317255":53250000,"20360127":53370000,"20411410":53470000,"20712498":61001000,"20839606":54600000,"20856578":91462000,"20865758":54730000,"20871051":54740000,"20971870":102978000,"21023697":57360000,"21030991":57420000,"21064255":103058000,"21070149":57660000,"21071355":57670000,"21071362":57680000,"21098425":57760000,"21102414":57790000,"21107835":90652000,"21107840":90662000,"21107842":90682000,"21107843":90692000,"21107844":90702000,"21129723":103148000,"21129724":103158000,"21135849":52410000};
+    // Hollow dot = not started category, solid dot = started category.
+    const STATUS = {
+      'Triage':                   { c: 'var(--text-2)', hollow: true },
+      'Backlog':                  { c: 'var(--muted)', hollow: true },
+      'Shortlist':                { c: 'var(--teal)', hollow: true },
+      'Working':                  { c: 'var(--info)' },
+      'Peer Review':              { c: 'var(--warn)' },
+      'On Latest':                { c: 'var(--violet)' },
+      'On Production / Followup': { c: 'var(--ok)' },
+      'Paused':                   { c: 'var(--faint)' },
+    };
+    const ORDER = ['Triage', 'Backlog', 'Shortlist', 'Working', 'Peer Review', 'On Latest', 'On Production / Followup', 'Paused'];
+    const dotOf = (st, size) => st.hollow
+      ? `width:${size}px;height:${size}px;flex-shrink:0;border-radius:50%;border:1.5px solid ${st.c};box-sizing:border-box`
+      : `width:${size}px;height:${size}px;flex-shrink:0;border-radius:50%;background:${st.c}`;
+    // Row glyph: ring in the status colour; started statuses also get a filled core.
+    const glyph = (st) => `width:16px;height:16px;flex-shrink:0;box-sizing:border-box;border-radius:50%;border:${st.hollow ? '2.5px dashed' : '2px solid'} ${st.c};${st.hollow ? `background:color-mix(in srgb, ${st.c} 22%, transparent);` : ''}display:flex;align-items:center;justify-content:center`;
+    const core = (st) => st.hollow ? 'display:none' : `width:6px;height:6px;border-radius:50%;background:${st.c}`;
+    // Sessions currently open in a tab.
+    const LIVE = { '5d4d3351': 'Markup fixed amount' };
+    // Priority (custom field 6725). None of the bugs has it set today — values below illustrate the indicator.
+    const PRIO = { '4299': 'High', '19885': 'High', '19894': 'Mid', '19895': 'Mid', '19877': 'Mid', '1862': 'Low', '1864': 'Low', '2589': 'Low', '2488': 'Low' };
+    const PRIO_C = { High: 'var(--bad)', Mid: 'var(--warn)', Low: 'var(--muted)' };
+    const PRIO_BG = { High: 'var(--prio-high)', Mid: 'var(--prio-mid)', Low: 'var(--prio-low)' };
+    const LINKS = {
+      '21071355': [L('fe #30227'), L('review env')],
+      '21071362': [L('fe #30228 draft'), L('review env')],
+      '19997745': [L('api #24358'), L('ai #2611')],
+      '21102414': [L('ai #2611')],
+      '21107842': [L('fe #30259')],
+      '21107843': [L('fe #30258')],
+      '21107840': [L('fe #30256 draft')],
+      '20856578': [L('fe #30250')],
+      '20317255': [L('fe #29913')],
+      '15916881': [L('specs #305'), L('e2e #1251')],
+      '15917576': [L('specs #305')],
+      '19985369': [L('e2e #1251')],
+      '20360127': [L('fe #30181'), L('specs #391')],
+    };
+    const SESSIONS = {
+      '21071355': [
+        ses('today 14:04', '5d4d3351', 'lets check the review here …/pull/30227#pullrequestreview'),
+        ses('21 Oct 14:26', 'e0b7c152', 'lets resolve merge conflicts here …/pull/30227'),
+        ses('21 Oct 13:11', 'c8d67fa0', 'lets check the comments here 1by1'),
+      ],
+      '20360127': [ses('21 Oct 09:57', '88ea2acc', 'i want to split these 3 prs into 3 different task…'), ses('20 Oct 19:19', '1f2e0940', 'lets review this …/pull/30181/changes')],
+      '19884072': [ses('21 Oct 10:47', '4903dffa', 'lets start working on fe task here …/tasks/19884072'), ses('12 Oct 08:39', 'dfe5b387', 'lets check this task …/tasks/19884072')],
+      '20839606': [ses('21 Oct 10:47', '4903dffa', 'lets start working on fe task here …/tasks/19884072')],
+      '19997745': [ses('21 Oct 14:54', 'dfc10cef', 'lets check this task …/tasks/19997745')],
+      '20971870': [ses('21 Oct 19:13', '4a5a2f63', 'lets check this task …/tasks/20971870'), ses('21 Oct 09:49', '24532c07', 'lets check this task …/tasks/20971870')],
+      '21023697': [ses('20 Oct 10:56', '05f51039', 'lets check …/tasks/21023697')],
+      '15916881': [ses('12 Oct 08:39', '7692f01c', 'lets continue on the next task in this milestone')],
+      '19985369': [ses('today 14:10', 'd0fa09ae', 'i want to remove data test from selectors here …/e2e-tests/pull/1251'), ses('21 Oct 10:47', '1510c644', 'check if we need to update any e2e tests once contact form redesign is released')],
+    };
+    const LEFT_OFF = { '21071355': 'You answered the review on fe #30227 at 13:40. CI is still red.' };
+    // Hierarchy: milestones (task type 3) with the subtasks assigned to me nested underneath.
+    const MILESTONES = new Set(['21107835', '12014975', '14274784', '15654932', '15916881', '19884072']);
+    const SUBTASKS = { '21107835': 10, '12014975': 15, '14274784': 75, '15654932': 118, '15916881': 20, '19884072': 3, '17701282': 1 };
+    const PARENT = {
+      '19985369': '15916881', '20865758': '15916881', '15917576': '15916881', '21023697': '15916881', '21070149': '15916881',
+      '20712498': '14274784', '17361426': '14274784', '17361450': '14274784',
+      '21098425': '20135272', '20360127': '20135272', '21071355': '20135272', '21071362': '20135272',
+      '19997745': '15654932', '21102414': '15654932',
+      '20317255': '20317100', '21030991': '20317100',
+      '20411410': '17701282',
+      '20839606': '19884072',
+      '20856578': '19621415',
+      '21107840': '21107835', '21107842': '21107835', '21107843': '21107835', '21107844': '21107835',
+    };
+    // Milestones whose subtasks are mine but that are assigned to someone else.
+    const OTHER_MS = {
+      '20135272': { n: '5518', title: 'Service markup in fixed amount (flat amount option for Markup column)' },
+      '20317100': { n: '5546', title: 'Parent company filter & grouping include the parent company itself' },
+      '19621415': { n: '5413', title: 'Multiple level subtasks' },
+    };
+    const counts = {};
+    raw.forEach((r) => { counts[r[6]] = (counts[r[6]] || 0) + 1; });
+    const tasks = raw
+      .filter((r) => s.status === 'All' || (s.status === 'Bugs' ? !!PRIO[r[1]] : r[6] === s.status))
+      .map(([id, n, title, project, folder, list, status, due, act]) => {
+        const st = STATUS[status];
+        const prio = PRIO[n] || '';
+        const bug = project === 'Bugs' || project === 'Frontend Bugsnags';
+        const sessions = SESSIONS[id] || [];
+        const isOpen = s.open === id;
+        const overdue = due && due < '2026-10-22';
+        const soon = due && !overdue && due <= '2026-10-25';
+        const isMilestone = MILESTONES.has(id);
+        const isChild = !!PARENT[id];
+        return {
+          id,
+          isTask: true,
+          synthetic: false,
+          isMilestone,
+          isChild,
+          rowStyle: `display:grid;grid-template-columns:16px minmax(0,1fr) 170px 64px 40px;gap:14px;align-items:center;flex:1;min-width:0;min-height:40px;padding:0 4px 0 ${isChild ? 26 : 0}px;border:0;background:transparent;color:var(--text);cursor:pointer;font:inherit;text-align:left`,
+          titleStyle: `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:${isMilestone ? 600 : 400}`,
+          panelStyle: `margin:2px 4px 14px ${isChild ? 128 : 102}px;display:flex;flex-direction:column;gap:10px`,
+          n: `#${n}`,
+          pl: PLACEMENT[id],
+          title, project, folder, list, status,
+          bug,
+          bugLabel: prio ? `Bug, ${prio} priority` : 'Bug',
+          prio,
+          prioColor: PRIO_C[prio] || 'var(--muted)',
+          prioStyle: `flex-shrink:0;font-size:11px;font-weight:600;color:${PRIO_C[prio]}`,
+          statusStyle: `display:flex;align-items:center;gap:7px;font-size:12px;white-space:nowrap;overflow:hidden;color:${st.c}`,
+          statusDot: glyph(st),
+          statusCore: core(st),
+          st,
+          live: sessions.some((x) => LIVE[x.id]),
+          due: !due ? '' : overdue ? 'overdue' : `${parseInt(due.slice(8), 10)} Oct`,
+          dueStyle: `font-size:12px;color:${overdue ? 'var(--bad)' : soon ? 'var(--warn)' : 'var(--text-3)'};font-weight:${overdue || soon ? 600 : 400}`,
+          act: this.age(act),
+          links: LINKS[id] || [],
+          sessions,
+          noSessions: sessions.length === 0,
+          expanded: isOpen,
+          expandedAttr: isOpen ? 'true' : 'false',
+          wrapStyle: `border-top:1px solid var(--card);border-radius:6px;background:${isOpen ? 'var(--raised)' : PRIO_BG[prio] || 'transparent'};box-shadow:${isOpen ? `inset 0 0 0 1px var(--line-strong), inset 3px 0 0 ${st.c}` : st.hollow ? 'none' : `inset 3px 0 0 ${st.c}`}`,
+          toggle: () => this.setState({ open: isOpen ? '' : id }),
+          raw: { due, prio },
+          sessCount: sessions.length ? `▸ ${sessions.length}` : '',
+          sessLabel: sessions.length ? `${sessions.length} sessions` : 'No sessions',
+          sessStyle: `display:flex;align-items:center;justify-content:flex-end;gap:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:${isOpen ? accent : 'var(--warn)'}`,
+          leftOff: LEFT_OFF[id] || '',
+          btn: sessions.length ? 'Resume latest' : 'Start session',
+        };
+      });
+    const byProject = {};
+    tasks.forEach((t) => { (byProject[t.project] = byProject[t.project] || []).push(t); });
+    // Pinned projects first (Bugs, then Product: CRM), the rest alphabetical.
+    const PINNED = ['Bugs', 'Product: CRM'];
+    const rank = (n) => (PINNED.includes(n) ? PINNED.indexOf(n) : PINNED.length);
+    const projects = Object.keys(byProject).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map((name) => {
+      const rows = byProject[name].sort((a, b) => a.pl - b.pl);
+      const open = !s.collapsed[name];
+      // Build blocks: a parent (own row or another person's milestone) with its children.
+      const blocks = {};
+      rows.forEach((r) => {
+        const pid = PARENT[r.id];
+        if (pid) (blocks[pid] = blocks[pid] || { id: pid, kids: [] }).kids.push(r);
+        else (blocks[r.id] = blocks[r.id] || { id: r.id, kids: [] }).head = r;
+      });
+      const lines = [];
+      Object.values(blocks)
+        .map((b) => ({ ...b, pl: b.head ? b.head.pl : Math.min(...b.kids.map((k) => k.pl)) }))
+        .sort((a, b) => a.pl - b.pl)
+        .forEach((b) => {
+          const msOpen = !s.msCollapsed[b.id];
+          const hasKids = b.kids.length > 0;
+          const msToggle = () => this.setState({ msCollapsed: { ...s.msCollapsed, [b.id]: !s.msCollapsed[b.id] } });
+          const total = SUBTASKS[b.id];
+          if (b.head) {
+            const meta = b.head.isMilestone || hasKids
+              ? (hasKids ? `${b.kids.length} of ${total ?? b.kids.length} subtasks yours` : `${total} subtasks`)
+              : '';
+            lines.push({ ...b.head, isHead: hasKids, msMeta: meta, msChev: msOpen ? '▾' : '▸', msExpanded: msOpen ? 'true' : 'false', msToggle });
+          } else {
+            // Parent hidden by a filter, or a milestone owned by someone else.
+            const own = raw.find((r) => r[0] === b.id);
+            const ms = OTHER_MS[b.id] || (own ? { n: own[1], title: own[2] } : { n: '?', title: 'Parent task' });
+            const whose = OTHER_MS[b.id] ? ' · milestone not assigned to you' : ' · filtered out';
+            const kidList = b.kids.every((k) => k.list === b.kids[0].list) ? ` · ${b.kids[0].list}` : '';
+            lines.push({ synthetic: true, isTask: false, n: `#${ms.n}`, title: ms.title, msMeta: `${b.kids.length} subtask${b.kids.length > 1 ? 's' : ''} yours${whose}${kidList}`, msChev: msOpen ? '▾' : '▸', msExpanded: msOpen ? 'true' : 'false', msToggle });
+          }
+          // The parent row already names the list; children only show theirs when it differs.
+          const parentList = b.head ? b.head.list : (b.kids.every((k) => k.list === b.kids[0].list) ? b.kids[0].list : '');
+          if (msOpen) b.kids.forEach((k) => lines.push({ ...k, list: k.list === parentList ? '' : k.list, isHead: false, msMeta: '', msChev: '', msExpanded: 'false', msToggle: null }));
+        });
+      return {
+        name,
+        count: rows.length,
+        lines,
+        open,
+        chev: open ? '▾' : '▸',
+        expanded: open ? 'true' : 'false',
+        toggle: () => this.setState({ collapsed: { ...s.collapsed, [name]: !s.collapsed[name] } }),
+        summary: rows.map((r) => ({ style: dotOf(STATUS[r.status], 7) })),
+      };
+    });
+
+    // ---------- task peek ----------
+    const sel = tasks.find((t) => t.id === s.open);
+    const parentOf = (id) => {
+      const pid = PARENT[id];
+      if (!pid) return '';
+      const own = raw.find((r) => r[0] === pid);
+      return OTHER_MS[pid] ? OTHER_MS[pid].title : own ? own[2] : '';
+    };
+    const peek = !sel ? { on: false } : {
+      on: true,
+      title: sel.title,
+      status: sel.status,
+      statusDot: glyph(sel.st),
+      statusCore: core(sel.st),
+      statusStyle: `font-size:12px;font-weight:600;color:${sel.st.c}`,
+      parent: parentOf(sel.id),
+      where: `${sel.project} › ${sel.folder} › ${sel.list}`,
+      due: sel.due || 'No due date',
+      dueStyle: `margin:0;${sel.dueStyle}`,
+      act: sel.act === 'today' ? 'today' : `${sel.act} ago`,
+      links: sel.links.map((l) => ({ ...l, style: "font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--link);text-decoration:none" })),
+      noLinks: sel.links.length === 0,
+      sessCount: sel.sessions.length || '',
+      sessions: sel.sessions.map((x) => {
+        const tab = LIVE[x.id];
+        return {
+          ...x,
+          live: !!tab,
+          href: tab ? 'Task.dc.html' : 'Focus.dc.html',
+          cta: tab ? `Open tab · ${tab}` : 'Resume',
+          ctaColor: tab ? 'var(--ok)' : 'var(--link)',
+          whenStyle: `font-size:12px;font-weight:${tab ? 600 : 400};color:${tab ? 'var(--text)' : 'var(--muted)'}`,
+          style: `display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:8px;text-decoration:none;border:1px solid ${tab ? 'var(--ok-line)' : 'var(--line-soft)'};background:${tab ? 'var(--ok-bg)' : 'var(--panel)'}`,
+        };
+      }),
+      noSessions: sel.sessions.length === 0,
+      leftOff: sel.leftOff,
+      btn: sel.live ? 'Switch to running session' : sel.sessions.length ? 'Resume latest session' : 'Start session',
+      btnHref: sel.live ? 'Task.dc.html' : 'Focus.dc.html',
+      close: () => this.setState({ open: '' }),
+    };
+
+    // ---------- git ----------
+    const mine = [
+      { repo: 'api', n: 24358, title: '[fix] Reject custom document templates on proposals', branch: 'fix/5467-proposal-custom-document-type', task: '#5467', rd: 'CHANGES_REQUESTED', ci: 'pass', up: '2026-10-22',
+        talk: { who: 'sucicfilip', what: 'requested changes', when: 'today 08:27', open: true, text: 'FE picker filtrira i `active()` (`forDeal().defaultTemplates().active()`), a ovdje i dalje prolazi arhivirani document type…' } },
+      { repo: 'frontend', n: 30227, title: 'feature: fixed amount markup on rate cards', branch: 'feature/21071355-rate-card-markup-amount', task: '#6070', rd: 'REVIEW_REQUIRED', ci: 'fail', up: '2026-10-22',
+        talk: { who: 'margaritatolja', what: 'reviewed', when: 'today 10:03 · you replied 13:40', open: false, text: 'nisam testirala, postam findinge koje mi se čine legit. 1. CI je crven (tests/unit/forms/price-form-test.ts:712)…' } },
+      { repo: 'ai-agent', n: 2611, title: 'fix: proposals fall back to a Standard/Elegant document type', branch: 'fix/6082-proposal-document-template', task: '#6082', rd: 'REVIEW_REQUIRED', ci: 'pass', conflict: true, up: '2026-10-21' },
+      { repo: 'specs', n: 391, title: 'spec(service-markup-fixed-amount): initial draft', branch: 'spec/service-markup-fixed-amount', task: '#5518', rd: 'APPROVED', ci: 'none', up: '2026-10-21',
+        talk: { who: 'mikki021', what: 'opened a thread on', path: 'SPEC.md', when: '21 Oct 11:59', open: true, text: 'Sad kad `markup_type` bira mode, implicitni ulaz u amount mode (`markup: 0` + `markup_amount: X`, i `markup_amount` sam) ostaje samo za klij…' } },
+      { repo: 'specs', n: 305, title: 'spec: redesign-contact-form — inline Contact details grid', branch: 'spec/redesign-contact-form', task: '#4422', rd: 'APPROVED', ci: 'none', up: '2026-10-20' },
+      { repo: 'frontend', n: 30259, title: 'fix: hold the request in tests that assert an in-flight state', branch: 'fix/21107842-gate-loading-state-tests', task: '#11748', rd: 'REVIEW_REQUIRED', ci: 'pass', up: '2026-10-22' },
+      { repo: 'frontend', n: 30258, title: 'fix: cancel the timeline’s throttled updates on teardown', branch: 'fix/21107843-timeline-cancel-throttles', task: '#11749', rd: 'REVIEW_REQUIRED', ci: 'pass', up: '2026-10-22' },
+      { repo: 'ai-agent', n: 2467, title: 'fix: reject custom field placeholders in sent proposals', branch: 'fix/20352634-proposal-placeholder-guard', task: '', rd: 'REVIEW_REQUIRED', ci: 'pass', up: '2026-10-21' },
+      { repo: 'frontend', n: 30018, title: 'chore: align minor dep bumps across all workspaces', branch: 'chore/align-minor-deps', task: '', rd: 'REVIEW_REQUIRED', ci: 'pass', up: '2026-10-15',
+        talk: { who: 'ShockwaVee', what: 'replied to your comment', when: '15 Oct 08:50', open: true, text: 'mozda da to izignoriramo kad ne ode van ovaj fix kaj je preston spomenul pa da ne trpamo…' } },
+      { repo: 'frontend', n: 30256, draft: true, title: 'chore: log heap and machine memory in Ember exam CI jobs', branch: 'chore/ci-test-memory-diagnostics', task: '#11746', rd: 'REVIEW_REQUIRED', ci: 'pass', up: '2026-10-22' },
+      { repo: 'frontend', n: 30228, draft: true, title: 'feature: fixed amount markup on scenario services', branch: 'feature/21071362-scenario-markup-amount', task: '#6071', rd: '', ci: 'pass', up: '2026-10-20' },
+      { repo: 'e2e-tests', n: 1251, draft: true, title: 'fix: people e2e edit inline with contactFormRedesign', branch: 'chore/19985369-contact-form-redesign-flag', task: '#5464', rd: 'REVIEW_REQUIRED', ci: 'fail', up: '2026-10-22' },
+      { repo: 'e2e-tests', n: 1230, draft: true, title: 'chore: cancel waiting master e2e runs during merge bursts', branch: 'chore/master-run-queue', task: '', rd: 'REVIEW_REQUIRED', ci: 'fail', up: '2026-10-16' },
+      { repo: 'ai-agent', n: 2446, draft: true, title: 'feature: Telegram chat context — fenced messages, confirmed creates', branch: 'hackaton-telegram', task: '', rd: 'REVIEW_REQUIRED', ci: 'fail', up: '2026-10-08' },
+      { repo: 'specs', n: 352, draft: true, title: 'spec: split-deal-form', branch: 'spec/split-deal-form', task: '#4870', rd: '', ci: 'none', up: '2026-09-29' },
+      { repo: 'specs', n: 172, draft: true, title: 'spec(public-proposal-jwt-auth): frontend spec', branch: 'spec/public-proposal-jwt-auth', task: '', rd: '', ci: 'none', up: '2026-09-14' },
+      { repo: 'specs', n: 284, draft: true, title: 'spec: bulk save on services — BE shipped, FE realigned', branch: 'spec/bulk-save-services-003', task: '', rd: '', ci: 'none', up: '2026-09-04' },
+      { repo: 'specs', n: 61, draft: true, title: 'spec: proposals v2 frontend', branch: 'spec/proposals-v2-fe', task: '#4336', rd: '', ci: 'none', up: '2026-09-04' },
+      { repo: 'frontend', n: 27358, draft: true, title: 'fix: make search-less select popovers keyboard-navigable', branch: 'fix/data-grid-select-keyboard-focus', task: '', rd: 'REVIEW_REQUIRED', ci: 'pass', up: '2026-07-22' },
+      { repo: 'specs', n: 118, draft: true, title: 'spec(pdf-viewer-content-height): resolve open questions', branch: 'spec/pdf-viewer-content-height-iterate', task: '', rd: '', ci: 'none', up: '2026-06-09' },
+      { repo: 'specs', n: 20, draft: true, title: 'spec: deal-section-edit DataGrid refactor', branch: '26-04/deal-section-edit-refactor', task: '', rd: 'APPROVED', ci: 'none', up: '2026-05-26' },
+      { repo: 'specs', n: 47, draft: true, title: 'spec: import form rework to data-grid', branch: 'spec/import-data-grid', task: '', rd: '', ci: 'none', up: '2026-05-03' },
+    ];
+    const short = { frontend: 'fe', 'ai-agent': 'ai', api: 'api', 'e2e-tests': 'e2e', specs: 'specs' };
+    const stateOf = (p) => {
+      if (p.draft) return ['Draft', 'var(--muted)'];
+      if (p.rd === 'CHANGES_REQUESTED') return ['Changes requested', 'var(--bad)'];
+      if (p.conflict) return ['Conflicts', 'var(--bad)'];
+      if (p.rd === 'APPROVED') return ['Approved', 'var(--ok)'];
+      return ['Review required', 'var(--text-3)'];
+    };
+    const ciDot = (c) => {
+      const col = { pass: 'var(--ok)', fail: 'var(--bad)', pending: 'var(--info)', none: 'transparent' }[c];
+      return `width:8px;height:8px;border-radius:50%;justify-self:center;background:${col};${c === 'none' ? 'border:1px solid var(--line-strong);box-sizing:border-box' : ''}`;
+    };
+    const ciLabel = (c) => ({ pass: 'CI passing', fail: 'CI failing', pending: 'CI running', none: 'No CI' })[c];
+    const unanswered = mine.filter((p) => p.talk && p.talk.open);
+    const gitItems = mine
+      .filter((p) => s.gitRepo === 'All' || (s.gitRepo === 'Unanswered' ? p.talk && p.talk.open : p.repo === s.gitRepo))
+      .filter((p) => !(s.hideDrafts && p.draft));
+    const prRow = (p) => {
+      const [state, stateColor] = stateOf(p);
+      const t = p.talk;
+      const open = !!(t && t.open);
+      return {
+        ...p,
+        ref: `${short[p.repo]} #${p.n}`,
+        state,
+        stateStyle: `font-size:12px;color:${stateColor}`,
+        ciStyle: ciDot(p.ci),
+        ciLabel: ciLabel(p.ci),
+        task: p.task,
+        taskStyle: "font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--link)",
+        age: this.age(p.up),
+        hasTalk: !!t,
+        talk: t ? { ...t, path: t.path || '' } : {},
+        talkLabel: t ? (open ? 'reply needed' : 'replied') : '',
+        talkStyle: `font-size:12px;font-weight:${open ? 600 : 400};color:${open ? 'var(--warn)' : 'var(--faint)'}`,
+        wrapStyle: `border-top:1px solid var(--card);border-left:2px solid ${open ? 'var(--accent)' : 'transparent'}`,
+        quoteStyle: `margin:0 4px 12px 126px;display:flex;flex-direction:column;gap:5px;padding-left:12px;border-left:2px solid ${open ? 'var(--accent-line)' : 'var(--line)'}`,
+      };
+    };
+    const needs = (p) => !p.draft && (p.rd === 'CHANGES_REQUESTED' || p.ci === 'fail' || p.conflict || (p.talk && p.talk.open));
+    const prGroups = [
+      { title: 'Needs you', color: 'var(--bad)', rows: gitItems.filter(needs).map(prRow) },
+      { title: 'Ready to merge', color: 'var(--ok)', rows: gitItems.filter((p) => !needs(p) && !p.draft && p.rd === 'APPROVED').map(prRow) },
+      { title: 'Waiting on reviewers', color: 'var(--accent)', rows: gitItems.filter((p) => !needs(p) && !p.draft && p.rd !== 'APPROVED').map(prRow) },
+      { title: 'Drafts', color: 'var(--faint)', rows: gitItems.filter((p) => p.draft).map(prRow) },
+    ].filter((g) => g.rows.length).map((g) => ({ ...g, count: g.rows.length, dotStyle: `width:8px;height:8px;border-radius:50%;background:${g.color}` }));
+
+    // ---------- reviews ----------
+    const R = (repo, n, title, author, ci, created, rd, extra) => ({ repo, n, title, author, ci, created, rd, ...(extra || {}) });
+    const bot = { bot: true };
+    const reviews = [
+      R('frontend', 30264, 'feature: shared sign-in with the Notetaker mobile app', 'darioferderber', 'pass', '2026-10-21', 'CHANGES_REQUESTED'),
+      R('ai-agent', 2411, 'fix: calculate_cost_from_salary resolves the scenario on a cold store', 'MartaJerkovic', 'pass', '2026-10-06', 'CHANGES_REQUESTED'),
+      R('frontend', 29913, 'update: parent company filter includes the parent company', 'zvonimirzunic', 'pass', '2026-10-07', 'CHANGES_REQUESTED', { note: 'your task #5547' }),
+      R('frontend', 30261, 'chore: local dev server takes DEV_AI_AGENT_URL', 'antoniobajivic', 'pass', '2026-10-21', 'REVIEW_REQUIRED'),
+      R('frontend', 30257, 'feature: add-ons on multiproduct subscriptions', 'janvarljen', 'pass', '2026-10-21', 'REVIEW_REQUIRED'),
+      R('frontend', 30250, 'feature: Show three subtask levels in the Gantt', 'fspanovic', 'pass', '2026-10-21', 'REVIEW_REQUIRED', { note: 'your task #5711' }),
+      R('frontend', 30240, 'feature: show three subtask levels in the list', 'fspanovic', 'pass', '2026-10-21', 'REVIEW_REQUIRED'),
+      R('e2e-tests', 1256, 'feat: pnpm test:affected runs e2e locally like CI', 'antoniobajivic', 'fail', '2026-10-21', 'REVIEW_REQUIRED'),
+      R('e2e-tests', 1255, 'feature: finalize invoice numbering and export page totals', 'antoniobajivic', 'fail', '2026-10-21', 'REVIEW_REQUIRED'),
+      R('frontend', 30224, 'feature: apply saved dashboard filters to report widgets', 'lukasavic', 'pass', '2026-10-20', 'REVIEW_REQUIRED'),
+      R('frontend', 30204, 'fix: trial end dates show the stored day in every timezone', 'tonina-ticinovic', 'pass', '2026-10-19', 'REVIEW_REQUIRED'),
+      R('frontend', 30202, 'chore: remove the allowTasksWithoutTaskList flag', 'fspanovic', 'pass', '2026-10-19', 'REVIEW_REQUIRED'),
+      R('frontend', 29902, 'feature: send emails from the Email Inbox', 'meshin', 'pass', '2026-10-07', 'REVIEW_REQUIRED'),
+      R('frontend', 29633, 'fix: infinite scroll prefetches next page before the bottom', 'TheBrunoPetkovic', 'pass', '2026-09-29', 'REVIEW_REQUIRED'),
+      R('frontend', 28764, 'update: collapse addons/form dual-mode icon args', 'isvrga', 'pass', '2026-08-31', 'REVIEW_REQUIRED'),
+      R('frontend', 26641, 'feat(layout): left-navigation concept POC', 'davidbarukcic-prod', 'pass', '2026-06-19', 'REVIEW_REQUIRED'),
+      R('frontend', 23757, 'feat: Left navigation panel with pin/unpin customization', 'carr', 'fail', '2026-03-14', 'REVIEW_REQUIRED'),
+      R('frontend', 28454, 'Add info tooltip to "Join all meetings" notetaker toggle', 'claude', 'pass', '2026-08-19', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29959, 'chore(deps): bump the root group with 6 updates', 'dependabot', 'fail', '2026-10-11', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29849, 'chore(deps-dev): bump the prosemirror group with 7 updates', 'dependabot', 'fail', '2026-10-05', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29720, 'chore(deps): bump the all group with 11 updates', 'dependabot', 'fail', '2026-10-01', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29719, 'chore(deps): bump the all group with 12 updates', 'dependabot', 'fail', '2026-10-01', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29718, 'chore(deps-dev): bump the ember group with 4 updates', 'dependabot', 'fail', '2026-10-01', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29716, 'chore(deps-dev): bump micromark from 4.0.2 to 4.0.3', 'dependabot', 'pass', '2026-10-01', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29714, 'chore(deps-dev): bump unplugin-icons from 23.0.1 to 24.0.0', 'dependabot', 'fail', '2026-10-01', 'REVIEW_REQUIRED', bot),
+      R('frontend', 29706, 'chore(deps-dev): bump the ember group with 4 updates', 'dependabot', 'fail', '2026-10-01', 'REVIEW_REQUIRED', bot),
+      R('frontend', 28805, 'chore(deps): bump ember-resources from 7.0.8 to 7.1.0', 'dependabot', 'fail', '2026-09-01', 'REVIEW_REQUIRED', bot),
+      R('frontend', 28796, 'chore(deps-dev): bump signature_pad from 5.1.3 to 5.1.4', 'dependabot', 'fail', '2026-09-01', 'REVIEW_REQUIRED', bot),
+    ];
+    const revItems = reviews.filter((r) => s.revRepo === 'All' || r.repo === s.revRepo).filter((r) => !(s.hideBots && r.bot));
+    const days = (d) => Math.round((new Date('2026-10-22') - new Date(d)) / 86400000);
+    const revRow = (r) => {
+      const d = days(r.created);
+      return {
+        ...r,
+        note: r.note || '',
+        ref: `${short[r.repo]} #${r.n}`,
+        ciStyle: ciDot(r.ci),
+        ciLabel: ciLabel(r.ci),
+        age: this.age(r.created),
+        ageStyle: `font-size:12px;text-align:right;color:${d > 14 ? 'var(--bad)' : d > 3 ? 'var(--warn)' : 'var(--faint)'}`,
+      };
+    };
+    const revGroups = [
+      { title: 'Changes requested', color: 'var(--bad)', rows: revItems.filter((r) => r.rd === 'CHANGES_REQUESTED').map(revRow) },
+      { title: 'New this week', color: 'var(--accent)', rows: revItems.filter((r) => r.rd !== 'CHANGES_REQUESTED' && days(r.created) <= 3).map(revRow) },
+      { title: 'Waiting longer', color: 'var(--faint)', rows: revItems.filter((r) => r.rd !== 'CHANGES_REQUESTED' && days(r.created) > 3).map(revRow) },
+    ].filter((g) => g.rows.length).map((g) => ({ ...g, count: g.rows.length, dotStyle: `width:8px;height:8px;border-radius:50%;background:${g.color}` }));
+
+    // ---------- view switch ----------
+    const views = [
+      { key: 'tasks', label: 'My tasks', count: raw.length },
+      { key: 'git', label: 'My git', count: mine.length, alert: `${unanswered.length} replies needed` },
+      { key: 'reviews', label: 'My reviews', count: reviews.filter((r) => !r.bot).length },
+    ];
+    const v = s.view;
+    let chips;
+    if (v === 'tasks') {
+      chips = [
+        { label: 'All', count: raw.length, dot: false, dotStyle: '', key: 'All' },
+        ...ORDER.filter((name) => counts[name]).map((name) => ({
+          label: name === 'On Production / Followup' ? 'On Prod / Followup' : name,
+          count: counts[name],
+          dot: true,
+          dotStyle: dotOf(STATUS[name], 8),
+          key: name,
+        })),
+        { label: 'Bugs', count: Object.keys(PRIO).length, dot: false, dotStyle: '', key: 'Bugs' },
+      ].map((c) => ({ ...c, pick: () => this.setState({ status: c.key }), style: this.chipStyle(s.status === c.key) }));
+    }
+    if (v === 'git') {
+      chips = [
+        { label: 'Reply needed', count: unanswered.length, dot: true, dotStyle: 'width:8px;height:8px;border-radius:50%;background:var(--accent)', pick: () => this.setState({ gitRepo: 'Unanswered' }), style: this.chipStyle(s.gitRepo === 'Unanswered') },
+        ...this.repoChips(mine.filter((p) => !(s.hideDrafts && p.draft)), s.gitRepo, 'gitRepo'),
+      ];
+    }
+    if (v === 'reviews') chips = this.repoChips(reviews.filter((r) => !(s.hideBots && r.bot)), s.revRepo, 'revRepo');
+
+    return {
+      themeVars: themeVars(this.props.theme),
+      theme: this.props.theme || 'graphite',
+      accent,
+      views: views.map((x) => ({
+        ...x,
+        alert: x.alert || '',
+        selected: v === x.key ? 'true' : 'false',
+        pick: () => this.setState({ view: x.key }),
+        style: `display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:8px;border:0;cursor:pointer;font:inherit;font-size:13px;background:${v === x.key ? 'var(--raised)' : 'transparent'};color:${v === x.key ? 'var(--text)' : 'var(--muted)'};font-weight:${v === x.key ? 600 : 400}`,
+        countStyle: `font-size:12px;color:${v === x.key ? 'var(--text-3)' : 'var(--faint)'};font-weight:400`,
+      })),
+      needsYou: [
+        { kind: 'Changes requested', title: 'api #24358', sub: 'sucicfilip · today 08:27', dot: 'width:7px;height:7px;border-radius:50%;background:var(--bad)' },
+        { kind: 'Reply needed', title: 'specs #391', sub: 'mikki021 · thread on SPEC.md', dot: 'width:7px;height:7px;border-radius:50%;background:var(--accent)' },
+        { kind: 'CI failing', title: 'fe #30227 · rate cards', sub: 'task #6070 · after develop merge', dot: 'width:7px;height:7px;border-radius:50%;background:var(--bad)' },
+        { kind: 'Overdue', title: 'CRM Contacts copy update', sub: '#3426 · was due yesterday', dot: 'width:7px;height:7px;border-radius:50%;background:var(--bad)' },
+      ],
+      isTasks: v === 'tasks',
+      isGit: v === 'git',
+      isReviews: v === 'reviews',
+      chips,
+      showToggle: v !== 'tasks',
+      toggleOn: v === 'git' ? s.hideDrafts : s.hideBots,
+      toggleLabel: v === 'git' ? 'Hide drafts' : 'Hide bots (11)',
+      flipToggle: () => (v === 'git' ? this.setState({ hideDrafts: !s.hideDrafts }) : this.setState({ hideBots: !s.hideBots })),
+      projects,
+      peek,
+      prGroups,
+      revGroups,
+    };
+  }
+}
+</script>
+</body>
+</html>

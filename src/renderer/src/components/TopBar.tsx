@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useStore } from '../store'
+import { Cup } from './Cup'
 
 const STATE_LABEL: Record<SessionState, string> = {
   running: 'Running',
@@ -10,7 +11,11 @@ const STATE_LABEL: Record<SessionState, string> = {
 }
 
 export function TopBar({ onNew }: { onNew: () => void }) {
-  const { sessions, view, show } = useStore()
+  const { sessions, view, show, caf } = useStore()
+  const caffeinated = (s: Session) => {
+    if (!caf || caf.mode === 'off') return null
+    return (caf.scope === 'all' ? s.alive : caf.sessionId === s.id) ? caf.mode : null
+  }
   const activeId = activeSessionId(view)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropBefore, setDropBefore] = useState<string | null>(null)
@@ -44,6 +49,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
             key={s.id}
             session={s}
             selected={s.id === activeId}
+            cup={caffeinated(s)}
             dropBefore={dropBefore === s.id}
             onSelect={() => show({ kind: 'session', id: s.id })}
             onClose={() => void window.workbench.closeSession(s.id)}
@@ -61,9 +67,9 @@ export function TopBar({ onNew }: { onNew: () => void }) {
         </button>
       </div>
 
-      <span className="kbar" title="Coming in phase 1 step 4">
+      <button className="kbar" onClick={() => useStore.getState().setPalette(true)}>
         Switch or run <kbd>⌘K</kbd>
-      </span>
+      </button>
     </header>
   )
 }
@@ -72,6 +78,7 @@ interface TabProps {
   session: Session
   selected: boolean
   dropBefore: boolean
+  cup: 'on' | 'lid' | null
   onSelect(): void
   onClose(): void
   onDragStart(): void
@@ -79,7 +86,7 @@ interface TabProps {
   onDrop(): void
 }
 
-function Tab({ session: s, selected, dropBefore, onSelect, onClose, onDragStart, onDragOver, onDrop }: TabProps) {
+function Tab({ session: s, selected, dropBefore, cup, onSelect, onClose, onDragStart, onDragOver, onDrop }: TabProps) {
   const cls = ['tab', s.alive ? '' : 'dead', dropBefore ? 'drop-before' : ''].filter(Boolean).join(' ')
   return (
     <div
@@ -99,6 +106,11 @@ function Tab({ session: s, selected, dropBefore, onSelect, onClose, onDragStart,
     >
       <span className={`tab-line state-${s.state}`} role="img" aria-label={STATE_LABEL[s.state]} />
       <span className="tab-title">{s.title}</span>
+      {cup && (
+        <span className="tab-cup">
+          <Cup mode={cup} size={13} knockout={selected ? 'var(--line-soft)' : 'var(--chrome)'} label={cup === 'lid' ? 'Kept awake with lid closed' : 'Kept awake'} />
+        </span>
+      )}
       <button
         className="tab-close"
         aria-label={`Close ${s.title}`}

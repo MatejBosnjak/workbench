@@ -28,6 +28,8 @@ export class Sessions {
   private externalAlive = new Set<string>()
   // Respawns in progress; their exit isn't a real exit.
   private restarting = new Set<string>()
+  // External sessions to resume here once their terminal copy exits.
+  private takeOvers = new Set<string>()
   // Sessions with picker changes made mid-turn; they restart when the turn ends.
   private pending = new Set<string>()
 
@@ -169,6 +171,41 @@ export class Sessions {
     this.events.sessionsChanged()
   }
 
+  recent() {
+    return this.repo.recent()
+  }
+
+  reopen(id: string): void {
+    this.repo.reopenTab(id)
+    this.events.sessionsChanged()
+  }
+
+  takeOver(id: string): 'now' | 'waiting' {
+    const row = this.repo.get(id)
+    if (!row?.external) return 'now'
+    if (this.externalAlive.has(id)) {
+      this.takeOvers.add(id)
+      this.events.sessionsChanged()
+      return 'waiting'
+    }
+    this.adopt(id)
+    return 'now'
+  }
+
+  cancelTakeOver(id: string): void {
+    this.takeOvers.delete(id)
+    this.events.sessionsChanged()
+  }
+
+  /** Turns an external session into a Workbench one; opening it resumes it with --resume. */
+  private adopt(id: string): void {
+    this.takeOvers.delete(id)
+    this.externalAlive.delete(id)
+    const d = this.defaults()
+    this.repo.update(id, { external: false, state: 'idle', ...d })
+    this.events.sessionsChanged()
+  }
+
   close(id: string): void {
     this.pty.kill(id)
     this.repo.closeTab(id)
@@ -204,6 +241,11 @@ export class Sessions {
       if (row.external) {
         if (event === 'SessionEnd') this.externalAlive.delete(row.id)
         else this.externalAlive.add(row.id)
+      }
+      if (row.external && event === 'SessionEnd' && this.takeOvers.has(row.id)) {
+        this.repo.update(row.id, patch)
+        this.adopt(row.id)
+        return
       }
       if (event === 'SessionStart' && row.cwd !== p.cwd) patch.cwd = p.cwd
       if (sig.payload.permission_mode) this.status.set(row.id, { ...this.status.get(row.id), permissionMode: sig.payload.permission_mode })
@@ -274,7 +316,11 @@ export class Sessions {
 
   private toSession(r: SessionRow): Session {
     const { claudeId: _c, transcriptPath: _t, ...rest } = r
-    return { ...rest, alive: r.external ? this.externalAlive.has(r.id) : this.pty.has(r.id) }
+    return {
+      ...rest,
+      alive: r.external ? this.externalAlive.has(r.id) : this.pty.has(r.id),
+      takeOver: this.takeOvers.has(r.id) || undefined,
+    }
   }
 }
 

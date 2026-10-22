@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { HooksStatus, Session, StatusSnapshot } from '@shared/types'
+import type { CaffeinateState, HooksStatus, Session, StatusSnapshot } from '@shared/types'
 
 export type View = { kind: 'today' } | { kind: 'local' } | { kind: 'session'; id: string }
 
@@ -20,6 +20,10 @@ interface State {
   mounted: Set<string>
   status: StatusSnapshot
   hooks: HooksStatus | null
+  caf: CaffeinateState | null
+  paletteOpen: boolean
+  setCaf(c: CaffeinateState): void
+  setPalette(open: boolean): void
   setStatus(s: StatusSnapshot): void
   setHooks(h: HooksStatus): void
   setSessions(s: Session[]): void
@@ -32,6 +36,10 @@ export const useStore = create<State>((set, get) => ({
   mounted: new Set(),
   status: { sessions: {}, usage: null },
   hooks: null,
+  caf: null,
+  paletteOpen: false,
+  setCaf: (caf) => set({ caf }),
+  setPalette: (paletteOpen) => set({ paletteOpen }),
   setStatus: (status) => set({ status }),
   setHooks: (hooks) => set({ hooks }),
   setSessions: (sessions) => {

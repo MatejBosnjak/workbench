@@ -67,7 +67,7 @@ Renderer (web UI)
 
   Tabs show the state as a coloured overline, and the open tab moves it to an underline.
 - **External sessions.** Sessions started in a normal terminal report through the same hooks. They appear as read-only "external" tabs. "Take over" waits for the terminal copy to exit, then resumes the session inside Workbench.
-- **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR in Workbench, and ⌘-click opens GitHub. Hovering shows a card with the PR's state and CI status.
+- **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR in Workbench, and ⌘-click opens GitHub. Until the in-app PR view exists (phase 4), a click opens GitHub. Hovering shows a card with the PR's state and CI status.
 - **Pickers.** The picker lives in the StatusBar (toolbar).
   - New sessions start with `--model`, `--effort` and `--permission-mode` from the picker. The defaults are stored in settings.
   - A change to a running session restarts it in place with `claude --resume <id>` and the new flags. If a turn is in progress, the restart waits for its Stop.
@@ -89,7 +89,7 @@ Keeps the Mac awake while sessions run.
 - **Lid closed.** This mode runs `caffeinate -s` while on AC power. If power is unplugged, it falls back to Awake and sends a notification.
 - **Icon.** An espresso cup on a saucer (design variant 4h). Off is an outline cup. Awake is a filled cup with animated steam; the steam stops if Reduce Motion is on. Lid closed adds a small shut-laptop badge in the info colour.
 - **Tabs.** Caffeinated session tabs show the icon at 13px after the title.
-- **To verify in phase 1.** Whether `caffeinate -s` alone keeps a MacBook working with the lid closed on power, or whether clamshell mode needs an external display. If it does, the lid-closed option is shown only while that works.
+- **Lid closed availability.** Phase 1 enables the option only on AC power with an external display connected (clamshell mode), and falls back to Awake when either goes away. Still to check by hand: whether `caffeinate -s` alone, without a display, keeps a closed MacBook working; if it does, the display requirement can go.
 
 ### Today › My tasks
 

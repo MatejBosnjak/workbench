@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { SESSION_PORT_MESSAGE, type HooksStatus, type MenuCommand, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
+import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
 function on<A extends unknown[]>(channel: string, handler: (e: IpcRendererEvent, ...args: A) => void): () => void {
   const fn = handler as (e: IpcRendererEvent, ...args: unknown[]) => void
@@ -20,6 +20,15 @@ const api: WorkbenchApi = {
   configureSession: (id, change) => ipcRenderer.invoke('sessions:configure', id, change),
   getDefaults: () => ipcRenderer.invoke('defaults:get'),
   setDefaults: (d) => ipcRenderer.invoke('defaults:set', d),
+  recentSessions: () => ipcRenderer.invoke('sessions:recent'),
+  reopenSession: (id) => ipcRenderer.invoke('sessions:reopen', id),
+  takeOver: (id) => ipcRenderer.invoke('sessions:takeover', id),
+  cancelTakeOver: (id) => ipcRenderer.invoke('sessions:takeover-cancel', id),
+  getCaffeinate: () => ipcRenderer.invoke('caf:get'),
+  setCaffeinate: (mode, scope, sessionId) => ipcRenderer.invoke('caf:set', mode, scope, sessionId),
+  onCaffeinate: (cb) => on('caf:changed', (_e, s: CaffeinateState) => cb(s)),
+  prInfo: (url) => ipcRenderer.invoke('gh:pr', url),
+  openExternal: (url) => ipcRenderer.invoke('shell:open', url),
   getStatus: () => ipcRenderer.invoke('status:get'),
   onStatus: (cb) => on('status:changed', (_e, s: StatusSnapshot) => cb(s)),
   hooksStatus: () => ipcRenderer.invoke('hooks:status'),

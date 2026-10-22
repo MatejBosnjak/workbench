@@ -72,6 +72,15 @@ export class Repo {
     return rows.map(fromRaw)
   }
 
+  /** Closed tabs, most recent first. */
+  recent(limit = 30): { id: string; title: string; cwd: string; lastEventAt: number }[] {
+    return (
+      this.db
+        .prepare('SELECT id, title, cwd, last_event_at FROM sessions WHERE tab_order IS NULL ORDER BY last_event_at DESC LIMIT ?')
+        .all(limit) as { id: string; title: string; cwd: string; last_event_at: number }[]
+    ).map((r) => ({ id: r.id, title: r.title, cwd: r.cwd, lastEventAt: r.last_event_at }))
+  }
+
   /** Any session, open tab or not. */
   get(id: string): (SessionRow & { open: boolean }) | null {
     const r = this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as RawSession | undefined

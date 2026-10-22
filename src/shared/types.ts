@@ -10,6 +10,8 @@ export interface Session {
   /** A pty is attached and the claude process is alive. */
   alive: boolean
   external: boolean
+  /** An external session queued to be resumed here when its terminal copy exits. */
+  takeOver?: boolean
   startedAt: number
   lastEventAt: number
   /** Flags the session was started with; null means claude's own default. */
@@ -58,6 +60,36 @@ export type PortMessage = { type: 'data'; data: string } | { type: 'reset' }
 /** Renderer → main over a session's MessagePort. */
 export type PortInput = { type: 'input'; data: string } | { type: 'resize'; cols: number; rows: number }
 
+export interface CaffeinateState {
+  mode: 'off' | 'on' | 'lid'
+  scope: 'session' | 'all'
+  /** The session a 'session'-scoped mode follows. */
+  sessionId: string | null
+  /** Lid-closed mode needs AC power and an external display. */
+  lidAvailable: boolean
+  /** Why the mode last changed by itself, if it did. */
+  note: string | null
+}
+
+export interface RecentSession {
+  id: string
+  title: string
+  cwd: string
+  lastEventAt: number
+}
+
+export interface PrInfo {
+  url: string
+  number: number
+  title: string
+  state: 'OPEN' | 'CLOSED' | 'MERGED'
+  isDraft: boolean
+  reviewDecision: string | null
+  /** Rolled-up CI: SUCCESS, FAILURE, PENDING, or null when there are no checks. */
+  checks: 'SUCCESS' | 'FAILURE' | 'PENDING' | null
+  repo: string
+}
+
 /** Posted to the page by the preload, carrying a session's MessagePort. */
 export const SESSION_PORT_MESSAGE = 'workbench:session-port'
 
@@ -67,6 +99,7 @@ export type MenuCommand =
   | { type: 'close-tab' }
   | { type: 'select-tab'; index: number }
   | { type: 'cycle-tab'; delta: 1 | -1 }
+  | { type: 'palette' }
 
 export interface WorkbenchApi {
   listSessions(): Promise<Session[]>
@@ -83,6 +116,16 @@ export interface WorkbenchApi {
   configureSession(id: string, change: Partial<AgentSettings>): Promise<ApplyResult>
   getDefaults(): Promise<AgentSettings>
   setDefaults(d: AgentSettings): Promise<void>
+  recentSessions(): Promise<RecentSession[]>
+  reopenSession(id: string): Promise<void>
+  /** Resumes an external session inside Workbench once its terminal copy has exited. */
+  takeOver(id: string): Promise<'now' | 'waiting'>
+  cancelTakeOver(id: string): Promise<void>
+  getCaffeinate(): Promise<CaffeinateState>
+  setCaffeinate(mode: CaffeinateState['mode'], scope: CaffeinateState['scope'], sessionId: string | null): Promise<CaffeinateState>
+  onCaffeinate(cb: (s: CaffeinateState) => void): () => void
+  prInfo(url: string): Promise<PrInfo | null>
+  openExternal(url: string): Promise<void>
   getStatus(): Promise<StatusSnapshot>
   onStatus(cb: (s: StatusSnapshot) => void): () => void
   hooksStatus(): Promise<HooksStatus>

@@ -1,16 +1,20 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { WebglAddon } from '@xterm/addon-webgl'
 import type { PortInput, PortMessage, Session } from '@shared/types'
 import { onPort } from '../ports'
+import { PrCard, type CardAnchor } from './PrCard'
 import { xtermTheme } from '../xterm-theme'
 
 interface Props {
   session: Session
   active: boolean
 }
+
+const URL_RE = /https?:\/\/[^\s"'<>()\[\]{}]+[^\s"'<>()\[\]{}.,;:!?]/g
+const PR_RE = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/
 
 // Claude prefixes its terminal title with a status glyph (✳ or a spinner frame).
 const cleanTitle = (t: string) => t.replace(/^[^\p{L}\p{N}]+/u, '').trim()
@@ -20,6 +24,7 @@ export function Terminal({ session, active }: Props) {
   const term = useRef<XTerm>(null)
   const fit = useRef<FitAddon>(null)
   const alive = useRef(session.alive)
+  const [card, setCard] = useState<CardAnchor | null>(null)
 
   useEffect(() => {
     const t = new XTerm({
@@ -83,6 +88,25 @@ export function Terminal({ session, active }: Props) {
       }
     })
 
+    // Links: any http(s) URL opens in the browser; GitHub PR links also get a hover card.
+    t.registerLinkProvider({
+      provideLinks(y, callback) {
+        const text = t.buffer.active.getLine(y - 1)?.translateToString(true) ?? ''
+        const links = [...text.matchAll(URL_RE)].map((m) => {
+          const pr = PR_RE.exec(m[0])?.[0]
+          return {
+            range: { start: { x: m.index + 1, y }, end: { x: m.index + m[0].length, y } },
+            text: pr ?? m[0],
+            decorations: { underline: true, pointerCursor: true },
+            activate: (_e: MouseEvent, url: string) => void window.workbench.openExternal(url),
+            hover: pr ? (e: MouseEvent, url: string) => setCard({ url, x: e.clientX, y: e.clientY }) : undefined,
+            leave: pr ? () => setCard(null) : undefined,
+          }
+        })
+        callback(links.length ? links : undefined)
+      },
+    })
+
     const ro = new ResizeObserver(() => {
       if (el.current?.offsetParent !== null) f.fit()
     })
@@ -128,5 +152,10 @@ export function Terminal({ session, active }: Props) {
     term.current?.focus()
   }, [active])
 
-  return <div className="term" hidden={!active} ref={el} />
+  return (
+    <>
+      <div className="term" hidden={!active} ref={el} />
+      {active && card && <PrCard anchor={card} />}
+    </>
+  )
 }

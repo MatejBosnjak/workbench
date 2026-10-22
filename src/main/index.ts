@@ -3,6 +3,8 @@ import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
 import type { HooksStatus, MenuCommand } from '@shared/types'
+import { Caffeinate } from './caffeinate'
+import { prInfo } from './github'
 import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
 import { Sessions } from './sessions'
 import { shellEnv } from './shell-env'
@@ -126,6 +128,7 @@ function buildMenu(): void {
           { label: 'New Session', accelerator: 'CmdOrCtrl+T', click: () => send({ type: 'new-session' }) },
           { label: 'New Session in Folder…', accelerator: 'CmdOrCtrl+Shift+T', click: () => send({ type: 'new-session-in' }) },
           { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send({ type: 'close-tab' }) },
+          { label: 'Switch or Run…', accelerator: 'CmdOrCtrl+K', click: () => send({ type: 'palette' }) },
           { type: 'separator' },
           { label: 'Next Tab', accelerator: 'CmdOrCtrl+Shift+]', click: () => send({ type: 'cycle-tab', delta: 1 }) },
           { label: 'Previous Tab', accelerator: 'CmdOrCtrl+Shift+[', click: () => send({ type: 'cycle-tab', delta: -1 }) },
@@ -142,8 +145,13 @@ function buildMenu(): void {
 
 void app.whenReady().then(() => {
   void shellEnv() // warm up; the first session would otherwise wait on it
+  const caffeinate = new Caffeinate((s) => win?.webContents.send('caf:changed', s))
   const sessions = new Sessions(new Repo(openDb(join(dataDir(), 'workbench.db'))), {
-    sessionsChanged: () => win?.webContents.send('sessions:changed', sessions.list()),
+    sessionsChanged: () => {
+      const list = sessions.list()
+      caffeinate.sessionsChanged(list)
+      win?.webContents.send('sessions:changed', list)
+    },
     statusChanged: () => win?.webContents.send('status:changed', sessions.statusSnapshot()),
   })
 
@@ -169,6 +177,16 @@ void app.whenReady().then(() => {
   ipcMain.handle('sessions:configure', (_e, id: string, change: Partial<AgentSettings>) => sessions.configure(id, change))
   ipcMain.handle('defaults:get', () => sessions.defaults())
   ipcMain.handle('defaults:set', (_e, d: AgentSettings) => sessions.setDefaults(d))
+  ipcMain.handle('sessions:recent', () => sessions.recent())
+  ipcMain.handle('sessions:reopen', (_e, id: string) => sessions.reopen(id))
+  ipcMain.handle('sessions:takeover', (_e, id: string) => sessions.takeOver(id))
+  ipcMain.handle('sessions:takeover-cancel', (_e, id: string) => sessions.cancelTakeOver(id))
+  ipcMain.handle('caf:get', () => caffeinate.get())
+  ipcMain.handle('caf:set', (_e, mode, scope, sessionId: string | null) => caffeinate.set(mode, scope, sessionId))
+  ipcMain.handle('gh:pr', (_e, url: string) => prInfo(url))
+  ipcMain.handle('shell:open', (_e, url: string) => {
+    if (/^https?:\/\//.test(url)) void shell.openExternal(url)
+  })
   ipcMain.handle('status:get', () => sessions.statusSnapshot())
   ipcMain.handle('hooks:status', () => currentStatus(installPaths()))
   const hooksChanged = (s: HooksStatus) => (win?.webContents.send('hooks:changed', s), s)
@@ -176,6 +194,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('hooks:uninstall', () => confirmUninstall().then(hooksChanged))
 
   app.on('before-quit', () => {
+    caffeinate.stop()
     sessions.shutdown()
     stopSignalServer(signals, socketPath())
   })

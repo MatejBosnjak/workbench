@@ -1,5 +1,8 @@
 import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
+import { CaffeinateControl } from './components/CaffeinateControl'
+import { ExternalPanel } from './components/ExternalPanel'
+import { Palette } from './components/Palette'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
@@ -32,6 +35,8 @@ function onMenu(cmd: MenuCommand): void {
       if (s) show({ kind: 'session', id: s.id })
       return
     }
+    case 'palette':
+      return useStore.getState().setPalette(!useStore.getState().paletteOpen)
     case 'cycle-tab': {
       if (!sessions.length) return
       const s = sessions[(at + cmd.delta + sessions.length) % sessions.length]!
@@ -42,7 +47,7 @@ function onMenu(cmd: MenuCommand): void {
 }
 
 export function App() {
-  const { sessions, view, mounted, setSessions, show, setStatus, setHooks } = useStore()
+  const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen } = useStore()
 
   useEffect(() => {
     void window.workbench.getStatus().then(setStatus)
@@ -71,16 +76,18 @@ export function App() {
   }, [setSessions, show])
 
   const activeId = activeSessionId(view)
+  const active = sessions.find((s) => s.id === activeId)
 
   return (
     <div className="app">
       <TopBar onNew={() => void newSession()} />
       <main className="main">
         {sessions
-          .filter((s) => mounted.has(s.id))
+          .filter((s) => mounted.has(s.id) && !s.external)
           .map((s) => (
             <Terminal key={s.id} session={s} active={s.id === activeId} />
           ))}
+        {active?.external && <ExternalPanel session={active} />}
         {view.kind === 'today' && (
           <Placeholder title="Today" note="My tasks, My git and My reviews arrive in phases 3 and 4." />
         )}
@@ -88,8 +95,11 @@ export function App() {
       </main>
       <StatusBar>
         <span className="sb-sep" />
+        <CaffeinateControl />
+        <span className="sb-sep" />
         <Picker />
       </StatusBar>
+      {paletteOpen && <Palette onNew={(pick) => void newSession(pick)} />}
     </div>
   )
 }

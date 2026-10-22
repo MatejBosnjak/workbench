@@ -54,7 +54,7 @@ Renderer (web UI)
 ### Sessions
 
 - **Spawning.** A session is `claude` (or `claude --resume <id>`) started in a pty. The working directory is the task's worktree when there is one, otherwise the work repo root, matching what `cc` does today.
-- **Hooks.** `~/.claude/settings.json` gets global hooks (Notification, Stop, SessionStart, SessionEnd, UserPromptSubmit). Each one runs a tiny client that writes `{event, session_id, cwd, transcript_path, …}` to the Workbench socket. If the socket is missing, the client exits right away, in under 50ms, and prints nothing.
+- **Hooks.** Workbench installs them itself via Settings → Install hooks. It backs up `~/.claude/settings.json` first, adds only its own entries (marked so they can be found), and has an Uninstall action. The entries are global hooks (Notification, Stop, SessionStart, SessionEnd, UserPromptSubmit). Each one runs a tiny client that writes `{event, session_id, cwd, transcript_path, …}` to the Workbench socket. If the socket is missing, the client exits right away, in under 50ms, and prints nothing.
 - **Statusline.** The configured statusline becomes a wrapper. It forwards the statusline JSON to the socket (`context_window.used_percentage`, `rate_limits.five_hour`, model, effort) and then runs `scripts/statusline.sh`, so terminal output stays exactly as it is now.
 - **Tab states:**
 
@@ -68,7 +68,10 @@ Renderer (web UI)
   Tabs show the state as a coloured overline, and the open tab moves it to an underline.
 - **External sessions.** Sessions started in a normal terminal report through the same hooks. They appear as read-only "external" tabs. "Take over" waits for the terminal copy to exit, then resumes the session inside Workbench.
 - **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR in Workbench, and ⌘-click opens GitHub. Hovering shows a card with the PR's state and CI status.
-- **Pickers.** Model, effort and permission changes are sent into the pty as the matching CLI commands (see Open questions). The defaults for new sessions are stored in settings.
+- **Pickers.** The picker lives in the StatusBar (toolbar).
+  - New sessions start with `--model`, `--effort` and `--permission-mode` from the picker. The defaults are stored in settings.
+  - In a running session, a model change sends `/model <name>` into the pty. Effort sends `/effort <level>`; whether that command exists still needs checking. Permission mode presses Shift+Tab until the reported mode matches.
+  - If an in-session change can't be confirmed from statusline or hook data, Workbench restarts the session with `claude --resume <id>` and the new flags.
 
 ### Today › My tasks
 
@@ -103,7 +106,14 @@ Renderer (web UI)
   - My git: Needs you, Ready to merge, Waiting on reviewers, Drafts. Filter by repo or "Reply needed", with a Hide drafts toggle.
   - My reviews: Changes requested, New this week, Waiting longer. Filter by repo; bots are hidden by default.
 - **Drafts.** "Draft reply with Claude" runs a headless `claude -p` with the thread as context and puts the result in an editable draft. Sending goes through a confirm step that shows the exact text and target. The same flow covers Productive comments and status changes.
-- **Notifications.** A native notification for each new needs-reply item. Which other events notify is open.
+- **Notifications.** A native macOS notification for each of:
+  - a new reply or comment on my PR
+  - changes requested
+  - CI failed on my PR
+  - a session waiting for me (permission prompt or finished)
+  - a new review request
+
+  Each notification opens the matching row or tab.
 
 ### Session ↔ task linking
 
@@ -146,7 +156,7 @@ Renderer (web UI)
   - the 5h limit and when it resets
   - the week limit
   - the model · effort · permissions picker
-- **Themes.** All dark, defined as CSS variable tokens. The design has Graphite, Midnight, Forest, Dusk (muted synth, purple accent) and Synthwave.
+- **Theme.** v1 ships **Dusk** only: muted synthwave on a graphite base, with a purple accent. Colours are CSS variable tokens, so more themes can be added later; the design also explores Graphite, Midnight, Forest and Synthwave.
 
 ## Data model (SQLite)
 
@@ -169,10 +179,11 @@ Each phase must be usable daily before the next one starts.
 4. **My git / My reviews.** gh poller, needs-reply detection, notifications, drafts with confirm.
 5. **v1.1.** Task workstream screen: milestone timeline, structure tree, Start work.
 
+## Packaging
+
+`electron-builder` builds `/Applications/Workbench.app` locally, and I rebuild after pulling. The build is unsigned, so the first launch needs right-click → Open. No auto-update.
+
 ## Open questions
 
-- **Picker commands.** Which commands or keys does the CLI accept mid-session for model, effort and permission mode? This decides whether PTY injection is enough or a picker change needs a restart with `--resume`.
-- **Themes for v1.** Graphite + Dusk only, or all five?
-- **Notification rules.** Which events notify (new reply, changes requested, CI failed, session waiting), and should there be quiet hours?
-- **Packaging.** Is an unsigned `electron-builder` build in `/Applications` enough?
-- **Hook install.** Does Workbench write and maintain the global hooks entry itself, with a backup, or are they set up by hand once?
+- **`/effort` and permission mode mid-session.** Check in phase 1 that `/effort` exists and that the current permission mode is reported in the statusline or hook data. Otherwise these two use the `--resume` restart fallback.
+- **Quiet hours** for notifications: none for now; revisit after using it.

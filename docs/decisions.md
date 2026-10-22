@@ -22,9 +22,12 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 - **Build order** — 1) shell + PTY sessions (replaces terminal / `cc`) → 2) Local (replaces `prd` + `wt`) → 3) My tasks + preview + linking → 4) My git / reviews + notifications + drafts. Each phase must be usable daily before the next starts
 - **Home** — a private repo on the user's personal GitHub profile, with a lite spec at `docs/SPEC.md`
 
+- **Picker** — in the StatusBar. New sessions get `--model` / `--effort` / `--permission-mode`. A running session gets `/model` and `/effort` typed into it, and Shift+Tab for permission mode; if a change can't be confirmed, Workbench restarts with `--resume` and the new flags
+- **Theme for v1** — Dusk only
+- **Notifications** — all five: new reply/comment on my PR, changes requested, CI failed, session waiting for me, new review request
+- **Packaging** — local unsigned `electron-builder` build into /Applications, no auto-update *(simplest)*
+- **Hook install** — Workbench installs them (Settings → Install hooks), backs up `~/.claude/settings.json`, adds only its own marked entries, and offers Uninstall
+
 ## Open / Deferred
-- **Repo name and local path** — not chosen yet
-- **Mid-session model / effort / permission switching** — confirm which slash commands or keys the CLI accepts (`/model`, effort, permission-mode cycling) before relying on PTY injection
-- **Which themes ship** — the design has Graphite, Midnight, Forest, Dusk and Synthwave; v1 could ship Graphite + Dusk only
-- **Packaging** — an unsigned local build is probably enough; auto-update is out of scope
-- **Notification rules** — which events notify (new reply, changes requested, CI failed, session waiting), and quiet hours
+- **`/effort` and permission mode mid-session** — verify in phase 1; otherwise use the `--resume` fallback
+- **Quiet hours** — none for now

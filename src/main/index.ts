@@ -32,6 +32,8 @@ const installPaths = (): InstallPaths => ({
   templates: app.isPackaged ? join(process.resourcesPath, 'bin') : join(app.getAppPath(), 'resources', 'bin'),
 })
 
+const BACKGROUND = process.env.WORKBENCH_BACKGROUND === '1'
+
 function createWindow(): BrowserWindow {
   const w = new BrowserWindow({
     width: 1440,
@@ -48,7 +50,8 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
     },
   })
-  w.once('ready-to-show', () => w.show())
+  // Test runs open the window behind whatever has focus.
+  w.once('ready-to-show', () => (BACKGROUND ? w.showInactive() : w.show()))
   w.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
     return { action: 'deny' }
@@ -149,6 +152,7 @@ function buildMenu(): void {
 }
 
 void app.whenReady().then(() => {
+  if (BACKGROUND) app.setActivationPolicy('accessory')
   void shellEnv() // warm up; the first session would otherwise wait on it
   const caffeinate = new Caffeinate((s) => win?.webContents.send('caf:changed', s))
   const repo = new Repo(openDb(join(dataDir(), 'workbench.db')))

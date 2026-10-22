@@ -35,3 +35,6 @@ WORKBENCH_CLAUDE_SETTINGS=/tmp/wb-settings.json WORKBENCH_SOCKET=/tmp/wb-dev.soc
 
 Install Hooks then writes to that file instead, and sessions started by this instance load it
 with `claude --settings`.
+
+`WORKBENCH_BACKGROUND=1` opens the window behind whatever has focus and keeps the app out of the
+Dock and ⌘-Tab. Automated test runs use it.

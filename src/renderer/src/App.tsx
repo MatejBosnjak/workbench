@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
+import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
 import { TopBar } from './components/TopBar'
@@ -85,7 +86,10 @@ export function App() {
         )}
         {view.kind === 'local' && <Placeholder title="Local" note="Local services and worktrees arrive in phase 2." />}
       </main>
-      <StatusBar />
+      <StatusBar>
+        <span className="sb-sep" />
+        <Picker />
+      </StatusBar>
     </div>
   )
 }

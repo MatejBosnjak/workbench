@@ -1,3 +1,5 @@
+import type { AgentSettings, ApplyResult } from './agent'
+
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
 export interface Session {
@@ -24,6 +26,8 @@ export interface SessionStatus {
   contextPct?: number | null
   contextSize?: number
   name?: string
+  /** As reported by the last hook event. */
+  permissionMode?: string
 }
 
 export interface Limit {
@@ -76,6 +80,9 @@ export interface WorkbenchApi {
   onMenuCommand(cb: (cmd: MenuCommand) => void): () => void
   /** Types into the session's pty. */
   writeSession(id: string, data: string): Promise<boolean>
+  configureSession(id: string, change: Partial<AgentSettings>): Promise<ApplyResult>
+  getDefaults(): Promise<AgentSettings>
+  setDefaults(d: AgentSettings): Promise<void>
   getStatus(): Promise<StatusSnapshot>
   onStatus(cb: (s: StatusSnapshot) => void): () => void
   hooksStatus(): Promise<HooksStatus>

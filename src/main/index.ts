@@ -1,6 +1,7 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
+import type { AgentSettings } from '@shared/agent'
 import type { HooksStatus, MenuCommand } from '@shared/types'
 import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
 import { Sessions } from './sessions'
@@ -165,6 +166,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('sessions:title', (_e, id: string, title: string) => sessions.setTitle(id, title))
   ipcMain.handle('sessions:reorder', (_e, ids: string[]) => sessions.reorder(ids))
   ipcMain.handle('sessions:write', (_e, id: string, data: string) => sessions.write(id, data))
+  ipcMain.handle('sessions:configure', (_e, id: string, change: Partial<AgentSettings>) => sessions.configure(id, change))
+  ipcMain.handle('defaults:get', () => sessions.defaults())
+  ipcMain.handle('defaults:set', (_e, d: AgentSettings) => sessions.setDefaults(d))
   ipcMain.handle('status:get', () => sessions.statusSnapshot())
   ipcMain.handle('hooks:status', () => currentStatus(installPaths()))
   const hooksChanged = (s: HooksStatus) => (win?.webContents.send('hooks:changed', s), s)

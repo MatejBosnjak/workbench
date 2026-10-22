@@ -15,6 +15,8 @@ interface Entry {
   history: string[]
   historyBytes: number
   exited: Promise<void>
+  size: { cols: number; rows: number }
+  wc?: WebContents
 }
 
 export interface SpawnOpts {
@@ -44,7 +46,7 @@ export class PtyHost {
       rows: o.rows,
     })
     let onExited!: () => void
-    const e: Entry = { proc, pending: '', history: [], historyBytes: 0, exited: new Promise((r) => (onExited = r)) }
+    const e: Entry = { proc, pending: '', history: [], historyBytes: 0, exited: new Promise((r) => (onExited = r)), size: { cols: o.cols, rows: o.rows } }
     this.entries.set(id, e)
 
     proc.onData((data) => {
@@ -71,14 +73,24 @@ export class PtyHost {
     e.port?.close()
     const { port1, port2 } = new MessageChannelMain()
     e.port = port1
+    e.wc = wc
     port1.on('message', ({ data }: { data: PortInput }) => {
       if (data.type === 'input') e.proc.write(data.data)
-      else if (data.type === 'resize' && data.cols > 0 && data.rows > 0) e.proc.resize(data.cols, data.rows)
+      else if (data.type === 'resize' && data.cols > 0 && data.rows > 0) {
+        e.proc.resize(data.cols, data.rows)
+        e.size = { cols: data.cols, rows: data.rows }
+      }
     })
     port1.start()
     wc.postMessage('session:port', id, [port2])
     this.send(e, { type: 'reset' })
     if (e.history.length) this.send(e, { type: 'data', data: e.history.join('') })
+  }
+
+  /** Last known size and renderer, for respawning in place. */
+  info(id: string): { size: { cols: number; rows: number }; wc?: WebContents } | null {
+    const e = this.entries.get(id)
+    return e ? { size: e.size, wc: e.wc } : null
   }
 
   write(id: string, data: string): boolean {

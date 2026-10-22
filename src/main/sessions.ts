@@ -3,6 +3,7 @@ import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 import type { WebContents } from 'electron'
+import type { AgentSettings, ApplyResult } from '@shared/agent'
 import type { Session, SessionStatus, StatusSnapshot, Usage } from '@shared/types'
 import { PtyHost } from './pty-host'
 import { shellEnv, which } from './shell-env'
@@ -25,6 +26,10 @@ export class Sessions {
   private usage: Usage | null
   // External sessions have no pty; they're alive between SessionStart and SessionEnd.
   private externalAlive = new Set<string>()
+  // Respawns in progress; their exit isn't a real exit.
+  private restarting = new Set<string>()
+  // Sessions with picker changes made mid-turn; they restart when the turn ends.
+  private pending = new Set<string>()
 
   constructor(
     private repo: Repo,
@@ -32,6 +37,7 @@ export class Sessions {
   ) {
     this.usage = repo.getSetting<Usage | null>('usage', null)
     this.pty = new PtyHost((id, code) => {
+      if (this.restarting.has(id)) return
       this.repo.update(id, { state: code === 0 ? 'idle' : 'failed', lastEventAt: Date.now() })
       this.events.sessionsChanged()
     })
@@ -73,12 +79,47 @@ export class Sessions {
     return this.toSession(row)
   }
 
-  defaults(): { model: string | null; effort: string | null; permissionMode: string | null } {
-    return this.repo.getSetting('sessionDefaults', { model: null, effort: null, permissionMode: 'bypassPermissions' })
+  defaults(): AgentSettings {
+    return this.repo.getSetting<AgentSettings>('sessionDefaults', { model: null, effort: null, permissionMode: 'bypassPermissions' })
   }
 
-  setDefaults(d: { model: string | null; effort: string | null; permissionMode: string | null }): void {
+  setDefaults(d: AgentSettings): void {
     this.repo.setSetting('sessionDefaults', d)
+  }
+
+  /**
+   * Applies picker changes to a session by restarting it with --resume and the new flags.
+   * Typing /model or /effort into the session would also rewrite the user's global defaults
+   * in ~/.claude/settings.json, so the picker never does that.
+   */
+  async configure(id: string, change: Partial<AgentSettings>): Promise<ApplyResult> {
+    const row = this.repo.get(id)
+    if (!row || row.external) return 'saved'
+    this.repo.update(id, change)
+    this.events.sessionsChanged()
+    if (!this.pty.has(id)) return 'saved'
+    if (row.state === 'running') {
+      this.pending.add(id)
+      return 'pending'
+    }
+    return this.restart(id)
+  }
+
+  /** Respawns the session in place with --resume and the row's current flags. */
+  private async restart(id: string): Promise<ApplyResult> {
+    const info = this.pty.info(id)
+    if (!info?.wc) return 'saved'
+    // The old statusline data no longer applies; the picker falls back to the new flags until it refreshes.
+    this.status.delete(id)
+    this.events.statusChanged()
+    this.restarting.add(id)
+    try {
+      await this.pty.killAndWait(id)
+    } finally {
+      this.restarting.delete(id)
+    }
+    await this.open(id, info.size, info.wc)
+    return 'restarted'
   }
 
   isAlive(id: string): boolean {
@@ -165,9 +206,11 @@ export class Sessions {
         else this.externalAlive.add(row.id)
       }
       if (event === 'SessionStart' && row.cwd !== p.cwd) patch.cwd = p.cwd
+      if (sig.payload.permission_mode) this.status.set(row.id, { ...this.status.get(row.id), permissionMode: sig.payload.permission_mode })
       this.repo.update(row.id, patch)
       this.events.sessionsChanged()
       this.events.hook?.(row.id, event, sig.payload)
+      if (event === 'Stop' && this.pending.delete(row.id)) void this.restart(row.id)
     } else {
       this.repo.update(row.id, patch)
       this.applyStatusline(row.id, sig.payload)
@@ -208,6 +251,7 @@ export class Sessions {
 
   private applyStatusline(id: string, p: StatuslinePayload): void {
     this.status.set(id, {
+      ...this.status.get(id),
       model: p.model?.display_name,
       modelId: p.model?.id,
       effort: p.effort?.level,

@@ -70,8 +70,8 @@ Renderer (web UI)
 - **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR in Workbench, and ⌘-click opens GitHub. Hovering shows a card with the PR's state and CI status.
 - **Pickers.** The picker lives in the StatusBar (toolbar).
   - New sessions start with `--model`, `--effort` and `--permission-mode` from the picker. The defaults are stored in settings.
-  - In a running session, a model change sends `/model <name>` into the pty. Effort sends `/effort <level>`; whether that command exists still needs checking. Permission mode presses Shift+Tab until the reported mode matches.
-  - If an in-session change can't be confirmed from statusline or hook data, Workbench restarts the session with `claude --resume <id>` and the new flags.
+  - A change to a running session restarts it in place with `claude --resume <id>` and the new flags. If a turn is in progress, the restart waits for its Stop.
+  - Typing `/model` or `/effort` into the session is not used: claude saves those as the global default in `~/.claude/settings.json` (`model`, `modelSettings.*.effortLevel`), which would change every other session. Permission mode is only reported in hook payloads, so it can't be confirmed live either.
 
 ### Caffeinate
 
@@ -203,5 +203,4 @@ Each phase must be usable daily before the next one starts.
 
 ## Open questions
 
-- **`/effort` and permission mode mid-session.** Check in phase 1 that `/effort` exists and that the current permission mode is reported in the statusline or hook data. Otherwise these two use the `--resume` restart fallback.
 - **Quiet hours** for notifications: none for now; revisit after using it.

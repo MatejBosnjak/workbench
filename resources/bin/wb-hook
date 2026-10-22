@@ -1,0 +1,7 @@
+#!/bin/sh
+# Workbench hook client: forwards the hook payload to Workbench and prints nothing.
+# Exits at once when Workbench isn't running.
+SOCK='@@SOCKET@@'
+[ -S "$SOCK" ] || exit 0
+{ printf 'hook %s\n' "$WORKBENCH_SESSION_ID"; cat; } | nc -U -w 2 "$SOCK" >/dev/null 2>&1
+exit 0

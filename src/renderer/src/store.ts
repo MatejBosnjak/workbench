@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Session } from '@shared/types'
+import type { HooksStatus, Session, StatusSnapshot } from '@shared/types'
 
 export type View = { kind: 'today' } | { kind: 'local' } | { kind: 'session'; id: string }
 
@@ -18,6 +18,10 @@ interface State {
   view: View
   /** Sessions whose terminal has been shown at least once; they stay mounted. */
   mounted: Set<string>
+  status: StatusSnapshot
+  hooks: HooksStatus | null
+  setStatus(s: StatusSnapshot): void
+  setHooks(h: HooksStatus): void
   setSessions(s: Session[]): void
   show(v: View): void
 }
@@ -26,6 +30,10 @@ export const useStore = create<State>((set, get) => ({
   sessions: [],
   view: loadView(),
   mounted: new Set(),
+  status: { sessions: {}, usage: null },
+  hooks: null,
+  setStatus: (status) => set({ status }),
+  setHooks: (hooks) => set({ hooks }),
   setSessions: (sessions) => {
     const { view, mounted } = get()
     const ids = new Set(sessions.map((s) => s.id))

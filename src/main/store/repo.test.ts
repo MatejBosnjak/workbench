@@ -2,7 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { migrate, openDb } from './db'
 import { Repo, type SessionRow } from './repo'
 
-const row = (id: string): SessionRow => ({ id, cwd: '/tmp', title: id, state: 'idle', external: false, startedAt: 1, lastEventAt: 1 })
+const row = (id: string): SessionRow => ({
+  id,
+  cwd: '/tmp',
+  title: id,
+  state: 'idle',
+  external: false,
+  startedAt: 1,
+  lastEventAt: 1,
+  claudeId: null,
+  transcriptPath: null,
+  model: null,
+  effort: null,
+  permissionMode: null,
+})
 
 describe('Repo', () => {
   it('keeps open tabs in insertion order and drops closed ones', () => {
@@ -26,6 +39,18 @@ describe('Repo', () => {
     expect(repo.openTabs()[0]).toMatchObject({ state: 'failed', title: 'Fix CI', external: false })
   })
 
+  it('finds a session by its claude id and reopens closed tabs at the end', () => {
+    const repo = new Repo(openDb(':memory:'))
+    ;['a', 'b'].forEach((id) => repo.insertTab(row(id)))
+    repo.update('a', { claudeId: 'c1' })
+    expect(repo.findByClaudeId('c1')?.id).toBe('a')
+    expect(repo.findByClaudeId('b')?.id).toBe('b')
+    repo.closeTab('a')
+    expect(repo.get('a')?.open).toBe(false)
+    repo.reopenTab('a')
+    expect(repo.openTabs().map((r) => r.id)).toEqual(['b', 'a'])
+  })
+
   it('round-trips settings as JSON', () => {
     const repo = new Repo(openDb(':memory:'))
     expect(repo.getSetting('defaultCwd', '/x')).toBe('/x')
@@ -36,6 +61,6 @@ describe('Repo', () => {
   it('migrations are idempotent', () => {
     const db = openDb(':memory:')
     migrate(db)
-    expect(db.pragma('user_version', { simple: true })).toBe(1)
+    expect(db.pragma('user_version', { simple: true })).toBe(2)
   })
 })

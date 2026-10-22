@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
+import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
 import { TopBar } from './components/TopBar'
 import { activeSessionId, useStore } from './store'
@@ -40,7 +41,18 @@ function onMenu(cmd: MenuCommand): void {
 }
 
 export function App() {
-  const { sessions, view, mounted, setSessions, show } = useStore()
+  const { sessions, view, mounted, setSessions, show, setStatus, setHooks } = useStore()
+
+  useEffect(() => {
+    void window.workbench.getStatus().then(setStatus)
+    void window.workbench.hooksStatus().then(setHooks)
+    const offStatus = window.workbench.onStatus(setStatus)
+    const offHooks = window.workbench.onHooksChanged(setHooks)
+    return () => {
+      offStatus()
+      offHooks()
+    }
+  }, [setStatus, setHooks])
 
   useEffect(() => {
     void window.workbench.listSessions().then((list) => {
@@ -73,6 +85,7 @@ export function App() {
         )}
         {view.kind === 'local' && <Placeholder title="Local" note="Local services and worktrees arrive in phase 2." />}
       </main>
+      <StatusBar />
     </div>
   )
 }

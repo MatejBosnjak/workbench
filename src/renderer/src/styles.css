@@ -92,3 +92,30 @@ button { font: inherit; color: inherit; }
   background: var(--accent); color: var(--on-accent); font-weight: 600; box-shadow: var(--accent-shadow);
 }
 .empty kbd { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+
+/* Status bar */
+.statusbar {
+  position: relative; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 18px; padding: 0 12px 0 16px;
+  background: var(--chrome); border-top: 1px solid var(--line);
+  color: var(--text-3); font-size: 12px; white-space: nowrap;
+}
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); }
+.sb-session { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sb-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sb-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; max-width: 320px; }
+.sb-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); }
+.sb-group { display: flex; align-items: center; gap: 8px; }
+.sb-group.push { margin-left: auto; }
+.sb-sep { width: 1px; height: 16px; background: var(--line-strong); flex-shrink: 0; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex; }
+.sb-compact {
+  height: 24px; padding: 0 8px; border-radius: 5px; border: 1px solid var(--accent-line);
+  background: var(--accent-bg); color: var(--warn); font-family: var(--mono); font-size: 11px; cursor: pointer;
+}
+.sb-chip {
+  height: 24px; padding: 0 10px; border-radius: 5px; cursor: pointer; font-size: 11px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--text-3);
+}
+.sb-chip.warn { border-color: var(--accent-line); background: var(--accent-bg); color: var(--warn); }

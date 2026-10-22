@@ -14,6 +14,7 @@ interface Entry {
   // Kept so a reloaded renderer can rebuild the screen.
   history: string[]
   historyBytes: number
+  exited: Promise<void>
 }
 
 export interface SpawnOpts {
@@ -42,7 +43,8 @@ export class PtyHost {
       cols: o.cols,
       rows: o.rows,
     })
-    const e: Entry = { proc, pending: '', history: [], historyBytes: 0 }
+    let onExited!: () => void
+    const e: Entry = { proc, pending: '', history: [], historyBytes: 0, exited: new Promise((r) => (onExited = r)) }
     this.entries.set(id, e)
 
     proc.onData((data) => {
@@ -56,6 +58,7 @@ export class PtyHost {
       e.port?.close()
       this.entries.delete(id)
       this.onExit(id, exitCode)
+      onExited()
     })
   }
 
@@ -76,6 +79,21 @@ export class PtyHost {
     wc.postMessage('session:port', id, [port2])
     this.send(e, { type: 'reset' })
     if (e.history.length) this.send(e, { type: 'data', data: e.history.join('') })
+  }
+
+  write(id: string, data: string): boolean {
+    const e = this.entries.get(id)
+    e?.proc.write(data)
+    return !!e
+  }
+
+  async killAndWait(id: string, timeoutMs = 5000): Promise<void> {
+    const e = this.entries.get(id)
+    if (!e) return
+    e.proc.kill('SIGHUP')
+    const timer = setTimeout(() => e.proc.kill('SIGKILL'), timeoutMs)
+    await e.exited
+    clearTimeout(timer)
   }
 
   kill(id: string): void {

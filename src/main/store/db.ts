@@ -21,6 +21,14 @@ const MIGRATIONS: string[] = [
     value TEXT NOT NULL -- JSON
   );
   `,
+  `
+  -- claude's own session id; differs from id after /clear, and for external sessions equals it.
+  ALTER TABLE sessions ADD COLUMN claude_id TEXT;
+  ALTER TABLE sessions ADD COLUMN model TEXT;
+  ALTER TABLE sessions ADD COLUMN effort TEXT;
+  ALTER TABLE sessions ADD COLUMN permission_mode TEXT;
+  CREATE INDEX sessions_claude_id ON sessions (claude_id);
+  `,
 ]
 
 export function openDb(file: string): Db {

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Workbench statusline wrapper: sends the statusline JSON to Workbench in the background,
+# then runs the statusline command that was configured before Workbench was installed.
+SOCK='@@SOCKET@@'
+ORIG='@@ORIGINAL@@'
+input=$(cat)
+if [ -S "$SOCK" ]; then
+  { printf 'statusline %s\n' "$WORKBENCH_SESSION_ID"; printf '%s' "$input"; } | nc -U -w 2 "$SOCK" >/dev/null 2>&1 &
+fi
+[ -s "$ORIG" ] && printf '%s' "$input" | sh -c "$(cat "$ORIG")"
+exit 0

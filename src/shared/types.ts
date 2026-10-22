@@ -10,6 +10,42 @@ export interface Session {
   external: boolean
   startedAt: number
   lastEventAt: number
+  /** Flags the session was started with; null means claude's own default. */
+  model: string | null
+  effort: string | null
+  permissionMode: string | null
+}
+
+/** Live data from the statusline, per session. */
+export interface SessionStatus {
+  model?: string
+  modelId?: string
+  effort?: string
+  contextPct?: number | null
+  contextSize?: number
+  name?: string
+}
+
+export interface Limit {
+  pct: number
+  /** Unix seconds. */
+  resetsAt?: number
+}
+
+export interface Usage {
+  fiveHour?: Limit
+  sevenDay?: Limit
+  at: number
+}
+
+export interface StatusSnapshot {
+  sessions: Record<string, SessionStatus>
+  usage: Usage | null
+}
+
+export interface HooksStatus {
+  hooks: boolean
+  statusline: boolean
 }
 
 /** Main → renderer pushes over a session's MessagePort. */
@@ -38,4 +74,13 @@ export interface WorkbenchApi {
   reorderSessions(ids: string[]): Promise<void>
   onSessionsChanged(cb: (sessions: Session[]) => void): () => void
   onMenuCommand(cb: (cmd: MenuCommand) => void): () => void
+  /** Types into the session's pty. */
+  writeSession(id: string, data: string): Promise<boolean>
+  getStatus(): Promise<StatusSnapshot>
+  onStatus(cb: (s: StatusSnapshot) => void): () => void
+  hooksStatus(): Promise<HooksStatus>
+  onHooksChanged(cb: (s: HooksStatus) => void): () => void
+  /** Both show a confirm dialog in main first. */
+  installHooks(): Promise<HooksStatus>
+  uninstallHooks(): Promise<HooksStatus>
 }

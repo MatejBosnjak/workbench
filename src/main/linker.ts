@@ -1,13 +1,15 @@
-import { execFile } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import type { Pr } from '@shared/git'
 import type { Task, TaskLink, TasksSnapshot } from '@shared/tasks'
 import { taskIdsFromName, taskIdsFromText } from '@shared/tasks'
+import { runHeadless } from './claude'
+import { PR_URL } from './github'
+import type { GitPoller } from './github/poller'
 import { currentBranch, readWtrc } from './local/git'
 import type { TasksPoller } from './productive/tasks'
 import type { Sessions } from './sessions'
 import type { HookPayload } from './signal-server'
-import { shellEnv, which } from './shell-env'
 import type { Repo } from './store/repo'
 
 /** Prompts after this many are not scanned for task URLs: the first ones say what the session is for. */
@@ -22,6 +24,7 @@ export class Linker {
   constructor(
     private repo: Repo,
     private tasks: TasksPoller,
+    private git: GitPoller,
     private sessions: Sessions,
     private changed: () => void,
     private dataDir: string,
@@ -59,6 +62,10 @@ export class Linker {
       const n = (this.prompts.get(sessionId) ?? 0) + 1
       this.prompts.set(sessionId, n)
       if (n <= PROMPTS_SCANNED) for (const id of taskIdsFromText(p.prompt)) this.link(sessionId, id, 'task URL in prompt')
+      for (const m of p.prompt.matchAll(new RegExp(PR_URL.source, 'g'))) {
+        const pr = this.prs().find((x) => x.url === m[0])
+        if (pr) this.linkPr(sessionId, pr)
+      }
     }
     if (event === 'SessionStart') await this.inferFromPlace(sessionId, p.cwd)
   }
@@ -119,6 +126,17 @@ export class Linker {
     for (const id of taskIdsFromName(cwd, known)) this.link(sessionId, id, 'task id in worktree')
     const branch = existsSync(cwd) ? await currentBranch(cwd) : null
     if (branch) for (const id of taskIdsFromName(branch, known)) this.link(sessionId, id, `task id in branch ${branch}`)
+    // The session works on a PR's branch: the PR's tasks.
+    if (branch) for (const pr of this.git.mine.filter((x) => x.branch === branch)) this.linkPr(sessionId, pr)
+  }
+
+  private prs(): Pr[] {
+    return [...this.git.mine, ...this.git.reviews]
+  }
+
+  private linkPr(sessionId: string, pr: Pr): void {
+    const known = new Set(this.tasks.tasks.map((t: Task) => t.id))
+    for (const id of pr.taskRefs.filter((r) => known.has(r))) this.link(sessionId, id, `PR #${pr.number}`)
   }
 }
 
@@ -162,19 +180,7 @@ export function transcriptTail(jsonl: string, maxChars = 24_000): string {
   return out.slice(-maxChars)
 }
 
-async function runSummary(tail: string, cwd: string): Promise<string> {
-  const env = await shellEnv()
-  const claude = which('claude', env)
-  if (!claude) throw new Error('claude not found')
+function runSummary(tail: string, cwd: string): Promise<string> {
   const prompt = `Below is the end of a Claude Code session transcript. In 2–4 short sentences, say where the work left off: what was done, what is unfinished, and the obvious next step. No preamble.\n\n${tail}`
-  return new Promise((resolve, reject) => {
-    const child = execFile(
-      claude,
-      ['-p', '--model', SUMMARY_MODEL, '--no-session-persistence'],
-      // "-" makes Workbench's own hooks drop this run, so it never shows up as an external tab.
-      { cwd, env: { ...env, WORKBENCH_SESSION_ID: '-' }, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 },
-      (err, stdout, stderr) => (err ? reject(new Error(stderr.trim() || err.message)) : resolve(stdout.trim())),
-    )
-    child.stdin?.end(prompt)
-  })
+  return runHeadless(prompt, { model: SUMMARY_MODEL, cwd, timeoutMs: 120_000 })
 }

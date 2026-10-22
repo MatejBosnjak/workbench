@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { prRef } from '@shared/git'
 import type { Task, TaskLink, TasksSnapshot } from '@shared/tasks'
 import { useStore } from '../store'
 import { ago, Diamond, dueLabel, StatusGlyph } from './TodayView'
 
 export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
-  const { sessions, show } = useStore()
+  const { sessions, show, git, setDraft, setTodayTab, setFocusPr } = useStore()
+  const prs = [...(git?.mine ?? []), ...(git?.reviews ?? [])].filter((p) => p.taskRefs.includes(task.id))
   const [busy, setBusy] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [linking, setLinking] = useState(false)
@@ -58,6 +60,16 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
         <StatusGlyph task={task} size={12} />
         <span className="peek-status">{task.statusName}</span>
         <span className="peek-tools">
+          <button
+            className="link-btn"
+            onClick={() => {
+              const target = { kind: 'productive' as const, key: `task:${task.id}`, taskId: task.id, title: task.title }
+              setDraft(target)
+              void window.workbench.git.openDraft(target)
+            }}
+          >
+            Comment…
+          </button>
           <button className="link-btn" onClick={() => void window.workbench.openExternal(task.url)}>
             Open in Productive
           </button>
@@ -87,7 +99,23 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
         <dt>Last activity</dt>
         <dd>{ago(task.lastActivityAt)}</dd>
         <dt>Linked</dt>
-        <dd className="muted">Nothing yet (PRs come with My git)</dd>
+        <dd className="peek-prs">
+          {prs.length
+            ? prs.map((p) => (
+                <button
+                  key={p.id}
+                  className="link-btn mono"
+                  title={p.title}
+                  onClick={() => {
+                    setTodayTab(git?.mine.includes(p) ? 'git' : 'reviews')
+                    setFocusPr(p.id)
+                  }}
+                >
+                  {prRef(p)}
+                </button>
+              ))
+            : <span className="muted">No PRs</span>}
+        </dd>
       </dl>
 
       <section className="peek-section">

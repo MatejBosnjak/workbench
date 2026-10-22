@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { groupTasks, type Task, type TaskLine, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
-import { useStore } from '../store'
+import type { GitSnapshot } from '@shared/git'
+import { needsReply } from '@shared/git'
+import { useStore, type TodayTab } from '../store'
+import { DraftPanel } from './DraftPanel'
+import { GitView, ReviewsView } from './GitView'
 import { TaskPreview } from './TaskPreview'
 
 // Productive workflow status colours, approximated with theme tokens.
@@ -43,10 +47,78 @@ export function StatusGlyph({ task, size = 14 }: { task: Task; size?: number }) 
   )
 }
 
-export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null; active: boolean }) {
+export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot | null; git: GitSnapshot | null; active: boolean }) {
+  const { todayTab: tab, setTodayTab, draft } = useStore()
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 60_000)
+    return () => clearInterval(t)
+  }, [])
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+  const replies = git ? git.mine.filter((p) => p.conversations.some((c) => needsReply(c, git.viewer, git.seen))).length : 0
+  const tabs: { id: TodayTab; label: string; count: number | null }[] = [
+    { id: 'tasks', label: 'My tasks', count: snapshot?.fetchedAt ? snapshot.tasks.filter((t) => !t.context).length : null },
+    { id: 'git', label: 'My git', count: git?.fetchedAt ? git.mine.length : null },
+    { id: 'reviews', label: 'My reviews', count: git?.fetchedAt ? git.reviews.filter((p) => !p.authorBot).length : null },
+  ]
+  const src = tab === 'tasks' ? snapshot : git
+  const refresh = () => void (tab === 'tasks' ? window.workbench.tasks.refresh() : window.workbench.git.refresh())
+
+  return (
+    <div className="today" hidden={!active}>
+      <main className="today-main">
+        <div className="today-head">
+          <h1>
+            Today <span>{today}</span>
+          </h1>
+          <div className="seg today-tabs" role="tablist" aria-label="Today views">
+            {tabs.map((t) => (
+              <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTodayTab(t.id)}>
+                {t.label} {t.count !== null && <span className="mono muted">{t.count}</span>}
+                {t.id === 'git' && replies > 0 && (
+                  <span className="tab-alert">
+                    {replies} repl{replies === 1 ? 'y' : 'ies'} needed
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          {src && (
+            <span className="today-sync muted">
+              {src.error ? (
+                <span className="bad-text" title={src.error}>
+                  Couldn't load: {src.error.slice(0, 80)}
+                </span>
+              ) : src.loading ? (
+                'Refreshing…'
+              ) : (
+                `Updated ${ago(src.fetchedAt)}`
+              )}
+              <button className="ghost" disabled={src.loading} onClick={refresh}>
+                Refresh
+              </button>
+            </span>
+          )}
+        </div>
+        {tab === 'tasks' && snapshot && <TasksTab snapshot={snapshot} />}
+        {tab === 'git' && git && <GitView git={git} tasks={snapshot} />}
+        {tab === 'reviews' && git && <ReviewsView git={git} tasks={snapshot} />}
+      </main>
+      {draft && git ? <DraftPanel target={draft} git={git} /> : tab === 'tasks' && snapshot && <Peek snapshot={snapshot} />}
+    </div>
+  )
+}
+
+function Peek({ snapshot }: { snapshot: TasksSnapshot }) {
+  const { peekTask, setPeekTask } = useStore()
+  const task = snapshot.tasks.find((t) => t.id === peekTask)
+  return task ? <TaskPreview task={task} snapshot={snapshot} onClose={() => setPeekTask(null)} /> : null
+}
+
+function TasksTab({ snapshot }: { snapshot: TasksSnapshot }) {
   const sessions = useStore((s) => s.sessions)
+  const { peekTask: peek, setPeekTask: setPeek } = useStore()
   const [chip, setChip] = useState<Chip>('all')
-  const [peek, setPeek] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem('workbench.collapsed') ?? '[]') as string[])
@@ -54,12 +126,6 @@ export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null
       return new Set()
     }
   })
-  const [, tick] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => tick((n) => n + 1), 60_000)
-    return () => clearInterval(t)
-  }, [])
-
   const toggle = (key: string) => {
     const next = new Set(collapsed)
     if (next.has(key)) next.delete(key)
@@ -75,9 +141,9 @@ export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null
   const bySession = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions])
   const linksByTask = useMemo(() => {
     const m = new Map<string, NonNullable<TasksSnapshot>['links']>()
-    for (const l of snapshot?.links ?? []) m.set(l.taskId, [...(m.get(l.taskId) ?? []), l])
+    for (const l of snapshot.links ?? []) m.set(l.taskId, [...(m.get(l.taskId) ?? []), l])
     return m
-  }, [snapshot?.links])
+  }, [snapshot.links])
   const live = (taskId: string) =>
     (linksByTask.get(taskId) ?? []).some((l) => {
       const s: Session | undefined = bySession.get(l.sessionId)
@@ -85,7 +151,7 @@ export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null
     })
 
   const groups = useMemo(() => {
-    const all = snapshot?.tasks ?? []
+    const all = snapshot.tasks ?? []
     const keep = (t: Task) =>
       t.context ||
       chip === 'all' ||
@@ -93,9 +159,8 @@ export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null
       (chip === 'due' && dueSoon(t)) ||
       (chip === 'sessions' && (linksByTask.get(t.id)?.length ?? 0) > 0)
     return groupTasks(all.filter(keep))
-  }, [snapshot?.tasks, chip, linksByTask])
+  }, [snapshot.tasks, chip, linksByTask])
 
-  if (!snapshot) return null
   const mine = snapshot.tasks.filter((t) => !t.context)
   const counts: Record<Chip, number> = {
     all: mine.length,
@@ -103,8 +168,6 @@ export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null
     due: mine.filter(dueSoon).length,
     sessions: mine.filter((t) => linksByTask.has(t.id)).length,
   }
-  const peekTask = snapshot.tasks.find((t) => t.id === peek) ?? null
-  const today = new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
 
   // Lines under a collapsed milestone/parent are hidden until the next line at its depth or above.
   const visible = (lines: TaskLine[]) => {
@@ -121,31 +184,7 @@ export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null
   const hasKids = (lines: TaskLine[], i: number) => (lines[i + 1]?.depth ?? -1) > lines[i]!.depth
 
   return (
-    <div className="today" hidden={!active}>
-      <main className="today-main">
-        <div className="today-head">
-          <h1>
-            Today <span>{today}</span>
-          </h1>
-          <div className="seg today-tabs" role="tablist" aria-label="Today views">
-            <button role="tab" aria-selected aria-checked>
-              My tasks <span className="mono muted">{mine.length}</span>
-            </button>
-            <button role="tab" aria-selected={false} disabled title="Phase 4">
-              My git
-            </button>
-            <button role="tab" aria-selected={false} disabled title="Phase 4">
-              My reviews
-            </button>
-          </div>
-          <span className="today-sync muted">
-            {snapshot.error ? <span className="bad-text" title={snapshot.error}>Couldn't load tasks: {snapshot.error}</span> : snapshot.loading ? 'Refreshing…' : `Updated ${ago(snapshot.fetchedAt)}`}
-            <button className="ghost" disabled={snapshot.loading} onClick={() => void window.workbench.tasks.refresh()}>
-              Refresh
-            </button>
-          </span>
-        </div>
-
+    <>
         <div className="chips">
           {CHIPS.map((c) => (
             <button key={c.id} className={`fchip${chip === c.id ? ' on' : ''}`} onClick={() => setChip(c.id)}>
@@ -218,9 +257,7 @@ export function TodayView({ snapshot, active }: { snapshot: TasksSnapshot | null
             )
           })}
         </div>
-      </main>
-      {peekTask && <TaskPreview task={peekTask} snapshot={snapshot} onClose={() => setPeek(null)} />}
-    </div>
+    </>
   )
 }
 

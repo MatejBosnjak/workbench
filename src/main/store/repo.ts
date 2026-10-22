@@ -1,3 +1,4 @@
+import type { Draft, DraftTarget } from '@shared/git'
 import type { SessionState } from '@shared/types'
 import type { Db } from './db'
 
@@ -180,6 +181,47 @@ export class Repo {
     this.db
       .prepare('INSERT INTO summaries (session_id, text, model, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(session_id) DO UPDATE SET text = excluded.text, model = excluded.model, created_at = excluded.created_at')
       .run(sessionId, text, model, Date.now())
+  }
+
+  // --- seen conversations ---
+
+  seen(): Record<string, string> {
+    const rows = this.db.prepare('SELECT thread_key, last_seen_message_id FROM seen').all() as { thread_key: string; last_seen_message_id: string }[]
+    return Object.fromEntries(rows.map((r) => [r.thread_key, r.last_seen_message_id]))
+  }
+
+  markSeen(key: string, messageId: string): void {
+    this.db
+      .prepare('INSERT INTO seen (thread_key, last_seen_message_id, seen_at) VALUES (?, ?, ?) ON CONFLICT(thread_key) DO UPDATE SET last_seen_message_id = excluded.last_seen_message_id, seen_at = excluded.seen_at')
+      .run(key, messageId, Date.now())
+  }
+
+  // --- drafts ---
+
+  /** Drafts not sent yet, plus ones sent in the last day. */
+  drafts(): Draft[] {
+    const rows = this.db
+      .prepare("SELECT * FROM drafts WHERE status != 'sent' OR created_at > ? ORDER BY created_at DESC")
+      .all(Date.now() - 86_400_000) as { id: number; target: string; body: string; status: Draft['status']; error: string | null; created_at: number }[]
+    return rows.map((r) => ({ id: r.id, target: JSON.parse(r.target) as DraftTarget, body: r.body, status: r.status, error: r.error, createdAt: r.created_at }))
+  }
+
+  draft(id: number): Draft | null {
+    return this.drafts().find((d) => d.id === id) ?? null
+  }
+
+  addDraft(target: DraftTarget, body: string, status: Draft['status']): number {
+    return Number(this.db.prepare('INSERT INTO drafts (target, body, status, created_at) VALUES (?, ?, ?, ?)').run(JSON.stringify(target), body, status, Date.now()).lastInsertRowid)
+  }
+
+  updateDraft(id: number, patch: { body?: string; status?: Draft['status']; error?: string | null }): void {
+    const cur = this.draft(id)
+    if (!cur) return
+    this.db.prepare('UPDATE drafts SET body = ?, status = ?, error = ? WHERE id = ?').run(patch.body ?? cur.body, patch.status ?? cur.status, patch.error === undefined ? cur.error : patch.error, id)
+  }
+
+  deleteDraft(id: number): void {
+    this.db.prepare('DELETE FROM drafts WHERE id = ?').run(id)
   }
 
   getSetting<T>(key: string, fallback: T): T {

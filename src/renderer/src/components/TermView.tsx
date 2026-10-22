@@ -5,6 +5,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { WebglAddon } from '@xterm/addon-webgl'
 import type { PortInput, PortMessage } from '@shared/types'
 import { onPort } from '../ports'
+import { openPrLink } from '../store'
 import { xtermTheme } from '../xterm-theme'
 import { PrCard, type CardAnchor } from './PrCard'
 
@@ -30,6 +31,11 @@ export interface TermViewProps {
 
 const URL_RE = /https?:\/\/[^\s"'<>()\[\]{}]+[^\s"'<>()\[\]{}.,;:!?]/g
 const PR_RE = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/
+
+function openLink(e: MouseEvent, url: string): void {
+  if (PR_RE.test(url)) openPrLink(url, e.metaKey)
+  else void window.workbench.openExternal(url)
+}
 
 export function TermView(props: TermViewProps) {
   const { id, active, alive, exitMessage, className = 'term', hideWhenInactive = true, autoFocus = true } = props
@@ -107,7 +113,7 @@ export function TermView(props: TermViewProps) {
             range: { start: { x: m.index + 1, y }, end: { x: m.index + m[0].length, y } },
             text: pr ?? m[0],
             decorations: { underline: true, pointerCursor: true },
-            activate: (_e: MouseEvent, url: string) => void window.workbench.openExternal(url),
+            activate: (e: MouseEvent, url: string) => openLink(e, url),
             hover: pr ? (e: MouseEvent, url: string) => setCard({ url, x: e.clientX, y: e.clientY }) : undefined,
             leave: pr ? () => setCard(null) : undefined,
           }

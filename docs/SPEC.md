@@ -67,7 +67,7 @@ Renderer (web UI)
 
   Tabs show the state as a coloured overline, and the open tab moves it to an underline.
 - **External sessions.** Sessions started in a normal terminal report through the same hooks. They appear as read-only "external" tabs. "Take over" waits for the terminal copy to exit, then resumes the session inside Workbench.
-- **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR in Workbench, and ⌘-click opens GitHub. Until the in-app PR view exists (phase 4), a click opens GitHub. Hovering shows a card with the PR's state and CI status.
+- **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR's row in My git or My reviews (GitHub when it's in neither), and ⌘-click opens GitHub. Hovering shows a card with the PR's state and CI status.
 - **Pickers.** The picker lives in the StatusBar (toolbar).
   - New sessions start with `--model`, `--effort` and `--permission-mode` from the picker. The defaults are stored in settings.
   - A change to a running session restarts it in place with `claude --resume <id>` and the new flags. If a turn is in progress, the restart waits for its Stop.
@@ -117,13 +117,13 @@ Keeps the Mac awake while sessions run.
 ### Today › My git and My reviews
 
 - **Source.** `gh api graphql` every 2 minutes. It fetches my open PRs (review decision, CI rollup, mergeable state, draft flag, head branch), review requests, review threads and comments.
-- **Needs reply.** A thread or review needs a reply when its last message isn't mine and I haven't marked it seen. Seen state is stored locally.
+- **Needs reply.** A thread or review needs a reply when its last message isn't mine and I haven't marked it seen. Seen state is stored locally. A conversation is an unresolved review thread, or the PR's own conversation (comments plus review bodies). Bots and bare approvals don't count as messages.
   - Those rows get an orange edge and a quoted excerpt.
   - Each has "Draft reply with Claude", "Open on GitHub" and "Mark as seen".
 - **Groups:**
   - My git: Needs you, Ready to merge, Waiting on reviewers, Drafts. Filter by repo or "Reply needed", with a Hide drafts toggle.
-  - My reviews: Changes requested, New this week, Waiting longer. Filter by repo; bots are hidden by default.
-- **Drafts.** "Draft reply with Claude" runs a headless `claude -p` with the thread as context and puts the result in an editable draft. Sending goes through a confirm step that shows the exact text and target. The same flow covers Productive comments and status changes.
+  - My reviews: Changes requested, New this week, Waiting longer. Filter by repo; bots are hidden by default. PRs where my latest review asked for changes stay listed under Changes requested.
+- **Drafts.** "Draft reply with Claude" runs a headless `claude -p --model sonnet` with the thread as context (read-only tools, in my checkout of the PR's branch when there is one) and puts the result in an editable draft. Sending goes through a native confirm that shows the exact text and target. The same flow covers Productive comments ("Comment…" in the task preview). Productive status changes are not built yet.
 - **Notifications.** A native macOS notification for each of:
   - a new reply or comment on my PR
   - changes requested
@@ -131,7 +131,7 @@ Keeps the Mac awake while sessions run.
   - a session waiting for me (permission prompt or finished)
   - a new review request
 
-  Each notification opens the matching row or tab.
+  Each notification opens the matching row or tab. The first poll on a fresh install only records what's there; more than four new items at once become one summary notification. Session notifications are skipped while that tab is on screen.
 
 ### Session ↔ task linking
 
@@ -141,7 +141,7 @@ Keeps the Mac awake while sessions run.
   - a task id in the cwd or worktree name, or in the branch name
   - the session touched a PR that's linked to the task
 - Every link stores its `via`, which the preview shows ("linked via PR #30227"). Links can be removed or added by hand; a link removed by hand is not re-added by inference.
-- Task ids in paths and branches only count when they match one of my tasks, so other 7–9 digit numbers don't create links. The PR signal arrives with the gh poller in phase 4.
+- Task ids in paths and branches only count when they match one of my tasks, so other 7–9 digit numbers don't create links. A session touches a PR when it runs on the PR's branch or a prompt contains the PR's URL; the PR's tasks come from a task id in its branch or a task URL in its body.
 
 ### Local services
 

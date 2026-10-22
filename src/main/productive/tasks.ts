@@ -64,6 +64,13 @@ export class TasksPoller {
     }
   }
 
+  /** The client with the org set, for callers outside the poll (drafts). */
+  async client(): Promise<{ api: Productive; personId: string }> {
+    const account = await this.account()
+    this.api.setOrg(account.orgId)
+    return { api: this.api, personId: account.personId }
+  }
+
   /** Org, person and filter: discovered on first use and stored in settings. */
   private async account(): Promise<Account> {
     const stored = this.repo.getSetting<Account | null>('productive:account', null)

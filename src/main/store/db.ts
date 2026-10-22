@@ -53,6 +53,22 @@ const MIGRATIONS: string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  `
+  -- A conversation marked seen stays quiet until a message newer than this one arrives.
+  CREATE TABLE seen (
+    thread_key           TEXT PRIMARY KEY,
+    last_seen_message_id TEXT NOT NULL,
+    seen_at              INTEGER NOT NULL
+  );
+  CREATE TABLE drafts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    target     TEXT NOT NULL, -- JSON DraftTarget
+    body       TEXT NOT NULL,
+    status     TEXT NOT NULL, -- drafting | ready | sending | sent | failed
+    error      TEXT,
+    created_at INTEGER NOT NULL
+  );
+  `,
 ]
 
 export function openDb(file: string): Db {

@@ -61,7 +61,7 @@ describe('Repo', () => {
   it('migrations are idempotent', () => {
     const db = openDb(':memory:')
     migrate(db)
-    expect(db.pragma('user_version', { simple: true })).toBe(3)
+    expect(db.pragma('user_version', { simple: true })).toBe(4)
   })
 })
 
@@ -78,5 +78,24 @@ describe('links', () => {
     const [l] = repo.links()
     expect(l).toMatchObject({ sessionId: 's1', taskId: 't1', via: 'linked by hand', createdBy: 'manual' })
     expect(l!.session?.title).toBe('s1')
+  })
+})
+
+describe('seen and drafts', () => {
+  it('keeps the last seen message per conversation', () => {
+    const repo = new Repo(openDb(':memory:'))
+    repo.markSeen('thread:T1', 'c1')
+    repo.markSeen('thread:T1', 'c2')
+    expect(repo.seen()).toEqual({ 'thread:T1': 'c2' })
+  })
+
+  it('stores drafts with their target', () => {
+    const repo = new Repo(openDb(':memory:'))
+    const target = { kind: 'gh-pr' as const, key: 'pr:P1', repo: 'o/r', number: 1 }
+    const id = repo.addDraft(target, '', 'drafting')
+    repo.updateDraft(id, { body: 'hello', status: 'ready' })
+    expect(repo.draft(id)).toMatchObject({ target, body: 'hello', status: 'ready', error: null })
+    repo.deleteDraft(id)
+    expect(repo.drafts()).toEqual([])
   })
 })

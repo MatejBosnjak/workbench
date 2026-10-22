@@ -1,7 +1,8 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import type { GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { TasksSnapshot } from '@shared/tasks'
-import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
+import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type NavigateTarget, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
 function on<A extends unknown[]>(channel: string, handler: (e: IpcRendererEvent, ...args: A) => void): () => void {
   const fn = handler as (e: IpcRendererEvent, ...args: unknown[]) => void
@@ -40,6 +41,19 @@ const api: WorkbenchApi = {
     unlink: (sessionId, taskId) => ipcRenderer.invoke('tasks:unlink', sessionId, taskId),
     summarize: (taskId) => ipcRenderer.invoke('tasks:summarize', taskId),
   },
+  git: {
+    snapshot: () => ipcRenderer.invoke('git:snapshot'),
+    onChanged: (cb) => on('git:changed', (_e, s: GitSnapshot) => cb(s)),
+    refresh: () => ipcRenderer.invoke('git:refresh'),
+    markSeen: (key, messageId) => ipcRenderer.invoke('git:seen', key, messageId),
+    openDraft: (target) => ipcRenderer.invoke('drafts:open', target),
+    generate: (target, instruction) => ipcRenderer.invoke('drafts:generate', target, instruction),
+    saveDraft: (id, body) => ipcRenderer.invoke('drafts:save', id, body),
+    discardDraft: (id) => ipcRenderer.invoke('drafts:discard', id),
+    send: (id, body) => ipcRenderer.invoke('drafts:send', id, body),
+  },
+  onNavigate: (cb) => on('navigate', (_e, t: NavigateTarget) => cb(t)),
+  reportView: (sessionId) => ipcRenderer.send('ui:view', sessionId),
   local: {
     snapshot: () => ipcRenderer.invoke('local:snapshot'),
     onChanged: (cb) => on('local:changed', (_e, s: LocalSnapshot) => cb(s)),

@@ -10,7 +10,7 @@ import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
 import { TopBar } from './components/TopBar'
-import { activeSessionId, useStore } from './store'
+import { activeSessionId, navigate, useStore } from './store'
 
 async function newSession(pick = false): Promise<void> {
   const s = await window.workbench.createSession({ pick })
@@ -51,6 +51,19 @@ function onMenu(cmd: MenuCommand): void {
 
 export function App() {
   const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen, local, setLocal } = useStore()
+
+  const git = useStore((s) => s.git)
+  useEffect(() => {
+    const { setGit } = useStore.getState()
+    void window.workbench.git.snapshot().then(setGit)
+    const offGit = window.workbench.git.onChanged(setGit)
+    const offNav = window.workbench.onNavigate(navigate)
+    return () => {
+      offGit()
+      offNav()
+    }
+  }, [])
+  useEffect(() => window.workbench.reportView(activeSessionId(view)), [view])
 
   const [tasks, setTasks] = useState<TasksSnapshot | null>(null)
   useEffect(() => {
@@ -102,7 +115,7 @@ export function App() {
             <Terminal key={s.id} session={s} active={s.id === activeId} />
           ))}
         {active?.external && <ExternalPanel session={active} />}
-        <TodayView snapshot={tasks} active={view.kind === 'today'} />
+        <TodayView snapshot={tasks} git={git} active={view.kind === 'today'} />
         <LocalView snapshot={local} active={view.kind === 'local'} />
       </main>
       <StatusBar>

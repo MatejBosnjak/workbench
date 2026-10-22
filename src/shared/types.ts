@@ -1,4 +1,5 @@
 import type { AgentSettings, ApplyResult } from './agent'
+import type { DraftTarget, GitSnapshot } from './git'
 import type { LocalSnapshot, Worktree } from './local'
 import type { TasksSnapshot } from './tasks'
 
@@ -103,6 +104,9 @@ export type MenuCommand =
   | { type: 'cycle-tab'; delta: 1 | -1 }
   | { type: 'palette' }
 
+/** Where a notification click (or an in-app PR link) takes you. */
+export type NavigateTarget = { kind: 'session'; id: string } | { kind: 'git' | 'reviews'; prId: string | null }
+
 export interface WorkbenchApi {
   listSessions(): Promise<Session[]>
   createSession(opts?: { cwd?: string; pick?: boolean }): Promise<Session | null>
@@ -138,6 +142,23 @@ export interface WorkbenchApi {
     unlink(sessionId: string, taskId: string): Promise<void>
     summarize(taskId: string): Promise<string>
   }
+  git: {
+    snapshot(): Promise<GitSnapshot>
+    onChanged(cb: (s: GitSnapshot) => void): () => void
+    refresh(): Promise<void>
+    markSeen(key: string, messageId: string): Promise<void>
+    /** The draft for a target, created empty if there is none. */
+    openDraft(target: DraftTarget): Promise<number>
+    /** Has Claude write the target's draft; the result arrives through onChanged. */
+    generate(target: DraftTarget, instruction: string): Promise<void>
+    saveDraft(id: number, body: string): Promise<void>
+    discardDraft(id: number): Promise<void>
+    /** Shows a confirm with the exact text and target, then posts. False when cancelled. */
+    send(id: number, body: string): Promise<boolean>
+  }
+  onNavigate(cb: (t: NavigateTarget) => void): () => void
+  /** Tells main which session is on screen, so its notifications can be skipped. */
+  reportView(sessionId: string | null): void
   local: {
     snapshot(): Promise<LocalSnapshot>
     onChanged(cb: (s: LocalSnapshot) => void): () => void

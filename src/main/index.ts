@@ -3,13 +3,17 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
-import type { HooksStatus, MenuCommand } from '@shared/types'
+import type { DraftTarget, GitSnapshot } from '@shared/git'
+import type { HooksStatus, MenuCommand, NavigateTarget } from '@shared/types'
 import { Caffeinate } from './caffeinate'
+import { Drafts } from './drafts'
 import { prInfo } from './github'
+import { GitPoller } from './github/poller'
 import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
 import { loadConfig } from './local/config'
 import { Supervisor } from './local/supervisor'
 import { Linker } from './linker'
+import { Notifier } from './notify'
 import { TasksPoller } from './productive/tasks'
 import { Sessions } from './sessions'
 import { shellEnv, which } from './shell-env'
@@ -170,8 +174,28 @@ void app.whenReady().then(() => {
       win?.webContents.send('sessions:changed', list)
     },
     statusChanged: () => win?.webContents.send('status:changed', sessions.statusSnapshot()),
-    hook: (id, event, payload) => void linker.onHook(id, event, payload),
+    hook: (id, event, payload) => {
+      void linker.onHook(id, event, payload)
+      notifySession(id, event)
+    },
   })
+  // The session on screen; its own notifications are skipped while the window has focus.
+  let viewedSession: string | null = null
+  ipcMain.on('ui:view', (_e, id: string | null) => (viewedSession = id))
+  const navigate = (t: NavigateTarget) => {
+    if (!win) return
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
+    win.webContents.send('navigate', t)
+  }
+  const notifier = new Notifier(repo, navigate)
+  const notifySession = (id: string, event: string) => {
+    if (event !== 'Notification' && event !== 'Stop') return
+    if (win?.isFocused() && viewedSession === id) return
+    const s = sessions.list().find((x) => x.id === id)
+    if (s && !s.external) notifier.session(id, s.title, event === 'Notification' ? 'waiting' : 'finished')
+  }
   const tasksChanged = () => win?.webContents.send('tasks:changed', linker.snapshot())
   let hadTasks = false
   const tasks = new TasksPoller(repo, () => {
@@ -182,8 +206,31 @@ void app.whenReady().then(() => {
       void linker.inferAll()
     }
   })
-  const linker = new Linker(repo, tasks, sessions, tasksChanged, dataDir())
+  const gitSnapshot = (): GitSnapshot => ({
+    viewer: git.viewer,
+    mine: git.mine,
+    reviews: git.reviews,
+    fetchedAt: git.fetchedAt,
+    error: git.error,
+    loading: git.loading,
+    seen: repo.seen(),
+    drafts: repo.drafts(),
+  })
+  const gitChanged = () => win?.webContents.send('git:changed', gitSnapshot())
+  let gitSeenAt: number | null = null
+  const git = new GitPoller(repo, () => {
+    gitChanged()
+    if (git.loading || git.error || !git.fetchedAt || git.fetchedAt === gitSeenAt) return
+    gitSeenAt = git.fetchedAt
+    notifier.git(gitSnapshot())
+    void linker.inferAll()
+  })
+  const linker = new Linker(repo, tasks, git, sessions, tasksChanged, dataDir())
+  const confirmPost = async (message: string, detail: string) =>
+    (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Post', 'Cancel'], defaultId: 1, cancelId: 1, message, detail })).response === 0
+  const drafts = new Drafts(repo, git, tasks, linker, confirmPost, gitChanged, dataDir())
   tasks.start()
+  git.start()
 
   const signals = startSignalServer(socketPath(), (sig) => sessions.handleSignal(sig))
   // Keep installed client scripts in step with this build.
@@ -229,6 +276,17 @@ void app.whenReady().then(() => {
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
   ipcMain.handle('tasks:summarize', (_e, taskId: string) => linker.summarize(taskId))
+  ipcMain.handle('git:snapshot', () => gitSnapshot())
+  ipcMain.handle('git:refresh', () => git.refresh())
+  ipcMain.handle('git:seen', (_e, key: string, messageId: string) => {
+    repo.markSeen(key, messageId)
+    gitChanged()
+  })
+  ipcMain.handle('drafts:open', (_e, target: DraftTarget) => drafts.open(target))
+  ipcMain.handle('drafts:generate', (_e, target: DraftTarget, instruction: string) => drafts.generate(target, instruction))
+  ipcMain.handle('drafts:save', (_e, id: number, body: string) => drafts.save(id, body))
+  ipcMain.handle('drafts:discard', (_e, id: number) => drafts.discard(id))
+  ipcMain.handle('drafts:send', (_e, id: number, body: string) => drafts.send(id, body))
   ipcMain.handle('local:snapshot', () => local.snapshot())
   ipcMain.handle('local:profile', (_e, id: string) => local.setProfile(id))
   ipcMain.handle('local:start', (_e, name: string) => local.start(name))
@@ -273,6 +331,7 @@ void app.whenReady().then(() => {
   let quitting = false
   app.on('before-quit', (e) => {
     tasks.stop()
+    git.stop()
     const running = local.running()
     if (!quitting && running.length) {
       e.preventDefault()

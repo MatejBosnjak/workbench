@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { LocalSnapshot } from '@shared/local'
+import type { TasksSnapshot } from '@shared/tasks'
 import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
 function on<A extends unknown[]>(channel: string, handler: (e: IpcRendererEvent, ...args: A) => void): () => void {
@@ -30,6 +31,15 @@ const api: WorkbenchApi = {
   onCaffeinate: (cb) => on('caf:changed', (_e, s: CaffeinateState) => cb(s)),
   prInfo: (url) => ipcRenderer.invoke('gh:pr', url),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
+  tasks: {
+    snapshot: () => ipcRenderer.invoke('tasks:snapshot'),
+    onChanged: (cb) => on('tasks:changed', (_e, s: TasksSnapshot) => cb(s)),
+    refresh: () => ipcRenderer.invoke('tasks:refresh'),
+    start: (taskId) => ipcRenderer.invoke('tasks:start', taskId),
+    link: (sessionId, taskId) => ipcRenderer.invoke('tasks:link', sessionId, taskId),
+    unlink: (sessionId, taskId) => ipcRenderer.invoke('tasks:unlink', sessionId, taskId),
+    summarize: (taskId) => ipcRenderer.invoke('tasks:summarize', taskId),
+  },
   local: {
     snapshot: () => ipcRenderer.invoke('local:snapshot'),
     onChanged: (cb) => on('local:changed', (_e, s: LocalSnapshot) => cb(s)),

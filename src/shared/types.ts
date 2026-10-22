@@ -1,5 +1,6 @@
 import type { AgentSettings, ApplyResult } from './agent'
 import type { LocalSnapshot, Worktree } from './local'
+import type { TasksSnapshot } from './tasks'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -127,6 +128,16 @@ export interface WorkbenchApi {
   onCaffeinate(cb: (s: CaffeinateState) => void): () => void
   prInfo(url: string): Promise<PrInfo | null>
   openExternal(url: string): Promise<void>
+  tasks: {
+    snapshot(): Promise<TasksSnapshot>
+    onChanged(cb: (s: TasksSnapshot) => void): () => void
+    refresh(): Promise<void>
+    /** Starts a session for the task (in its worktree when there is one) and links it. */
+    start(taskId: string): Promise<Session | null>
+    link(sessionId: string, taskId: string): Promise<void>
+    unlink(sessionId: string, taskId: string): Promise<void>
+    summarize(taskId: string): Promise<string>
+  }
   local: {
     snapshot(): Promise<LocalSnapshot>
     onChanged(cb: (s: LocalSnapshot) => void): () => void

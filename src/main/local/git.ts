@@ -38,12 +38,12 @@ interface Wtrc {
   commands?: Record<string, string>
 }
 
-export function readWtrc(file = join(homedir(), '.wtrc.json')): { reposDirs: string[]; commands: Record<string, string> } {
-  if (!existsSync(file)) return { reposDirs: [], commands: {} }
+export function readWtrc(file = join(homedir(), '.wtrc.json')): { reposDirs: string[]; worktreesDirs: string[]; commands: Record<string, string> } {
+  if (!existsSync(file)) return { reposDirs: [], worktreesDirs: [], commands: {} }
   const c = JSON.parse(readFileSync(file, 'utf8')) as Wtrc
   const base = resolve(file, '..')
   const list = (v?: string | string[]) => (v === undefined ? [] : Array.isArray(v) ? v : [v]).map((d) => (isAbsolute(d) ? d : join(base, d)))
-  return { reposDirs: list(c.reposDir), commands: c.commands ?? {} }
+  return { reposDirs: list(c.reposDir), worktreesDirs: list(c.worktreesDir), commands: c.commands ?? {} }
 }
 
 /** Parses `git worktree list --porcelain`. */

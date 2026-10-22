@@ -9,6 +9,8 @@ import { prInfo } from './github'
 import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
 import { loadConfig } from './local/config'
 import { Supervisor } from './local/supervisor'
+import { Linker } from './linker'
+import { TasksPoller } from './productive/tasks'
 import { Sessions } from './sessions'
 import { shellEnv, which } from './shell-env'
 import { startSignalServer, stopSignalServer } from './signal-server'
@@ -164,7 +166,20 @@ void app.whenReady().then(() => {
       win?.webContents.send('sessions:changed', list)
     },
     statusChanged: () => win?.webContents.send('status:changed', sessions.statusSnapshot()),
+    hook: (id, event, payload) => void linker.onHook(id, event, payload),
   })
+  const tasksChanged = () => win?.webContents.send('tasks:changed', linker.snapshot())
+  let hadTasks = false
+  const tasks = new TasksPoller(repo, () => {
+    tasksChanged()
+    // Sessions opened before the list loaded get their cwd/branch checked once it has.
+    if (!hadTasks && tasks.fetchedAt && !tasks.loading) {
+      hadTasks = true
+      void linker.inferAll()
+    }
+  })
+  const linker = new Linker(repo, tasks, sessions, tasksChanged, dataDir())
+  tasks.start()
 
   const signals = startSignalServer(socketPath(), (sig) => sessions.handleSignal(sig))
   // Keep installed client scripts in step with this build.
@@ -198,6 +213,18 @@ void app.whenReady().then(() => {
   ipcMain.handle('shell:open', (_e, url: string) => {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url)
   })
+  ipcMain.handle('tasks:snapshot', () => linker.snapshot())
+  ipcMain.handle('tasks:refresh', () => tasks.refresh())
+  ipcMain.handle('tasks:start', (_e, taskId: string) => {
+    const task = tasks.tasks.find((t) => t.id === taskId)
+    const s = sessions.create({ cwd: linker.worktreeFor(taskId) ?? undefined })
+    if (task) sessions.setTitle(s.id, task.title)
+    linker.link(s.id, taskId, 'started from this task', 'manual')
+    return sessions.get(s.id)
+  })
+  ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
+  ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
+  ipcMain.handle('tasks:summarize', (_e, taskId: string) => linker.summarize(taskId))
   ipcMain.handle('local:snapshot', () => local.snapshot())
   ipcMain.handle('local:profile', (_e, id: string) => local.setProfile(id))
   ipcMain.handle('local:start', (_e, name: string) => local.start(name))
@@ -241,6 +268,7 @@ void app.whenReady().then(() => {
 
   let quitting = false
   app.on('before-quit', (e) => {
+    tasks.stop()
     const running = local.running()
     if (!quitting && running.length) {
       e.preventDefault()

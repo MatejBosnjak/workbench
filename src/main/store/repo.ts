@@ -128,6 +128,60 @@ export class Repo {
     this.db.transaction(() => ids.forEach((id, i) => stmt.run(i, id)))()
   }
 
+  // --- links ---
+
+  /** Adds a link unless it exists, or was removed by hand (for auto links). Returns whether it was added. */
+  addLink(sessionId: string, taskId: string, via: string, createdBy: 'auto' | 'manual'): boolean {
+    if (createdBy === 'auto' && this.db.prepare('SELECT 1 FROM link_tombstones WHERE session_id = ? AND task_id = ?').get(sessionId, taskId)) return false
+    if (createdBy === 'manual') this.db.prepare('DELETE FROM link_tombstones WHERE session_id = ? AND task_id = ?').run(sessionId, taskId)
+    const r = this.db
+      .prepare('INSERT OR IGNORE INTO links (session_id, task_id, via, created_by, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(sessionId, taskId, via, createdBy, Date.now())
+    return r.changes > 0
+  }
+
+  removeLink(sessionId: string, taskId: string): void {
+    this.db.transaction(() => {
+      this.db.prepare('DELETE FROM links WHERE session_id = ? AND task_id = ?').run(sessionId, taskId)
+      this.db.prepare('INSERT OR IGNORE INTO link_tombstones (session_id, task_id) VALUES (?, ?)').run(sessionId, taskId)
+    })()
+  }
+
+  links(): { sessionId: string; taskId: string; via: string; createdBy: 'auto' | 'manual'; createdAt: number; session: (SessionRow & { open: boolean; firstPrompt: string | null }) | null }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT l.session_id, l.task_id, l.via, l.created_by, l.created_at, s.*
+         FROM links l LEFT JOIN sessions s ON s.id = l.session_id ORDER BY l.created_at`,
+      )
+      .all() as (RawSession & { session_id: string; task_id: string; via: string; created_by: 'auto' | 'manual'; created_at: number; first_prompt: string | null })[]
+    return rows.map((r) => ({
+      sessionId: r.session_id,
+      taskId: r.task_id,
+      via: r.via,
+      createdBy: r.created_by,
+      createdAt: r.created_at,
+      session: r.id ? { ...fromRaw(r), open: r.tab_order !== null, firstPrompt: r.first_prompt } : null,
+    }))
+  }
+
+  /** Keeps the session's first prompt, for the task preview. */
+  notePrompt(id: string, prompt: string): void {
+    this.db.prepare('UPDATE sessions SET first_prompt = ? WHERE id = ? AND first_prompt IS NULL').run(prompt.slice(0, 500), id)
+  }
+
+  // --- summaries ---
+
+  summaries(): Record<string, { text: string; createdAt: number }> {
+    const rows = this.db.prepare('SELECT session_id, text, created_at FROM summaries').all() as { session_id: string; text: string; created_at: number }[]
+    return Object.fromEntries(rows.map((r) => [r.session_id, { text: r.text, createdAt: r.created_at }]))
+  }
+
+  setSummary(sessionId: string, text: string, model: string): void {
+    this.db
+      .prepare('INSERT INTO summaries (session_id, text, model, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(session_id) DO UPDATE SET text = excluded.text, model = excluded.model, created_at = excluded.created_at')
+      .run(sessionId, text, model, Date.now())
+  }
+
   getSetting<T>(key: string, fallback: T): T {
     const row = this.db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined
     return row ? (JSON.parse(row.value) as T) : fallback

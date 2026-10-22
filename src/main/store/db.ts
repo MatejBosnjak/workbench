@@ -29,6 +29,30 @@ const MIGRATIONS: string[] = [
   ALTER TABLE sessions ADD COLUMN permission_mode TEXT;
   CREATE INDEX sessions_claude_id ON sessions (claude_id);
   `,
+  `
+  ALTER TABLE sessions ADD COLUMN first_prompt TEXT;
+  CREATE TABLE links (
+    session_id TEXT NOT NULL,
+    task_id    TEXT NOT NULL,
+    via        TEXT NOT NULL,
+    created_by TEXT NOT NULL, -- auto | manual
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (session_id, task_id)
+  );
+  CREATE INDEX links_task ON links (task_id);
+  -- A link removed by hand stays removed: inference won't add it back.
+  CREATE TABLE link_tombstones (
+    session_id TEXT NOT NULL,
+    task_id    TEXT NOT NULL,
+    PRIMARY KEY (session_id, task_id)
+  );
+  CREATE TABLE summaries (
+    session_id TEXT PRIMARY KEY,
+    text       TEXT NOT NULL,
+    model      TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  `,
 ]
 
 export function openDb(file: string): Db {

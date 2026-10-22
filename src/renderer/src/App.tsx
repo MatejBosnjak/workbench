@@ -1,8 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import type { TasksSnapshot } from '@shared/tasks'
 import type { MenuCommand } from '@shared/types'
 import { CaffeinateControl } from './components/CaffeinateControl'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
+import { TodayView } from './components/TodayView'
 import { Palette } from './components/Palette'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
@@ -50,6 +52,12 @@ function onMenu(cmd: MenuCommand): void {
 export function App() {
   const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen, local, setLocal } = useStore()
 
+  const [tasks, setTasks] = useState<TasksSnapshot | null>(null)
+  useEffect(() => {
+    void window.workbench.tasks.snapshot().then(setTasks)
+    return window.workbench.tasks.onChanged(setTasks)
+  }, [])
+
   useEffect(() => {
     void window.workbench.local.snapshot().then(setLocal)
     return window.workbench.local.onChanged(setLocal)
@@ -94,9 +102,7 @@ export function App() {
             <Terminal key={s.id} session={s} active={s.id === activeId} />
           ))}
         {active?.external && <ExternalPanel session={active} />}
-        {view.kind === 'today' && (
-          <Placeholder title="Today" note="My tasks, My git and My reviews arrive in phases 3 and 4." />
-        )}
+        <TodayView snapshot={tasks} active={view.kind === 'today'} />
         <LocalView snapshot={local} active={view.kind === 'local'} />
       </main>
       <StatusBar>
@@ -106,21 +112,6 @@ export function App() {
         <Picker />
       </StatusBar>
       {paletteOpen && <Palette onNew={(pick) => void newSession(pick)} />}
-    </div>
-  )
-}
-
-function Placeholder({ title, note }: { title: string; note: string }) {
-  return (
-    <div className="empty">
-      <h1>{title}</h1>
-      <p>{note}</p>
-      <button className="primary" onClick={() => void newSession()}>
-        New session
-      </button>
-      <p>
-        <kbd>⌘T</kbd> new session · <kbd>⇧⌘T</kbd> in folder… · <kbd>⌘1–9</kbd> switch
-      </p>
     </div>
   )
 }

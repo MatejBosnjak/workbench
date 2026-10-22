@@ -93,7 +93,7 @@ Keeps the Mac awake while sessions run.
 
 ### Today › My tasks
 
-- **Source.** The Productive REST API, using the token from the macOS keychain. The filter is the saved List view filter, decoded from its URL once and stored in settings.
+- **Source.** The Productive REST API, using the token from the macOS keychain. The filter is the saved "List view" filter, read once from the API's saved filters (`/filters`, creator = me) and stored in settings with the org and person ids.
 - **Shape.** Tasks are grouped by project, with Bugs pinned first, then Product: CRM, then the rest alphabetically. Inside a project they're ordered by placement and nested under their parent or milestone.
   - A milestone that isn't mine gets a muted header.
   - A parent hidden by a filter shows as "filtered out".
@@ -101,7 +101,7 @@ Keeps the Mac awake while sessions run.
 - **Row.** Each row shows:
   - a status glyph: a ring in the status colour, with a filled core once started; not-started statuses get a dashed, tinted ring
   - a left stripe for started tasks
-  - a background tint for bug priority
+  - a background tint for bug priority (not shown yet: none of the current bug tasks carry a priority field)
   - the title, with a milestone or bug icon
   - the task list, shown only when it differs from the parent's
   - the due date
@@ -140,7 +140,8 @@ Keeps the Mac awake while sessions run.
   - a Productive task URL in the first user prompts
   - a task id in the cwd or worktree name, or in the branch name
   - the session touched a PR that's linked to the task
-- Every link stores its `via`, which the preview shows ("linked via PR #30227"). Links can be removed or added by hand.
+- Every link stores its `via`, which the preview shows ("linked via PR #30227"). Links can be removed or added by hand; a link removed by hand is not re-added by inference.
+- Task ids in paths and branches only count when they match one of my tasks, so other 7–9 digit numbers don't create links. The PR signal arrives with the gh poller in phase 4.
 
 ### Local services
 
@@ -180,8 +181,9 @@ Keeps the Mac awake while sessions run.
 
 | table | columns |
 |---|---|
-| `sessions` | id, cwd, transcript_path, started_at, last_event_at, state, external, title |
+| `sessions` | id, cwd, transcript_path, started_at, last_event_at, state, external, title, tab_order, claude_id, model, effort, permission_mode, first_prompt |
 | `links` | session_id, task_id, via, created_by (auto/manual), created_at |
+| `link_tombstones` | session_id, task_id (links removed by hand) |
 | `seen` | thread_key, last_seen_message_id, seen_at |
 | `drafts` | id, target (gh thread / productive task), body, status, created_at |
 | `summaries` | session_id, text, model, created_at |

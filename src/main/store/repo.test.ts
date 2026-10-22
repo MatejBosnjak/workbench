@@ -61,6 +61,22 @@ describe('Repo', () => {
   it('migrations are idempotent', () => {
     const db = openDb(':memory:')
     migrate(db)
-    expect(db.pragma('user_version', { simple: true })).toBe(2)
+    expect(db.pragma('user_version', { simple: true })).toBe(3)
+  })
+})
+
+describe('links', () => {
+  it('a link removed by hand is not re-added by inference', () => {
+    const repo = new Repo(openDb(':memory:'))
+    repo.insertTab(row('s1'))
+    expect(repo.addLink('s1', 't1', 'task URL in prompt', 'auto')).toBe(true)
+    expect(repo.addLink('s1', 't1', 'again', 'auto')).toBe(false)
+    repo.removeLink('s1', 't1')
+    expect(repo.addLink('s1', 't1', 'branch name', 'auto')).toBe(false)
+    expect(repo.links()).toHaveLength(0)
+    expect(repo.addLink('s1', 't1', 'linked by hand', 'manual')).toBe(true)
+    const [l] = repo.links()
+    expect(l).toMatchObject({ sessionId: 's1', taskId: 't1', via: 'linked by hand', createdBy: 'manual' })
+    expect(l!.session?.title).toBe('s1')
   })
 })

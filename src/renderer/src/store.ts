@@ -37,6 +37,8 @@ interface State {
   peekTask: string | null
   /** A PR row to scroll to and highlight. */
   focusPr: string | null
+  /** Bumped on every show(), so re-selecting the current tab still hands focus back to its terminal. */
+  showTick: number
   /** The draft open in Today's side panel. */
   draft: DraftTarget | null
   setLocal(l: LocalSnapshot): void
@@ -70,6 +72,7 @@ export const useStore = create<State>((set, get) => ({
   todayTab: loadTab(),
   peekTask: null,
   focusPr: null,
+  showTick: 0,
   draft: null,
   setLocal: (local) => set({ local }),
   setGit: (git) => set({ git }),
@@ -104,7 +107,7 @@ export const useStore = create<State>((set, get) => ({
   },
   show: (view) => {
     const mounted = view.kind === 'session' ? new Set(get().mounted).add(view.id) : get().mounted
-    set({ view, mounted })
+    set({ view, mounted, showTick: get().showTick + 1 })
     persist(view)
   },
 }))

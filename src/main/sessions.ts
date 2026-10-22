@@ -8,7 +8,7 @@ import type { Session, SessionStatus, StatusSnapshot, Usage } from '@shared/type
 import { PtyHost } from './pty-host'
 import { shellEnv, which } from './shell-env'
 import type { HookPayload, Signal, StatuslinePayload } from './signal-server'
-import { nextState } from './state'
+import { nextState, stateAfterInput } from './state'
 import type { Repo, SessionRow } from './store/repo'
 
 export const DEFAULT_CWD = join(homedir(), 'Productive/work')
@@ -38,11 +38,20 @@ export class Sessions {
     private events: SessionEvents,
   ) {
     this.usage = repo.getSetting<Usage | null>('usage', null)
-    this.pty = new PtyHost((id, code) => {
-      if (this.restarting.has(id)) return
-      this.repo.update(id, { state: code === 0 ? 'idle' : 'failed', lastEventAt: Date.now() })
-      this.events.sessionsChanged()
-    })
+    this.pty = new PtyHost(
+      (id, code) => {
+        if (this.restarting.has(id)) return
+        this.repo.update(id, { state: code === 0 ? 'idle' : 'failed', lastEventAt: Date.now() })
+        this.events.sessionsChanged()
+      },
+      (id, data) => {
+        const row = this.repo.get(id)
+        const state = row && stateAfterInput(row.state, data)
+        if (!state) return
+        this.repo.update(id, { state })
+        this.events.sessionsChanged()
+      },
+    )
   }
 
   list(): Session[] {

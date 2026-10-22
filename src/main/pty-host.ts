@@ -31,7 +31,11 @@ export interface SpawnOpts {
 export class PtyHost {
   private entries = new Map<string, Entry>()
 
-  constructor(private onExit: (id: string, code: number) => void) {}
+  constructor(
+    private onExit: (id: string, code: number) => void,
+    /** Typed input, after it's written to the pty. */
+    private onInput?: (id: string, data: string) => void,
+  ) {}
 
   has(id: string): boolean {
     return this.entries.has(id)
@@ -75,8 +79,10 @@ export class PtyHost {
     e.port = port1
     e.wc = wc
     port1.on('message', ({ data }: { data: PortInput }) => {
-      if (data.type === 'input') e.proc.write(data.data)
-      else if (data.type === 'resize' && data.cols > 0 && data.rows > 0) {
+      if (data.type === 'input') {
+        e.proc.write(data.data)
+        this.onInput?.(id, data.data)
+      } else if (data.type === 'resize' && data.cols > 0 && data.rows > 0) {
         e.proc.resize(data.cols, data.rows)
         e.size = { cols: data.cols, rows: data.rows }
       }

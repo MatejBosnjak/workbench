@@ -5,7 +5,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { WebglAddon } from '@xterm/addon-webgl'
 import type { PortInput, PortMessage } from '@shared/types'
 import { onPort } from '../ports'
-import { openPrLink } from '../store'
+import { openPrLink, useStore } from '../store'
 import { xtermTheme } from '../xterm-theme'
 import { PrCard, type CardAnchor } from './PrCard'
 
@@ -160,11 +160,12 @@ export function TermView(props: TermViewProps) {
     aliveRef.current = alive
   }, [alive, exitMessage])
 
+  const showTick = useStore((s) => s.showTick)
   useEffect(() => {
     if (!active) return
     fit.current?.fit()
     if (autoFocus) term.current?.focus()
-  }, [active, autoFocus])
+  }, [active, autoFocus, showTick])
 
   return (
     <>

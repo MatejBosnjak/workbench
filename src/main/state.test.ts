@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseMessage } from './signal-server'
-import { nextState } from './state'
+import { nextState, stateAfterInput } from './state'
 
 describe('nextState', () => {
   it('follows a turn with a permission prompt', () => {
@@ -19,6 +19,14 @@ describe('nextState', () => {
 
   it('an idle-input notification marks a finished session as waiting', () => {
     expect(nextState('idle', 'Notification')).toBe('waiting')
+  })
+
+  it('answering a prompt by keyboard leaves waiting; a tool run then marks it running', () => {
+    expect(stateAfterInput('waiting', '\x1b')).toBe('idle')
+    expect(stateAfterInput('waiting', '\r')).toBe('idle')
+    expect(stateAfterInput('waiting', 'j')).toBeNull()
+    expect(stateAfterInput('running', '\r')).toBeNull()
+    expect(nextState('idle', 'PostToolUse')).toBe('running')
   })
 
   it('ignores unknown events', () => {

@@ -73,6 +73,24 @@ Renderer (web UI)
   - In a running session, a model change sends `/model <name>` into the pty. Effort sends `/effort <level>`; whether that command exists still needs checking. Permission mode presses Shift+Tab until the reported mode matches.
   - If an in-session change can't be confirmed from statusline or hook data, Workbench restarts the session with `claude --resume <id>` and the new flags.
 
+### Caffeinate
+
+Keeps the Mac awake while sessions run.
+
+- **Control.** A ☕ button in the StatusBar, next to the agent picker, opens a menu with three states and a scope (This session / All sessions):
+
+  | State | What it does |
+  |---|---|
+  | Off | the Mac sleeps as usual |
+  | Awake | stays awake while the session(s) run, using Electron `powerSaveBlocker('prevent-app-suspension')` |
+  | Awake, lid closed | keeps running with the lid shut; needs power |
+
+- **Auto-off.** "Awake" turns itself off when the scoped session(s) stop.
+- **Lid closed.** This mode runs `caffeinate -s` while on AC power. If power is unplugged, it falls back to Awake and sends a notification.
+- **Icon.** An espresso cup on a saucer (design variant 4h). Off is an outline cup. Awake is a filled cup with animated steam; the steam stops if Reduce Motion is on. Lid closed adds a small shut-laptop badge in the info colour.
+- **Tabs.** Caffeinated session tabs show the icon at 13px after the title.
+- **To verify in phase 1.** Whether `caffeinate -s` alone keeps a MacBook working with the lid closed on power, or whether clamshell mode needs an external display. If it does, the lid-closed option is shown only while that works.
+
 ### Today › My tasks
 
 - **Source.** The Productive REST API, using the token from the macOS keychain. The filter is the saved List view filter, decoded from its URL once and stored in settings.
@@ -173,7 +191,7 @@ Renderer (web UI)
 
 Each phase must be usable daily before the next one starts.
 
-1. **Shell + sessions.** Electron app, TopBar, PTY tabs, hooks + statusline wrapper, StatusBar, pickers, ⌘K (sessions only), external tabs, PR link provider. *Replaces the terminal and `cc`.*
+1. **Shell + sessions.** Electron app, TopBar, PTY tabs, hooks + statusline wrapper, StatusBar, pickers, caffeinate, ⌘K (sessions only), external tabs, PR link provider. *Replaces the terminal and `cc`.*
 2. **Local.** Service supervision, split panes, worktree switcher, run alongside. *Replaces `prd` and `wt`.*
 3. **My tasks.** Productive poller, grouping, preview, linking, Summarize.
 4. **My git / My reviews.** gh poller, needs-reply detection, notifications, drafts with confirm.

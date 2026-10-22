@@ -28,6 +28,9 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 - **Packaging** — local unsigned `electron-builder` build into /Applications, no auto-update *(simplest)*
 - **Hook install** — Workbench installs them (Settings → Install hooks), backs up `~/.claude/settings.json`, adds only its own marked entries, and offers Uninstall
 
+- **Caffeinate** — a ☕ in the StatusBar with Off / Awake / Awake with lid closed, scoped to this session or all sessions; icon variant 4h (filled espresso cup + shut-laptop badge), also shown on session tabs
+
 ## Open / Deferred
 - **`/effort` and permission mode mid-session** — verify in phase 1; otherwise use the `--resume` fallback
+- **Lid-closed keep-awake on battery or without an external display** — verify what `caffeinate -s` actually allows
 - **Quiet hours** — none for now

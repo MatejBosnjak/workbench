@@ -305,6 +305,8 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
     - **wk**: a 48px bar and the percentage
     - the model · effort · permissions picker at the right edge
   - **Bar tracks** use the lighter `--line-heavy` token, so an empty bar is still visible.
+  - **Bar colours follow importance**, one neutral ramp from bright to dim: ctx `--text-2`, 5h `--muted`, wk `--faint`. Only ctx changes colour with its value (amber `--warn` at 60%, red `--bad` at 75%), so a warning is the only colour in the group.
+  - **Loading.** Until a meter's first value arrives, its track shows a faint highlight sweeping left to right (about 1.8s, low opacity) and the percentage reads `—`. With reduced motion the sweep is off. When the value arrives or changes, the fill eases to its new width over 0.6s.
 
   Hovering a meter shows its full text.
 - **Theme.** v1 ships **Dusk** only: muted synthwave on a graphite base, with a purple accent. Colours are CSS variable tokens, so more themes can be added later; the design also explores Graphite, Midnight, Forest and Synthwave.

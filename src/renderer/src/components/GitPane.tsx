@@ -24,21 +24,31 @@ export function GitPane({ active }: { active: boolean }) {
     return window.workbench.pane.onChanged((s) => useStore.getState().setPane(s))
   }, [])
 
-  // Report the rectangle; the native view follows it.
+  // Report the rectangle; the native view follows it. Size changes come from the ResizeObserver; moves without a
+  // resize (counters appearing, split sizes loading, zoom) are caught by checking the position every frame.
   useLayoutEffect(() => {
     const el = area.current
     if (!el) return
+    let last = ''
     const report = () => {
       const r = el.getBoundingClientRect()
+      const next = `${r.left},${r.top},${r.width},${r.height},${window.devicePixelRatio}`
+      if (next === last) return
+      last = next
       void window.workbench.pane.bounds({ x: r.left, y: r.top, width: r.width, height: r.height })
     }
     report()
     const ro = new ResizeObserver(report)
     ro.observe(el)
-    window.addEventListener('resize', report)
+    let frame = 0
+    const tick = () => {
+      report()
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
     return () => {
       ro.disconnect()
-      window.removeEventListener('resize', report)
+      cancelAnimationFrame(frame)
     }
   }, [open, paneFull])
 

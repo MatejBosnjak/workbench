@@ -107,8 +107,10 @@ export class GitHubPane {
     this.activate(l)
   }
 
+  /** The renderer reports CSS pixels; the view is placed in window points, so the page's zoom is applied here. */
   setBounds(b: { x: number; y: number; width: number; height: number }): void {
-    this.bounds = { x: Math.round(b.x), y: Math.round(b.y), width: Math.max(0, Math.round(b.width)), height: Math.max(0, Math.round(b.height)) }
+    const z = this.win()?.webContents.getZoomFactor() ?? 1
+    this.bounds = { x: Math.round(b.x * z), y: Math.round(b.y * z), width: Math.max(0, Math.round(b.width * z)), height: Math.max(0, Math.round(b.height * z)) }
     this.layout()
   }
 

@@ -420,14 +420,12 @@ void app.whenReady().then(() => {
     return file ? marks.read(file).catch(() => []) : []
   })
   ipcMain.handle('tasks:detail', (_e, taskId: string) => tasks.detail(taskId))
-  // Writes to Productive: each one shows exactly what changes and waits for a yes.
+  // Writes to Productive: each one shows exactly what changes and waits for a yes (status moves go straight through).
   const askProductive = async (message: string, detail: string) =>
     (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Update Productive', 'Cancel'], defaultId: 0, cancelId: 1, message, detail })).response === 0
   ipcMain.handle('tasks:setStatus', async (_e, taskId: string, statusId: string) => {
     const d = await tasks.detail(taskId)
-    const to = d.statuses.find((s) => s.id === statusId)
-    const from = d.statuses.find((s) => s.id === d.statusId)
-    if (!to || !(await askProductive(`Move the task to “${to.name}”?`, `${d.task.title}\n\n${from?.name ?? '?'} → ${to.name}`))) return null
+    if (!d.statuses.some((s) => s.id === statusId)) return null
     await tasks.setStatus(taskId, statusId)
     return tasks.detail(taskId)
   })
@@ -450,6 +448,11 @@ void app.whenReady().then(() => {
     const todo = d.todos.find((t) => t.id === todoId)
     if (!todo || !(await askProductive(closed ? 'Mark this to-do done?' : 'Reopen this to-do?', `${todo.text}\n\non ${d.task.title}`))) return null
     await tasks.setTodo(todoId, closed)
+    return tasks.detail(taskId)
+  })
+  // Like a status move, picking the person is the approval.
+  ipcMain.handle('tasks:assignTodo', async (_e, taskId: string, todoId: string, personId: string | null) => {
+    await tasks.assignTodo(todoId, personId)
     return tasks.detail(taskId)
   })
   ipcMain.handle('pane:open', (_e, url: string) => pane.open(url))

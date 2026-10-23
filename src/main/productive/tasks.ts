@@ -102,7 +102,7 @@ export class TasksPoller {
         .sort((a, b) => Number(a.attributes.position ?? 0) - Number(b.attributes.position ?? 0))
         .map((t) => {
           const who = included.find((i) => i.type === 'people' && i.id === t.relationships?.assignee?.data?.id)
-          return { id: t.id, text: readMentions(String(t.attributes.description ?? '')).body, closed: !!t.attributes.closed, assignee: who ? personName(who) : null }
+          return { id: t.id, text: readMentions(String(t.attributes.description ?? '')).body, closed: !!t.attributes.closed, assignee: who ? personName(who) : null, assigneeId: who?.id ?? null }
         }),
       comments: comments.data
         .filter((c) => String(c.attributes.body ?? '').trim())
@@ -146,6 +146,11 @@ export class TasksPoller {
     const relationships: Record<string, unknown> = { task: { data: { type: 'tasks', id: taskId } } }
     if (assigneeId) relationships.assignee = { data: { type: 'people', id: assigneeId } }
     await api.post('/todos', { data: { type: 'todos', attributes: { description: text }, relationships } })
+  }
+
+  async assignTodo(todoId: string, personId: string | null): Promise<void> {
+    const { api } = await this.client()
+    await api.patch(`/todos/${todoId}`, { data: { type: 'todos', id: todoId, relationships: { assignee: { data: personId ? { type: 'people', id: personId } : null } } } })
   }
 
   async setTodo(todoId: string, closed: boolean): Promise<void> {

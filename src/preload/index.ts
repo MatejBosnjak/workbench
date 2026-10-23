@@ -49,6 +49,7 @@ const api: WorkbenchApi = {
     detail: (taskId) => ipcRenderer.invoke('tasks:detail', taskId),
     setStatus: (taskId, statusId) => ipcRenderer.invoke('tasks:setStatus', taskId, statusId),
     setTodo: (taskId, todoId, closed) => ipcRenderer.invoke('tasks:setTodo', taskId, todoId, closed),
+    assignTodo: (taskId, todoId, personId) => ipcRenderer.invoke('tasks:assignTodo', taskId, todoId, personId),
     addTodo: (taskId, text, assignee) => ipcRenderer.invoke('tasks:addTodo', taskId, text, assignee),
     people: () => ipcRenderer.invoke('tasks:people'),
     comment: (taskId, text, tagged) => ipcRenderer.invoke('tasks:comment', taskId, text, tagged),

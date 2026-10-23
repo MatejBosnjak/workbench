@@ -190,6 +190,122 @@ function CommentBody({ c }: { c: TaskComment }) {
 /** People are the same for every task; loaded on the first @. */
 let people: Promise<Person[]> | null = null
 
+const loadPeople = () => (people ??= window.workbench.tasks.people().catch((e) => ((people = null), Promise.reject(e))))
+
+/** Whether a name has a word starting the (lowercase) query, so "bos" and "matej b" both find Matej Bosnjak. */
+const nameMatches = (name: string, q: string) => name.toLowerCase().split(' ').some((_, i, ws) => ws.slice(i).join(' ').startsWith(q))
+
+const initials = (name: string) =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+
+/** Productive's photo, or initials when there's none or it fails to load; a dashed ring when nobody's assigned. */
+function Avatar({ name, url }: { name: string | null; url?: string | null }) {
+  const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [url])
+  if (!name) return <span className="avatar none" aria-hidden="true" />
+  if (url && !broken) return <img className="avatar" src={url} alt="" onError={() => setBroken(true)} />
+  return (
+    <span className="avatar" aria-hidden="true">
+      {initials(name)}
+    </span>
+  )
+}
+
+/** An avatar that opens a searchable list of people, Unassigned first, as in Productive. */
+function PersonPicker({ id, name, disabled, onPick }: { id: string | null; name: string | null; disabled?: boolean; onPick(p: Person | null): void }) {
+  const [all, setAll] = useState<Person[]>([])
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [at, setAt] = useState(0)
+  const root = useRef<HTMLSpanElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  const current = all.find((p) => p.id === id)
+
+  useEffect(() => void loadPeople().then(setAll, () => {}), [])
+  useEffect(() => {
+    if (!open) return
+    const away = (e: MouseEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
+    document.addEventListener('mousedown', away)
+    return () => document.removeEventListener('mousedown', away)
+  }, [open])
+  useEffect(() => list.current?.children[at]?.scrollIntoView({ block: 'nearest' }), [at])
+
+  const q = query.trim().toLowerCase()
+  const options: (Person | null)[] = [...(q ? [] : [null]), ...all.filter((p) => !q || nameMatches(p.name, q))]
+  const pick = (p: Person | null) => {
+    setOpen(false)
+    if ((p?.id ?? null) !== id) onPick(p)
+  }
+
+  return (
+    <span className="person-picker" ref={root}>
+      <button
+        className="pp-button"
+        type="button"
+        title={name ?? 'Unassigned'}
+        aria-label={`Assignee: ${name ?? 'unassigned'}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => {
+          setQuery('')
+          setAt(0)
+          setOpen(!open)
+        }}
+      >
+        <Avatar name={name} url={current?.avatarUrl} />
+      </button>
+      {open && (
+        <span className="pp-menu">
+          <input
+            autoFocus
+            aria-label="Search people"
+            placeholder="Search people…"
+            value={query}
+            onChange={(e) => (setQuery(e.target.value), setAt(0))}
+            onKeyDown={(e) => {
+              // Its keys stay here; ⏎ must not also reach the screen's ⏎ (open the task).
+              e.stopPropagation()
+              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault()
+                if (options.length) setAt((i) => (i + (e.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length)
+              } else if (e.key === 'Enter') {
+                e.preventDefault()
+                if (options[at] !== undefined) pick(options[at]!)
+              } else if (e.key === 'Escape') setOpen(false)
+            }}
+          />
+          <div className="pp-list" role="listbox" aria-label="People" ref={list}>
+            {options.map((p, i) => (
+              <button
+                key={p?.id ?? 'none'}
+                type="button"
+                role="option"
+                tabIndex={-1}
+                aria-selected={(p?.id ?? null) === id}
+                className={`pp-option${i === at ? ' at' : ''}`}
+                onMouseEnter={() => setAt(i)}
+                onClick={() => pick(p)}
+              >
+                <Avatar name={p?.name ?? null} url={p?.avatarUrl} />
+                <span>{p?.name ?? 'Unassigned'}</span>
+                {(p?.id ?? null) === id && <span className="faint">✓</span>}
+              </button>
+            ))}
+            {!options.length && <span className="faint pp-empty">{all.length ? 'nobody matches' : 'loading…'}</span>}
+          </div>
+        </span>
+      )}
+    </span>
+  )
+}
+
 /** The @query being typed just before the caret, if any. */
 const tagQuery = (before: string) => /(?:^|\s)@([^\s@]*(?: [^\s@]*)?)$/u.exec(before)?.[1] ?? null
 
@@ -216,15 +332,14 @@ function Composer({ detail }: { detail: TaskDetail }) {
   }, [taskId])
 
   const q = query?.toLowerCase() ?? ''
-  const matches = query === null ? [] : all.filter((p) => p.name.toLowerCase().split(' ').some((w, i, ws) => ws.slice(i).join(' ').startsWith(q))).slice(0, 6)
+  const matches = query === null ? [] : all.filter((p) => nameMatches(p.name, q)).slice(0, 6)
 
   const onInput = (value: string, caret: number) => {
     setText(value)
     const found = tagQuery(value.slice(0, caret))
     setQuery(found)
     setPick(0)
-    if (found !== null && !people) people = window.workbench.tasks.people()
-    if (found !== null) void people!.then(setAll, () => (people = null))
+    if (found !== null) void loadPeople().then(setAll, () => {})
   }
 
   const tag = (p: Person) => {
@@ -339,22 +454,16 @@ function Composer({ detail }: { detail: TaskDetail }) {
 /** A new to-do: its text and, optionally, who it's for. ⏎ adds after the confirm, esc cancels. */
 function AddTodo({ detail, done }: { detail: TaskDetail; done(): void }) {
   const [text, setText] = useState('')
-  const [all, setAll] = useState<Person[]>([])
-  const [assignee, setAssignee] = useState('')
+  const [assignee, setAssignee] = useState<Person | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    people ??= window.workbench.tasks.people()
-    void people.then(setAll, () => (people = null))
-  }, [])
 
   const add = async () => {
     if (!text.trim() || busy) return
     setBusy(true)
     setError(null)
     try {
-      const d = await window.workbench.tasks.addTodo(detail.task.id, text, all.find((p) => p.id === assignee) ?? null)
+      const d = await window.workbench.tasks.addTodo(detail.task.id, text, assignee)
       if (d) {
         put(detail.task.id, d)
         done()
@@ -380,14 +489,7 @@ function AddTodo({ detail, done }: { detail: TaskDetail; done(): void }) {
           if (e.key === 'Escape') done()
         }}
       />
-      <select aria-label="Assign to" value={assignee} disabled={busy} onChange={(e) => setAssignee(e.target.value)}>
-        <option value="">unassigned</option>
-        {all.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
+      <PersonPicker id={assignee?.id ?? null} name={assignee?.name ?? null} disabled={busy} onPick={setAssignee} />
       <button className="key-btn primary-key" disabled={!text.trim() || busy} onClick={() => void add()}>
         {busy ? 'adding…' : '⏎ add'}
       </button>
@@ -396,7 +498,7 @@ function AddTodo({ detail, done }: { detail: TaskDetail; done(): void }) {
   )
 }
 
-/** The task as Productive has it: description, to-dos and comments. Every write asks first. */
+/** The task as Productive has it: description, to-dos and comments. Comments and to-do adds and ticks ask first. */
 export function TaskDetails({ taskId, withTitle = false }: { taskId: string; withTitle?: boolean }) {
   const { detail, error: loadError } = useTaskDetail(taskId)
   const { busy, error, write } = useWrite(taskId)
@@ -452,13 +554,20 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
           {detail.todos.length === 0 && !adding && <span className="faint">none</span>}
           {detail.todos.length > 0 && hideDone && open === 0 && <span className="faint">all done</span>}
           {detail.todos.filter((t) => !(hideDone && t.closed)).map((t) => (
-            <label key={t.id} className={`td-todo${t.closed ? ' done' : ''}${busy === `t:${t.id}` ? ' busy' : ''}`}>
-              <input type="checkbox" checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
-              <span>
-                <Linked text={t.text} />
-                {t.assignee && <span className="faint">{` · ${t.assignee}`}</span>}
-              </span>
-            </label>
+            <div key={t.id} className={`td-todo${t.closed ? ' done' : ''}${busy === `t:${t.id}` ? ' busy' : ''}`}>
+              <label>
+                <input type="checkbox" checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
+                <span>
+                  <Linked text={t.text} />
+                </span>
+              </label>
+              <PersonPicker
+                id={t.assigneeId ?? null}
+                name={t.assignee ?? null}
+                disabled={!!busy}
+                onPick={(p) => void write(`t:${t.id}`, () => window.workbench.tasks.assignTodo(taskId, t.id, p?.id ?? null))}
+              />
+            </div>
           ))}
 
           <div className="peek-sub">

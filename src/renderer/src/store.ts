@@ -46,6 +46,9 @@ interface State {
   todayTab: TodayTab
   /** The task open in the preview. */
   peekTask: string | null
+  /** The Needs you item shown in the sidebar (its key); a second ⏎ or a double-click opens it. */
+  peekNeed: string | null
+  setPeekNeed(key: string | null): void
   /** A PR row to scroll to and highlight. */
   focusPr: string | null
   /** The PR row picked with j / k in My PRs and Reviews. */
@@ -117,6 +120,8 @@ export const useStore = create<State>((set, get) => ({
   wsPlace: loadWsPlace(),
   todayTab: loadTab(),
   peekTask: null,
+  peekNeed: null,
+  setPeekNeed: (peekNeed) => set({ peekNeed, draft: null }),
   focusPr: null,
   selPr: null,
   setSelPr: (selPr) => set({ selPr }),

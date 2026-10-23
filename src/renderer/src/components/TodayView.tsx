@@ -12,6 +12,7 @@ import { DraftPanel } from './DraftPanel'
 import { GitPane } from './GitPane'
 import { GitView, ReviewsView } from './GitView'
 import { runPr } from './RunPr'
+import { NeedPreview } from './NeedPreview'
 import { TaskPreview, taskPrimary } from './TaskPreview'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -146,7 +147,7 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
           <main className="today-main">
             <Home view={tab} snapshot={snapshot} git={git} needs={needs} sleeping={sleeping} active={active} />
           </main>
-          <aside className="today-side">{draft && git ? <DraftPanel target={draft} git={git} /> : snapshot && <Peek snapshot={snapshot} />}</aside>
+          <aside className="today-side">{draft && git ? <DraftPanel target={draft} git={git} /> : snapshot && <Peek snapshot={snapshot} tab={tab} needs={needs} />}</aside>
         </div>
       ) : paneFull ? (
         <div className="today-body full">
@@ -198,14 +199,26 @@ function Sync({ src, onRefresh }: { src: { loading: boolean; error: string | nul
   )
 }
 
-function Peek({ snapshot }: { snapshot: TasksSnapshot }) {
-  const { peekTask, setPeekTask } = useStore(useShallow((s) => ({ peekTask: s.peekTask, setPeekTask: s.setPeekTask })))
-  const task = snapshot.tasks.find((t) => t.id === peekTask)
+/** Opens a Needs you item: a PR (or its thread) in the GitHub pane, a task into its session. */
+function openNeedItem(n: NeedItem, snapshot: TasksSnapshot | null): void {
+  if (n.pr) return openInPane(n.conversation?.messages.at(-1)?.url || n.pr.url)
+  const { sessions, show } = useStore.getState()
+  if (n.task && snapshot) void taskPrimary(n.task, snapshot, sessions, show)
+}
+
+/** The right sidebar: the Needs you item shown (a PR card or the task), or the selected task. */
+function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab; needs: NeedItem[] }) {
+  const { peekTask, setPeekTask, peekNeed, setPeekNeed } = useStore(
+    useShallow((s) => ({ peekTask: s.peekTask, setPeekTask: s.setPeekTask, peekNeed: s.peekNeed, setPeekNeed: s.setPeekNeed })),
+  )
+  const item = tab === 'needs' ? needs.find((n) => n.key === peekNeed) : undefined
+  if (item?.pr) return <NeedPreview item={item} tasks={snapshot} onOpen={() => openNeedItem(item, snapshot)} onClose={() => setPeekNeed(null)} />
+  const task = tab === 'needs' ? (item?.task ?? null) : snapshot.tasks.find((t) => t.id === peekTask)
   return task ? (
-    <TaskPreview task={task} snapshot={snapshot} onClose={() => setPeekTask(null)} />
+    <TaskPreview task={task} snapshot={snapshot} onClose={() => (tab === 'needs' ? setPeekNeed(null) : setPeekTask(null))} />
   ) : (
-    <Box title="Task">
-      <span className="faint">Select a task with j / k or a click.</span>
+    <Box title={tab === 'needs' ? 'Preview' : 'Task'}>
+      <span className="faint">{tab === 'needs' ? 'Click an item or press ⏎ to see it here; ⏎ again or a double-click opens it.' : 'Select a task with j / k or a click.'}</span>
     </Box>
   )
 }
@@ -242,11 +255,11 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
   const order = groups.flatMap((g) => g.lines.filter((l) => !l.header).map((l) => l.task.id))
   const threads = needs.filter((n) => n.kind === 'reply needed')
 
-  // A task opens in the panel on the right; a PR (or its thread) opens in the GitHub pane.
-  const openNeed = (n: NeedItem) => {
-    if (n.task) setPeekTask(n.task.id)
-    else if (n.pr) openInPane(n.conversation?.messages.at(-1)?.url || n.pr.url)
-  }
+  // A click or ⏎ shows an item in the sidebar; ⏎ again on the same item, a double-click or the sidebar's open button opens it.
+  const peekNeed = useStore((st) => st.peekNeed)
+  const setPeekNeed = useStore((st) => st.setPeekNeed)
+  const previewNeed = (n: NeedItem) => setPeekNeed(n.key)
+  const openNeed = (n: NeedItem) => openNeedItem(n, snapshot)
 
   useKeyTarget(
     {
@@ -262,7 +275,7 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
       open: () => {
         if (pane === 'needs') {
           const n = needs[needIdx]
-          if (n) openNeed(n)
+          if (n) (peekNeed === n.key ? openNeed : previewNeed)(n)
           return
         }
         const t = snapshot?.tasks.find((x) => x.id === peekTask)
@@ -308,7 +321,14 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
       <Box title={`Needs you (${needs.length})`} active>
         {needs.length === 0 && <span className="faint">Nothing waiting on you.</span>}
         {needs.map((n, i) => (
-          <div key={n.key} className={`need-row${i === needIdx ? ' sel' : ''}`} role="button" tabIndex={-1} onClick={() => (setNeedIdx(i), openNeed(n))}>
+          <div
+            key={n.key}
+            className={`need-row${i === needIdx ? ' sel' : ''}${peekNeed === n.key ? ' shown' : ''}`}
+            role="button"
+            tabIndex={-1}
+            onClick={() => (setNeedIdx(i), previewNeed(n))}
+            onDoubleClick={() => openNeed(n)}
+          >
             <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
             <span className="need-ref">{n.ref}</span>
             <span className="need-text">{n.text}</span>
@@ -404,7 +424,12 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
           {threads.slice(0, 6).map((n) => {
             const last = n.conversation!.messages.at(-1)!
             return (
-              <button key={n.key} className="thread" onClick={() => openNeed(n)}>
+              <button
+                key={n.key}
+                className={`thread${peekNeed === n.key ? ' shown' : ''}`}
+                onClick={() => (setNeedIdx(needs.indexOf(n)), previewNeed(n))}
+                onDoubleClick={() => openNeed(n)}
+              >
                 <span className="thread-head">
                   <span className="warn-text">reply</span>
                   <span className="need-ref">{n.ref}</span>

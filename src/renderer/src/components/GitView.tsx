@@ -69,6 +69,27 @@ function useFocus(): string | null {
   return focusPr
 }
 
+/**
+ * Opens the conversation in the GitHub pane and fills its reply box: with Claude's text, or empty for writing by
+ * hand. GitHub's own Comment button posts it.
+ */
+export async function replyInPane(p: Pr, c: Conversation, withClaude: boolean): Promise<void> {
+  const last = lastMessage(c)!
+  const url = last.url || p.url
+  const st = useStore.getState()
+  st.setSelPr(p.id)
+  openInPane(url)
+  if (!withClaude) return void window.workbench.pane.fill(url, '')
+  st.setPaneNote('Claude is drafting a reply…')
+  try {
+    const text = await window.workbench.git.compose(draftTarget(p, c), '')
+    const filled = await window.workbench.pane.fill(url, text)
+    st.setPaneNote(filled ? "Claude's draft is in GitHub's reply box. Edit it and press Comment to post." : "Couldn't find the reply box; the draft is on the clipboard. Paste it into the thread's reply box.")
+  } catch (e) {
+    st.setPaneNote(`Drafting failed: ${(e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`)
+  }
+}
+
 /** A row click: the PR in the pane, selected; ⌘-click opens the browser. */
 function openRow(p: Pick<Pr, 'id' | 'url'>, external: boolean): void {
   if (external) return void window.workbench.openExternal(p.url)
@@ -257,22 +278,10 @@ function PrRow({ p, git, tasks, focused, selected }: { p: Pr; git: GitSnapshot; 
   const talk = open.length ? 'reply needed' : latest ? (lastMessage(latest)?.author === git.viewer ? 'replied' : 'seen') : ''
 
   const [drafting, setDrafting] = useState<string | null>(null)
-  /** Claude's text (or nothing, for writing by hand) goes into GitHub's own reply box in the pane; GitHub's Comment button posts it. */
   const reply = async (c: Conversation, withClaude: boolean) => {
-    const last = lastMessage(c)!
-    const url = last.url || p.url
-    const st = useStore.getState()
-    st.setSelPr(p.id)
-    openInPane(url)
-    if (!withClaude) return void window.workbench.pane.fill(url, '')
     setDrafting(c.key)
-    st.setPaneNote('Claude is drafting a reply…')
     try {
-      const text = await window.workbench.git.compose(draftTarget(p, c), '')
-      const filled = await window.workbench.pane.fill(url, text)
-      st.setPaneNote(filled ? "Claude's draft is in GitHub's reply box. Edit it and press Comment to post." : "Couldn't find the reply box; the draft is on the clipboard. Paste it into the thread's reply box.")
-    } catch (e) {
-      st.setPaneNote(`Drafting failed: ${(e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`)
+      await replyInPane(p, c, withClaude)
     } finally {
       setDrafting(null)
     }

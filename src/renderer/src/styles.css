@@ -750,3 +750,8 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .need-row.asleep:hover { background: transparent; }
 /* Room after the last tab, so it can scroll clear of the right-edge fade. */
 .tabs::after { content: ''; flex: 0 0 40px; height: 1px; }
+
+/* Needs you: the item shown in the sidebar */
+.thread.shown { background: var(--raised); box-shadow: inset 2px 0 0 var(--accent); }
+.need-quote { -webkit-line-clamp: 8; margin: 2px 0 0; }
+.need-row.shown:not(.sel) { background: var(--raised); box-shadow: inset 2px 0 0 var(--accent); }

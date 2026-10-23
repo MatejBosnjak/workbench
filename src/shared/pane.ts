@@ -41,4 +41,5 @@ export function evictionOrder(live: { key: string; lastUsed: number }[]): string
   return [...live].sort((a, b) => a.lastUsed - b.lastUsed).map((v) => v.key)
 }
 
-export const POOL = 3
+/** Live GitHub views kept loaded; each is a full github.com page at roughly 80–90 MB. */
+export const POOL = 2

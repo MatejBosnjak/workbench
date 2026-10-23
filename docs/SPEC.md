@@ -348,7 +348,7 @@ Each phase must be usable daily before the next one starts.
 5. **v1.1.** Task workstream screen: milestone timeline, structure tree, Start work.
 6. **Run PR + lid closed.** Focus-PR detection, mismatch chip, ▶ Run app entry points, worktree / base-checkout run jobs with dirty guard and ↩ Back, Run alongside; Amphetamine-backed lid-closed caffeinate with its setup check.
 7. **TUI restyle.** Apply the visual style above across all screens: TopBar and StatusBar layout, the Today counters, the caffeinate cup button and popover, and the shortcuts popover.
-8. **GitHub pane.** In-app GitHub as described above: split pane with a strip, opening from rows and links, `productiveio` scope, a pool of 3 live views, a persistent login partition, reply-state rules, Claude drafts filled into GitHub's reply box, ⌘-only keys. Starts with the login and reply-box spike.
+8. **GitHub pane.** In-app GitHub as described above: split pane with a strip, opening from rows and links, `productiveio` scope, a pool of 2 live views (each loaded page costs about 85 MB), a persistent login partition, reply-state rules, Claude drafts filled into GitHub's reply box, ⌘-only keys. Starts with the login and reply-box spike.
 
 ## Packaging
 

@@ -61,7 +61,7 @@ Renderer (web UI)
   | State | Colour | Shown when |
   |---|---|---|
   | running | blue `--info` | a prompt was submitted and no Stop has arrived |
-  | waiting for you | purple `--accent` | a Notification arrived, e.g. a permission prompt or idle input |
+  | waiting for you | amber `--warn` | a Notification arrived, e.g. a permission prompt or idle input |
   | failed | red `--bad` | the process exited non-zero |
   | idle | grey `--faint` | the session is stopped |
 
@@ -288,7 +288,7 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
 - **TopBar.** A separate 56px bar with the chrome background, a 2px accent line along the bottom and a shadow over the content. All items are boxed segments with no wrapping; long session names are truncated.
   - Left to right: `▌wb`, then the fixed places `1 Today` and `2 Local 6/8`, a divider, the session tabs `3…n`, and on the right the caffeinate cup and ⌘K.
   - The current screen is filled with the accent colour.
-  - Session tabs have no state dot. Every tab carries its state colour as a bar along its bottom edge: 2px at 45% strength on unfocused tabs, so they stay quiet, and 3px at full strength on the current session. The current session is also outlined in the accent colour with bold text, so focus never depends on the state colour. Hovering a tab shows its state as a tooltip.
+  - Session tabs have no state dot. Every tab carries its state colour as a bar along its bottom edge: 2px at 45% strength on unfocused tabs, so they stay quiet, and 3px at full strength on the current session. The current session is also outlined in the accent colour with bold text, so focus never depends on the state colour. Purple is reserved for focus; no state uses it, so a session waiting for you never looks like the current one. Hovering a tab shows its state as a tooltip.
   - **Overflow.** The session tabs take the free width between the divider and the cup and never wrap or shrink below their width. When they don't fit, the strip scrolls horizontally with no visible scrollbar:
     - Hovering within 56px of either edge scrolls that way, faster the closer the pointer is to the edge. It stops at the end of the strip.
     - In an edge zone the cursor is `w-resize` / `e-resize`, but only while there is more to scroll that way; otherwise it's the normal pointer.

@@ -142,7 +142,7 @@ Keeps the Mac awake while sessions run.
 
 ### Today › My git and My reviews
 
-- **Source.** `gh api graphql` every 2 minutes. It fetches my open PRs (review decision, CI rollup, mergeable state, draft flag, head branch), review requests, review threads and comments.
+- **Source.** `gh api graphql` every 2 minutes. It fetches my open PRs (review decision, CI rollup, mergeable state, draft flag, head branch), review requests made to me directly (`user-review-requested:@me`; requests to a team I'm in, like platform, don't count), review threads and comments.
 - **Needs reply.** A thread or review needs a reply when its last message isn't mine and I haven't marked it seen. Seen state is stored locally. A conversation is an unresolved review thread, or the PR's own conversation (comments plus review bodies). Bots and bare approvals don't count as messages.
   - Those rows get an orange edge and a quoted excerpt.
   - Each has "Draft reply with Claude", "Open on GitHub" and "Mark as seen".

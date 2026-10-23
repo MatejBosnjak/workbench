@@ -31,7 +31,7 @@ query {
       reviews(last: 15) { nodes { id ${ACTOR} state submittedAt body url reactionGroups { viewerHasReacted } } }
     } }
   }
-  requested: search(query: "is:pr is:open review-requested:@me archived:false", type: ISSUE, first: 50) {
+  requested: search(query: "is:pr is:open user-review-requested:@me archived:false", type: ISSUE, first: 50) {
     nodes { ... on PullRequest { ${PR_FIELDS} } }
   }
   reviewed: search(query: "is:pr is:open reviewed-by:@me -author:@me archived:false", type: ISSUE, first: 30) {

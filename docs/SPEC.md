@@ -270,7 +270,7 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
   - The selected row is filled with the accent colour, with text in `--on-accent`.
   - Status is a coloured `●` for started statuses or `○` for not-started ones.
   - Subtasks are indented with `└`, a milestone row starts with `◆`, and bug priority is shown as `!` or `!!`.
-- **Counters.** A row of five boxed counters sits under the TopBar on Today. Each has a 38px number and a one-line breakdown:
+- **Counters.** A row of five boxed counters sits under the TopBar on Today. Each has a 38px number with its breakdown beside it, not under it, in a smaller faint 12px. The breakdown is centred on the number and may wrap only between its `·` parts, never inside one:
 
   | Counter | Breakdown |
   |---|---|

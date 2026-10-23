@@ -5,7 +5,7 @@ import type { DirtyGuard, RunPrSnapshot } from './runpr'
 import type { MemorySnapshot } from './memory'
 import type { PaneState } from './pane'
 import type { LocalSnapshot, Worktree } from './local'
-import type { TaskDetail, TasksSnapshot } from './tasks'
+import type { Person, TaskDetail, TasksSnapshot } from './tasks'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -157,6 +157,10 @@ export interface WorkbenchApi {
     setStatus(taskId: string, statusId: string): Promise<TaskDetail | null>
     /** Ticks or unticks a to-do after a native confirm. Null when cancelled. */
     setTodo(taskId: string, todoId: string, closed: boolean): Promise<TaskDetail | null>
+    /** Active users, for tagging. */
+    people(): Promise<Person[]>
+    /** Posts a comment after a native confirm that shows the text and who gets tagged. Null when cancelled. */
+    comment(taskId: string, text: string, tagged: Person[]): Promise<TaskDetail | null>
   }
   git: {
     snapshot(): Promise<GitSnapshot>

@@ -1,6 +1,6 @@
-import type { Task, TaskDetail, WorkflowStatus } from '@shared/tasks'
+import { mentionToken, readMentions, type Person, type Task, type TaskDetail, type WorkflowStatus } from '@shared/tasks'
 import type { Repo } from '../store/repo'
-import { encodeParams, htmlText, Productive, type JsonApiResource } from './client'
+import { commentHtml, encodeParams, htmlText, Productive, type JsonApiResource } from './client'
 
 interface Account {
   orgId: string
@@ -76,7 +76,11 @@ export class TasksPoller {
 
   async detail(taskId: string): Promise<TaskDetail> {
     const { api, orgSlug } = await this.client()
-    const { data, included } = await api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status.workflow,parent_task,todos'])
+    const [{ data, included }, comments] = await Promise.all([
+      api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status.workflow,parent_task,todos']),
+      api.getAll('/comments', [`filter%5Btask_id%5D=${taskId}`, 'sort=created_at', 'include=creator']),
+    ])
+    const names = new Map(comments.included.filter((i) => i.type === 'people').map((p) => [p.id, personName(p)]))
     const status = included.find((i) => i.type === 'workflow_statuses')
     const workflowId = status?.relationships?.workflow?.data?.id
     if (workflowId && !this.statuses.has(workflowId)) {
@@ -90,14 +94,41 @@ export class TasksPoller {
     }
     return {
       task: taskMapper(included, orgSlug)(data, false),
-      description: htmlText(String(data.attributes.description ?? '')),
+      description: readMentions(htmlText(String(data.attributes.description ?? ''))).body,
       statusId: status?.id ?? '',
       statuses: (workflowId && this.statuses.get(workflowId)) || [],
       todos: included
         .filter((i) => i.type === 'todos')
         .sort((a, b) => Number(a.attributes.position ?? 0) - Number(b.attributes.position ?? 0))
-        .map((t) => ({ id: t.id, text: String(t.attributes.description ?? ''), closed: !!t.attributes.closed })),
+        .map((t) => ({ id: t.id, text: readMentions(String(t.attributes.description ?? '')).body, closed: !!t.attributes.closed })),
+      comments: comments.data
+        .filter((c) => String(c.attributes.body ?? '').trim())
+        .map((c) => ({
+          id: c.id,
+          author: names.get(c.relationships?.creator?.data?.id ?? '') ?? 'Someone',
+          at: String(c.attributes.created_at ?? ''),
+          ...readMentions(htmlText(String(c.attributes.body ?? ''))),
+        })),
     }
+  }
+
+  private peopleCache: Person[] | null = null
+
+  /** Active users in the org, for tagging; loaded once per run. */
+  async people(): Promise<Person[]> {
+    if (this.peopleCache) return this.peopleCache
+    const { api } = await this.client()
+    const { data } = await api.getAll('/people', encodeParams('filter', { status: 1, person_type: 1 }))
+    this.peopleCache = data.map((p) => ({ id: p.id, name: personName(p), avatarUrl: (p.attributes.avatar_url as string | null) ?? null })).sort((a, b) => a.name.localeCompare(b.name))
+    return this.peopleCache
+  }
+
+  /** Posts a comment; each tagged person's @Name becomes Productive's tag token, which notifies them. */
+  async comment(taskId: string, text: string, tagged: Person[]): Promise<void> {
+    const { api } = await this.client()
+    let body = commentHtml(text)
+    for (const p of tagged) body = body.replaceAll(`@${escapeHtml(p.name)}`, mentionToken(p))
+    await api.post('/comments', { data: { type: 'comments', attributes: { body }, relationships: { task: { data: { type: 'tasks', id: taskId } } } } })
   }
 
   async setStatus(taskId: string, statusId: string): Promise<void> {
@@ -134,6 +165,9 @@ export class TasksPoller {
     return account
   }
 }
+
+const personName = (p: JsonApiResource) => `${String(p.attributes.first_name ?? '').trim()} ${String(p.attributes.last_name ?? '').trim()}`.trim()
+const escapeHtml = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 
 /** Maps a JSON:API task (with its included project, list and status) to a Task. */
 export function taskMapper(included: JsonApiResource[], orgSlug: string): (t: JsonApiResource, context: boolean) => Task {

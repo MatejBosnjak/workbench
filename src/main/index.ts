@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
+import type { Person } from '@shared/tasks'
 import type { HooksStatus, MenuCommand, NavigateTarget } from '@shared/types'
 import { Caffeinate } from './caffeinate'
 import { headlessPids, killHeadless } from './claude'
@@ -421,6 +422,14 @@ void app.whenReady().then(() => {
     await tasks.setStatus(taskId, statusId)
     return tasks.detail(taskId)
   })
+  ipcMain.handle('tasks:people', () => tasks.people())
+  ipcMain.handle('tasks:comment', async (_e, taskId: string, text: string, tagged: Person[]) => {
+    const d = await tasks.detail(taskId)
+    const who = tagged.length ? `\n\nTags (notified): ${tagged.map((p) => p.name).join(', ')}` : ''
+    if (!text.trim() || !(await askProductive('Post this Productive comment?', `To: ${d.task.title}${who}\n\n${text.trim()}`))) return null
+    await tasks.comment(taskId, text.trim(), tagged)
+    return tasks.detail(taskId)
+  })
   ipcMain.handle('tasks:setTodo', async (_e, taskId: string, todoId: string, closed: boolean) => {
     const d = await tasks.detail(taskId)
     const todo = d.todos.find((t) => t.id === todoId)
@@ -439,10 +448,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('pane:close-idle', () => pane.closeIdle())
   ipcMain.handle('memory:snapshot', () => memory.snapshot())
   ipcMain.handle('memory:watch', (_e, on: boolean) => memory.watch(on))
-  ipcMain.handle('drafts:compose', (_e, target: DraftTarget, instruction: string) => {
-    if (target.kind === 'productive') throw new Error('Productive comments use the draft panel')
-    return drafts.compose(target, instruction)
-  })
+  ipcMain.handle('drafts:compose', (_e, target: DraftTarget, instruction: string) => drafts.compose(target, instruction))
   ipcMain.handle('git:snapshot', () => gitSnapshot())
   ipcMain.handle('git:refresh', () => git.refresh())
   ipcMain.handle('git:seen', (_e, key: string, messageId: string) => {

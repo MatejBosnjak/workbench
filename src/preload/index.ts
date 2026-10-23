@@ -48,6 +48,8 @@ const api: WorkbenchApi = {
     detail: (taskId) => ipcRenderer.invoke('tasks:detail', taskId),
     setStatus: (taskId, statusId) => ipcRenderer.invoke('tasks:setStatus', taskId, statusId),
     setTodo: (taskId, todoId, closed) => ipcRenderer.invoke('tasks:setTodo', taskId, todoId, closed),
+    people: () => ipcRenderer.invoke('tasks:people'),
+    comment: (taskId, text, tagged) => ipcRenderer.invoke('tasks:comment', taskId, text, tagged),
   },
   git: {
     snapshot: () => ipcRenderer.invoke('git:snapshot'),

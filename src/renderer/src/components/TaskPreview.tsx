@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { prRef } from '@shared/git'
 import { FE_REPO } from '@shared/runpr'
-import type { Task, TaskLink, TasksSnapshot } from '@shared/tasks'
+import { statusColors, type Task, type TaskLink, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { openPrLink, openWorkstream, useStore, type View } from '../store'
 import { Box } from './Box'
-import { RunAppButton, runPr } from './RunPr'
+import { RunAppButton } from './RunPr'
 import { StatusSelect } from './TaskDetails'
 import { ago, dueLabel } from './TodayView'
 import { useShallow } from 'zustand/react/shallow'
@@ -52,9 +52,8 @@ const when = (ms: number) => {
 }
 
 export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
-  const { sessions, show, git, setDraft } = useStore(useShallow((s) => ({ sessions: s.sessions, show: s.show, git: s.git, setDraft: s.setDraft })))
+  const { sessions, show, git } = useStore(useShallow((s) => ({ sessions: s.sessions, show: s.show, git: s.git })))
   const prs = [...(git?.mine ?? []), ...(git?.reviews ?? [])].filter((p) => p.taskRefs.includes(task.id))
-  const fePr = prs.find((p) => p.repo === FE_REPO)
   const [busy, setBusy] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [linking, setLinking] = useState(false)
@@ -77,34 +76,34 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
       setBusy(false)
     }
   }
-  const comment = () => {
-    const target = { kind: 'productive' as const, key: `task:${task.id}`, taskId: task.id, title: task.title }
-    setDraft(target)
-    void window.workbench.git.openDraft(target)
-  }
 
   return (
-    <Box title="Task" className="peek" aside={<button className="icon-btn" aria-label="Close task" onClick={onClose}>×</button>}>
-      <StatusSelect task={task} />
+    <Box title={`${task.projectName}${task.taskListName ? ` › ${task.taskListName}` : ''}`} className="peek" aside={<button className="icon-btn" aria-label="Close task" onClick={onClose}>×</button>}>
       {parent && (
         <button className="peek-parent" title="Open workstream" onClick={() => openWorkstream(task.id)}>
           {parent.milestone ? '◆' : '◇'} {parent.title}
         </button>
       )}
-      <h2 className="peek-title">{task.title}</h2>
+      <div className="peek-head">
+        <h2 className="peek-title">
+          <a href={task.url} title="Open in Productive" style={{ textDecorationColor: statusColors({ colorId: task.statusColorId })[1] }} onClick={(e) => (e.preventDefault(), void window.workbench.openExternal(task.url))}>
+            {task.title}
+          </a>
+        </h2>
+        <StatusSelect task={task} />
+      </div>
 
-      <div className="kv">
-        <span className="k">where</span>
+      <div className="peek-facts">
         <span>
-          {task.projectName}
-          {task.taskListName ? ` › ${task.taskListName}` : ''}
+          <span className="k">due </span>
+          <span className={due?.late ? 'bad-text' : ''}>{due?.text ?? '—'}</span>
         </span>
-        <span className="k">due</span>
-        <span className={due?.late ? 'bad-text' : ''}>{due?.text ?? '—'}</span>
-        <span className="k">active</span>
-        <span>{ago(task.lastActivityAt)}</span>
-        <span className="k">links</span>
+        <span>
+          <span className="k">active </span>
+          {ago(task.lastActivityAt)}
+        </span>
         <span className="peek-prs">
+          <span className="k">links</span>
           {prs.length === 0 && <span className="faint">no PRs</span>}
           {prs.map((p) => (
             <span key={p.id} className="peek-pr">
@@ -125,6 +124,9 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
         sessions ({links.length})
         <button className="link-btn" onClick={() => setLinking(!linking)} disabled={!linkable.length}>
           link…
+        </button>
+        <button className="square-btn" aria-label={primary.label} title={`⏎ ${primary.label}`} onClick={() => void primary.run()}>
+          ⏎
         </button>
       </div>
       {linking && (
@@ -180,27 +182,6 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
         </>
       )}
 
-      <div className="peek-actions">
-        <button className="key-btn primary-key" onClick={() => void primary.run()}>
-          ⏎ {primary.label}
-        </button>
-        {fePr && (
-          <button className="key-btn" onClick={() => void runPr(fePr.number)}>
-            r run app
-          </button>
-        )}
-      </div>
-      <div className="peek-links">
-        <button className="link-btn" onClick={() => openWorkstream(task.id)}>
-          workstream
-        </button>
-        <button className="link-btn" onClick={comment}>
-          comment…
-        </button>
-        <button className="link-btn" onClick={() => void window.workbench.openExternal(task.url)}>
-          open in Productive
-        </button>
-      </div>
     </Box>
   )
 }

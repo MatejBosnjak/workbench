@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupByStatus, groupTasks, statusCounts, taskIdsFromName, taskIdsFromText, type Task } from './tasks'
+import { groupByStatus, groupTasks, mentionToken, readMentions, statusCounts, taskIdsFromName, taskIdsFromText, type Task } from './tasks'
 
 let n = 0
 const task = (p: Partial<Task>): Task => ({
@@ -97,5 +97,13 @@ describe('statuses', () => {
       ['b', 0],
       ['a', 0],
     ])
+  })
+})
+
+describe('mentions', () => {
+  it('reads Productive tags as @Name and round-trips its own tokens', () => {
+    const stored = '@[{"type":"person","id":"168022","label":"Tibor Rogulja","avatar_url":null,"attachment_url":null,"is_done":false}] pogledaj, i ti ' + mentionToken({ id: '1', name: 'Ana Ban', avatarUrl: null })
+    expect(readMentions(stored)).toEqual({ body: '@Tibor Rogulja pogledaj, i ti @Ana Ban', mentions: ['Tibor Rogulja', 'Ana Ban'] })
+    expect(readMentions('vidi @[{"type":"attachment","id":"5","label":"a.png","avatar_url":null,"attachment_url":"https://files.productive.io/a.png","is_done":false}]').body).toBe('vidi https://files.productive.io/a.png')
   })
 })

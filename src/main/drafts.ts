@@ -61,12 +61,12 @@ export class Drafts {
     this.changed()
   }
 
-  /** Claude's text for a GitHub conversation, for the pane to fill into its reply box. */
-  async compose(target: Extract<DraftTarget, { kind: 'gh-thread' | 'gh-pr' }>, instruction: string): Promise<string> {
+  /** Claude's text for a target, for the caller to put in its own box: GitHub's reply box in the pane, the task's comment box. */
+  async compose(target: DraftTarget, instruction: string): Promise<string> {
     if (this.busy.has(target.key)) throw new Error('Already drafting this reply')
     this.busy.add(target.key)
     try {
-      const { prompt, cwd, tools } = await this.githubPrompt(target, instruction)
+      const { prompt, cwd, tools } = target.kind === 'productive' ? await this.productivePrompt(target, instruction) : await this.githubPrompt(target, instruction)
       return await runHeadless(prompt, draftRun(cwd, tools))
     } finally {
       this.busy.delete(target.key)

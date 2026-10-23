@@ -170,6 +170,21 @@ export interface Todo {
   closed: boolean
 }
 
+export interface Person {
+  id: string
+  name: string
+  avatarUrl: string | null
+}
+
+export interface TaskComment {
+  id: string
+  author: string
+  at: string
+  /** Plain text; a tag reads as @Name and its name is in `mentions`. */
+  body: string
+  mentions: string[]
+}
+
 export interface TaskDetail {
   task: Task
   /** Plain text; Productive stores HTML. */
@@ -178,6 +193,32 @@ export interface TaskDetail {
   /** The task's workflow, in board order. */
   statuses: WorkflowStatus[]
   todos: Todo[]
+  /** Oldest first. */
+  comments: TaskComment[]
+}
+
+const MENTION = /@\[(\{[^\]]*?\})\]/g
+
+/** Productive's stored text → plain text with @Name for each tag (and the tagged names); an attached file reads as its URL. */
+export function readMentions(text: string): { body: string; mentions: string[] } {
+  const mentions: string[] = []
+  const body = text.replace(MENTION, (m, json: string) => {
+    try {
+      const t = JSON.parse(json) as { type?: string; label?: string; attachment_url?: string | null }
+      if (t.type === 'attachment') return t.attachment_url ?? `[${t.label ?? 'file'}]`
+      const label = String(t.label ?? '')
+      mentions.push(label)
+      return `@${label}`
+    } catch {
+      return m
+    }
+  })
+  return { body, mentions }
+}
+
+/** The inline token Productive stores for a tag. */
+export function mentionToken(p: Person): string {
+  return `@[${JSON.stringify({ type: 'person', id: p.id, label: p.name, avatar_url: p.avatarUrl, attachment_url: null, is_done: false })}]`
 }
 
 /**

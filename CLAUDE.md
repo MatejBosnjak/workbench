@@ -14,7 +14,9 @@ Personal Electron desktop app for working with Claude Code. Read these first:
 | `Services.dc.html` | Local services: split panes and the worktree switcher |
 | `Focus.dc.html` | session view and ⌘K |
 | `Task.dc.html` | Task workstream screen (v1.1) |
-| `CaffeinateLid.dc.html` | caffeinate icon options; variant 4h is chosen |
+| `CaffeinateLid.dc.html` | earlier caffeinate icon exploration (superseded by CaffeinateButton) |
+| `StyleTui.dc.html` | **the visual style to follow** (TUI, direction 1b): taskbar, counters, panels, status bar |
+| `CaffeinateButton.dc.html` | caffeinate cup button states and its popover |
 | `RunPR.dc.html` | Run PR in app: chip states, ▶ Run app entry points, run panels, dirty guard |
 
 ## Working rules

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Caffeinate button</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#000}.steam path{animation:steam 2.6s ease-in-out infinite;transform-box:fill-box}
+.steam path:nth-child(2){animation-delay:.9s}
+@keyframes steam{0%{opacity:0;transform:translateY(2px)}40%{opacity:.9}100%{opacity:0;transform:translateY(-3px)}}
+.kb{position:relative}.kb .kbpop{display:none}.kb:hover .kbpop,.kb:focus-within .kbpop{display:flex}
+@media (prefers-reduced-motion: reduce){.steam path{animation:none}}
+.cafb{position:relative}.cafb .cafpop{display:none}.cafb:focus-within .cafpop,.cafb.open .cafpop{display:flex}</style>
+</helmet>
+<div style="--bg:#0E0D12;--chrome:#14131A;--panel:#121117;--card:#17161D;--raised:#1E1C26;--popover:#1A1921;--line-soft:#1E1C25;--line:#25232E;--line-strong:#2E2B39;--line-heavy:#3A3647;--text:#ECE8F2;--text-2:#CDC7D8;--text-3:#A69FB4;--muted:#8E879E;--faint:#6A647A;--accent:#A07EEA;--on-accent:#120E16;--accent-bg:#211A30;--accent-line:#4A3A72;--accent-ring:rgba(160,126,234,0.14);--warn:#E8B07A;--ok:#5FD0B0;--ok-bg:#10201D;--ok-line:#2C5A50;--ok-glow:rgba(95,208,176,0.2);--bad:#EE6F86;--bad-bg:#2A151D;--info:#6FC3E0;--info-bg:#16202C;--link:#8FD3EA;--link-hover:#C2E9F5;--link-line:#3E6475;--violet:#D3A6E8;--teal:#57C7CC;--prio-high:rgba(238,111,134,0.13);--prio-mid:rgba(232,176,122,0.09);--prio-low:rgba(166,159,180,0.06);--shadow:rgba(0,0,0,0.6);--scrim:rgba(6,5,10,0.58);--display:Orbitron, Inter, system-ui, sans-serif;--title-glow:0 0 10px rgba(160,126,234,0.22);--accent-shadow:0 0 10px rgba(160,126,234,0.25);--chrome-edge:0 1px 0 rgba(160,126,234,0.4);--bg-img:linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px); width: 1440px; height: 900px; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background:var(--bg);color:var(--text);height:640px">
+<div style="padding:40px 48px;display:flex;flex-direction:column;gap:18px;font-family:'JetBrains Mono', monospace;font-size:13px">
+<span style="font-size:20px;font-weight:700;color:var(--accent)">Caffeinate · taskbar button</span>
+<span style="color:var(--text-3);max-width:780px;line-height:1.6">Just the cup, at the right of the taskbar before ⌘K: a fixed 44px, so the session tabs keep their room. The cup and its glow show the state. Click it, or press c, to open the popover; o / a / l pick a state, Esc closes.</span>
+<div style="display:flex;gap:56px;align-items:flex-end;padding:18px 0 8px"><div style="display:flex;flex-direction:column;align-items:center;gap:10px"><span class="cafb" tabindex="0" role="button" aria-haspopup="dialog" aria-label="Caffeinate: Off" title="Caffeinate: Off (c)" style="width:44px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line-heavy);background:transparent;cursor:pointer"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsoff" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsoff" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#2A2733"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#232029"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#4A4558" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="#3A3646"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#4A4558" stroke-width="1.1"/>
+
+</svg><span class="cafpop" role="dialog" aria-label="Caffeinate" style="position:absolute;right:0;top:48px;z-index:5;width:300px;flex-direction:column;padding:8px;background:var(--popover);border:1px solid var(--line-heavy);box-shadow:0 18px 44px var(--shadow);font-family:'JetBrains Mono', monospace;font-size:12.5px;text-align:left"><span style="padding:4px 10px 8px;color:var(--text);font-weight:700">Caffeinate <span style="color:var(--faint);font-weight:400">· c</span></span><span role="radio" aria-checked="true" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;background:var(--raised);box-shadow:inset 2px 0 0 var(--text-2)"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsoffpoff" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsoffpoff" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#2A2733"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#232029"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#4A4558" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="#3A3646"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#4A4558" stroke-width="1.1"/>
+
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text-2);font-weight:700">Off</span><span style="color:var(--text-3);font-size:11.5px">The Mac sleeps as usual</span></span><span style="color:var(--faint);font-size:11px">o</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsoffpawake" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsoffpawake" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgsoffpawake)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofsoffpawake)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Awake</span><span style="color:var(--text-3);font-size:11.5px">While this session runs</span></span><span style="color:var(--faint);font-size:11px">a</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsoffplid" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsoffplid" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgsoffplid)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofsoffplid)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/><g><rect x="20.5" y="1.5" width="11" height="9" rx="2.5" fill="#0E1C24" stroke="#6FC3E0" stroke-width="1.2"/><rect x="22.5" y="4.6" width="7" height="1.8" rx=".6" fill="#6FC3E0"/><rect x="21.8" y="7" width="8.4" height="1.2" rx=".6" fill="#6FC3E0" opacity=".7"/></g>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Lid closed</span><span style="color:var(--text-3);font-size:11.5px">Keeps running with the lid shut · on power</span></span><span style="color:var(--faint);font-size:11px">l</span></span><span style="display:flex;align-items:center;gap:8px;padding:10px 10px 4px;border-top:1px solid var(--line-heavy);margin-top:4px;color:var(--text-3)">applies to<span style="margin-left:auto;display:flex;border:1px solid var(--line-heavy)"><span style="padding:3px 8px;background:var(--raised);color:var(--text)">this session</span><span style="padding:3px 8px;color:var(--faint)">all</span></span></span></span></span><span style="color:var(--text-3)">Off</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px"><span class="cafb" tabindex="0" role="button" aria-haspopup="dialog" aria-label="Caffeinate: Awake" title="Caffeinate: Awake (c)" style="width:44px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid #7A5232;background:#2A1C12;box-shadow:0 0 14px rgba(201,141,85,.35);cursor:pointer"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsawake" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsawake" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgsawake)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofsawake)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/>
+</svg><span class="cafpop" role="dialog" aria-label="Caffeinate" style="position:absolute;right:0;top:48px;z-index:5;width:300px;flex-direction:column;padding:8px;background:var(--popover);border:1px solid var(--line-heavy);box-shadow:0 18px 44px var(--shadow);font-family:'JetBrains Mono', monospace;font-size:12.5px;text-align:left"><span style="padding:4px 10px 8px;color:var(--text);font-weight:700">Caffeinate <span style="color:var(--faint);font-weight:400">· c</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsawakepoff" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsawakepoff" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#2A2733"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#232029"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#4A4558" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="#3A3646"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#4A4558" stroke-width="1.1"/>
+
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Off</span><span style="color:var(--text-3);font-size:11.5px">The Mac sleeps as usual</span></span><span style="color:var(--faint);font-size:11px">o</span></span><span role="radio" aria-checked="true" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;background:#2A1C12;box-shadow:inset 2px 0 0 #C98D55"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsawakepawake" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsawakepawake" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgsawakepawake)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofsawakepawake)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:#C98D55;font-weight:700">Awake</span><span style="color:var(--text-3);font-size:11.5px">While this session runs</span></span><span style="color:var(--faint);font-size:11px">a</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgsawakeplid" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofsawakeplid" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgsawakeplid)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofsawakeplid)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/><g><rect x="20.5" y="1.5" width="11" height="9" rx="2.5" fill="#0E1C24" stroke="#6FC3E0" stroke-width="1.2"/><rect x="22.5" y="4.6" width="7" height="1.8" rx=".6" fill="#6FC3E0"/><rect x="21.8" y="7" width="8.4" height="1.2" rx=".6" fill="#6FC3E0" opacity=".7"/></g>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Lid closed</span><span style="color:var(--text-3);font-size:11.5px">Keeps running with the lid shut · on power</span></span><span style="color:var(--faint);font-size:11px">l</span></span><span style="display:flex;align-items:center;gap:8px;padding:10px 10px 4px;border-top:1px solid var(--line-heavy);margin-top:4px;color:var(--text-3)">applies to<span style="margin-left:auto;display:flex;border:1px solid var(--line-heavy)"><span style="padding:3px 8px;background:var(--raised);color:var(--text)">this session</span><span style="padding:3px 8px;color:var(--faint)">all</span></span></span></span></span><span style="color:var(--text-3)">Awake</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px"><span class="cafb" tabindex="0" role="button" aria-haspopup="dialog" aria-label="Caffeinate: Lid closed" title="Caffeinate: Lid closed (c)" style="width:44px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid #3E6475;background:#0E1C24;box-shadow:0 0 14px rgba(111,195,224,.35);cursor:pointer"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgslid" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofslid" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgslid)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofslid)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/><g><rect x="20.5" y="1.5" width="11" height="9" rx="2.5" fill="#0E1C24" stroke="#6FC3E0" stroke-width="1.2"/><rect x="22.5" y="4.6" width="7" height="1.8" rx=".6" fill="#6FC3E0"/><rect x="21.8" y="7" width="8.4" height="1.2" rx=".6" fill="#6FC3E0" opacity=".7"/></g>
+</svg><span class="cafpop" role="dialog" aria-label="Caffeinate" style="position:absolute;right:0;top:48px;z-index:5;width:300px;flex-direction:column;padding:8px;background:var(--popover);border:1px solid var(--line-heavy);box-shadow:0 18px 44px var(--shadow);font-family:'JetBrains Mono', monospace;font-size:12.5px;text-align:left"><span style="padding:4px 10px 8px;color:var(--text);font-weight:700">Caffeinate <span style="color:var(--faint);font-weight:400">· c</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgslidpoff" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofslidpoff" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#2A2733"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#232029"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#4A4558" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="#3A3646"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#4A4558" stroke-width="1.1"/>
+
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Off</span><span style="color:var(--text-3);font-size:11.5px">The Mac sleeps as usual</span></span><span style="color:var(--faint);font-size:11px">o</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgslidpawake" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofslidpawake" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgslidpawake)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofslidpawake)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Awake</span><span style="color:var(--text-3);font-size:11.5px">While this session runs</span></span><span style="color:var(--faint);font-size:11px">a</span></span><span role="radio" aria-checked="true" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;background:#0E1C24;box-shadow:inset 2px 0 0 #6FC3E0"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgslidplid" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofslidplid" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgslidplid)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofslidplid)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/><g><rect x="20.5" y="1.5" width="11" height="9" rx="2.5" fill="#0E1C24" stroke="#6FC3E0" stroke-width="1.2"/><rect x="22.5" y="4.6" width="7" height="1.8" rx=".6" fill="#6FC3E0"/><rect x="21.8" y="7" width="8.4" height="1.2" rx=".6" fill="#6FC3E0" opacity=".7"/></g>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:#6FC3E0;font-weight:700">Lid closed</span><span style="color:var(--text-3);font-size:11.5px">Keeps running with the lid shut · on power</span></span><span style="color:var(--faint);font-size:11px">l</span></span><span style="display:flex;align-items:center;gap:8px;padding:10px 10px 4px;border-top:1px solid var(--line-heavy);margin-top:4px;color:var(--text-3)">applies to<span style="margin-left:auto;display:flex;border:1px solid var(--line-heavy)"><span style="padding:3px 8px;background:var(--raised);color:var(--text)">this session</span><span style="padding:3px 8px;color:var(--faint)">all</span></span></span></span></span><span style="color:var(--text-3)">Lid closed</span></div></div>
+<div style="display:flex;flex-direction:column;gap:8px;padding-top:18px;border-top:1px solid var(--line-heavy)"><span style="color:var(--text-3)">Open</span><div style="position:relative;height:56px;display:flex;align-items:center;gap:6px;padding:0 14px;background:var(--chrome);border-bottom:2px solid var(--accent);width:720px">
+<span style="color:var(--text-3)">… session tabs</span><span style="margin-left:auto;display:flex;align-items:center;gap:10px"><span class="cafb open" tabindex="0" role="button" aria-haspopup="dialog" aria-label="Caffeinate: Awake" title="Caffeinate: Awake (c)" style="width:44px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid #7A5232;background:#2A1C12;box-shadow:0 0 14px rgba(201,141,85,.35);cursor:pointer"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgm" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofm" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgm)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofm)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/>
+</svg><span class="cafpop" role="dialog" aria-label="Caffeinate" style="position:absolute;right:0;top:48px;z-index:5;width:300px;flex-direction:column;padding:8px;background:var(--popover);border:1px solid var(--line-heavy);box-shadow:0 18px 44px var(--shadow);font-family:'JetBrains Mono', monospace;font-size:12.5px;text-align:left"><span style="padding:4px 10px 8px;color:var(--text);font-weight:700">Caffeinate <span style="color:var(--faint);font-weight:400">· c</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgmpoff" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofmpoff" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#2A2733"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#232029"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#4A4558" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="#3A3646"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#4A4558" stroke-width="1.1"/>
+
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Off</span><span style="color:var(--text-3);font-size:11.5px">The Mac sleeps as usual</span></span><span style="color:var(--faint);font-size:11px">o</span></span><span role="radio" aria-checked="true" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;background:#2A1C12;box-shadow:inset 2px 0 0 #C98D55"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgmpawake" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofmpawake" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgmpawake)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofmpawake)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:#C98D55;font-weight:700">Awake</span><span style="color:var(--text-3);font-size:11.5px">While this session runs</span></span><span style="color:var(--faint);font-size:11px">a</span></span><span role="radio" aria-checked="false" style="display:grid;grid-template-columns:36px 1fr 18px;gap:12px;align-items:center;padding:8px 10px;"><svg width="30" height="30" viewBox="0 0 32 32" style="overflow:visible;flex-shrink:0" aria-hidden="true">
+<defs><linearGradient id="cupgmplid" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EDE6DC"/><stop offset="1" stop-color="#C9BFB2"/></linearGradient>
+<radialGradient id="cofmplid" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#8A5530"/><stop offset="1" stop-color="#3B2112"/></radialGradient></defs>
+<g class="steam" fill="none" stroke="#F4EEE6" stroke-width="1.6" stroke-linecap="round" opacity=".85"><path d="M12.5 3.5c-1.2 1.4 1.2 2.6 0 4.2"/><path d="M17 2.5c-1.2 1.4 1.2 2.6 0 4.2"/></g>
+<ellipse cx="15" cy="26.5" rx="12.5" ry="2.6" fill="#D9D1C6"/><ellipse cx="15" cy="26" rx="9" ry="1.6" fill="#BDB3A6"/>
+<path d="M22 15.2h1.6a3.2 3.2 0 0 1 0 6.4H21" fill="none" stroke="#E6DED3" stroke-width="2"/>
+<path d="M6.9 12.6h15.2v5.6a6 6 0 0 1-6 6h-3.2a6 6 0 0 1-6-6z" fill="url(#cupgmplid)"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="2" fill="none" stroke="#FFFFFF" stroke-width="1.1"/>
+<ellipse cx="14.5" cy="12.6" rx="7.6" ry="1.9" fill="url(#cofmplid)"/><ellipse cx="14.5" cy="12.4" rx="6.2" ry="1.3" fill="#C98D55" opacity=".55"/><g><rect x="20.5" y="1.5" width="11" height="9" rx="2.5" fill="#0E1C24" stroke="#6FC3E0" stroke-width="1.2"/><rect x="22.5" y="4.6" width="7" height="1.8" rx=".6" fill="#6FC3E0"/><rect x="21.8" y="7" width="8.4" height="1.2" rx=".6" fill="#6FC3E0" opacity=".7"/></g>
+</svg><span style="display:flex;flex-direction:column;gap:2px"><span style="color:var(--text);font-weight:700">Lid closed</span><span style="color:var(--text-3);font-size:11.5px">Keeps running with the lid shut · on power</span></span><span style="color:var(--faint);font-size:11px">l</span></span><span style="display:flex;align-items:center;gap:8px;padding:10px 10px 4px;border-top:1px solid var(--line-heavy);margin-top:4px;color:var(--text-3)">applies to<span style="margin-left:auto;display:flex;border:1px solid var(--line-heavy)"><span style="padding:3px 8px;background:var(--raised);color:var(--text)">this session</span><span style="padding:3px 8px;color:var(--faint)">all</span></span></span></span></span><span style="display:flex;align-items:center;height:40px;padding:0 12px;border:1px solid var(--line-heavy);color:var(--text-3)">⌘K</span></span></div></div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -33,6 +33,9 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 - **Lid-closed caffeinate** — driven by Amphetamine through AppleScript (`osascript`), with Power Protect and a one-time warning dismissal; only sessions Workbench started are ended; clamshell mode is the fallback without Amphetamine *(caffeinate can't prevent lid-close sleep on Apple Silicon; pmset disablesleep needs root and is unreliable)*
 - **Run PR in app** — each session gets a focus PR; when it differs from the branch `app` runs, a status-bar chip offers Run. ▶ Run app also sits on PR rows, the task preview and the terminal hover card. A found worktree is used as-is (match by branch, then upstream, then head commit); otherwise the base checkout `~/Productive/repos/frontend` gets fetch → checkout → `pnpm i` if the lockfile changed → package build → restart, with a dirty guard and ↩ Back. Never the read-only `work/repos/frontend`
 
+- **Visual style** — TUI (direction 1b): monospace, boxed panels, a separate accent-lined taskbar, big counters under it, shortcuts only in a ⌨ popover, and a fixed-width StatusBar with compact 48px meters
+- **Caffeinate placement** — a 44px realistic cup button in the TopBar with a popover (click or `c`); replaces the StatusBar ☕ menu
+
 ## Open / Deferred
 - **Lid-closed keep-awake on battery or without an external display** — verify what `caffeinate -s` actually allows
 - **Quiet hours** — none for now

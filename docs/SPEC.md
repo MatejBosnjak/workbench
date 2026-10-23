@@ -77,7 +77,10 @@ Renderer (web UI)
 
 Keeps the Mac awake while sessions run.
 
-- **Control.** A ☕ button in the StatusBar, next to the agent picker, opens a menu with three states and a scope (This session / All sessions):
+- **Control.** A cup button in the **TopBar**, right of the session tabs and before ⌘K (design: `docs/design/CaffeinateButton.dc.html`).
+  - It's a fixed 44px, so it never takes room from the tabs. The cup and the button's glow show the state.
+  - Click it, or press `c`, to open a popover with the three states, each with a one-line description and a key (`o` / `a` / `l`), plus an "applies to: this session / all" switch. Esc closes it.
+  - The states:
 
   | State | What it does |
   |---|---|
@@ -98,7 +101,11 @@ Keeps the Mac awake while sessions run.
   - **Power.** If power is unplugged, the mode falls back to Awake and sends a notification.
   - **To verify by hand:** that `enable closed display mode` really keeps the Mac running with the lid shut. Its dictionary notes mention the "Allow system to sleep when display is closed" preference, so the meaning could be inverted.
   - **Rejected:** `sudo pmset disablesleep 1`. It needs root, reports disagree on whether it works on Apple Silicon, and it disables sleep everywhere, battery included.
-- **Icon.** An espresso cup on a saucer (design variant 4h). Off is an outline cup. Awake is a filled cup with animated steam; the steam stops if Reduce Motion is on. Lid closed adds a small shut-laptop badge in the info colour.
+- **Icon.** A realistic espresso cup on a saucer: white porcelain, brown coffee with crema, steam rising.
+  - **Off:** an empty grey cup with no steam, and the button has no glow.
+  - **Awake:** coffee in the cup with animated steam, a warm coffee-coloured border and glow (`#C98D55`).
+  - **Lid closed:** the Awake cup plus a cyan shut-laptop badge, with a cyan border and glow (`#6FC3E0`).
+  - The steam stops if Reduce Motion is on.
 - **Tabs.** Caffeinated session tabs show the icon at 13px after the title.
 - **Lid closed availability.** The option is enabled on AC power when the Amphetamine setup check passes; no external display is needed. Without Amphetamine, it is enabled only in Apple's clamshell mode (AC power plus an external display).
 
@@ -215,15 +222,46 @@ One click runs the frontend PR you're working on or reviewing in the `app` servi
 - **Run panel.** The run shows as a job in Local and in a popover from the chip: each step with done, running, skipped or pending; a live log tail; Cancel; and Run alongside instead.
 - **Back.** After a base-checkout run, the chip offers "↩ Back to <previous>". It restores the branch, pops the stash and restarts `app`.
 
+### Visual style (TUI)
+
+The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.html` (direction "1b" on the design canvas).
+
+- **Type.** Everything is in JetBrains Mono at 12.5px, with tabular numbers.
+- **Panels.** Panels are 1px boxes with square corners. Each panel's title sits inside its top border; the active panel's border and title are in the accent colour.
+- **Rows.**
+  - The selected row is filled with the accent colour, with text in `--on-accent`.
+  - Status is a coloured `●` for started statuses or `○` for not-started ones.
+  - Subtasks are indented with `└`, a milestone row starts with `◆`, and bug priority is shown as `!` or `!!`.
+- **Counters.** A row of five boxed counters sits under the TopBar on Today. Each has a 38px number and a one-line breakdown:
+
+  | Counter | Breakdown |
+  |---|---|
+  | Needs you | e.g. 2 PRs · 1 thread · 1 task |
+  | My tasks | e.g. 7 working · 10 in review |
+  | My PRs | e.g. 3 need a reply · 13 drafts |
+  | Reviews | e.g. 11 bot PRs hidden |
+  | 5h limit | percentage, with the reset time |
+
+- **Keyboard.** The app is keyboard-first (j/k move, ⏎ open, tab next pane, r run app, s new session, / filter, g my git, v my reviews, 1–6 switch tab, c caffeinate). Shortcuts are not printed in the UI. A ⌨ icon at the left of the StatusBar shows them all in a popover on hover or focus.
+- **Theme.** Dusk tokens are unchanged; only the shapes and type change.
+
 ### Shell chrome
 
-- **TopBar.** Today and Local are fixed places in their own group, followed by the session tabs and ⌘K.
+- **TopBar.** A separate 56px bar with the chrome background, a 2px accent line along the bottom and a shadow over the content. All items are boxed segments with no wrapping; long session names are truncated.
+  - Left to right: `▌wb`, then the fixed places `1 Today` and `2 Local 6/8`, a divider, the session tabs `3…n`, and on the right the caffeinate cup and ⌘K.
+  - The current screen is filled with the accent colour.
+  - The current session is outlined in the accent colour with an underline, so it never looks like a second selection.
+  - Every tab keeps its state colour dot.
 - **⌘K.** Searches sessions, workstreams, PRs and Productive tasks, and runs a slash command in the current session (`/model` and `/effort` are refused there because they rewrite the global defaults; the picker covers them).
-- **StatusBar.** Always visible, showing:
-  - the active session's context, with `/compact` suggested at 60% or more and shown red at 75% or more
-  - the 5h limit and when it resets
-  - the week limit
-  - the model · effort · permissions picker
+- **StatusBar.** Always visible, 38px, with a chrome background and a 2px top border. Every cell has a fixed width, so a value or state change never moves anything. From left to right:
+  - the ⌨ shortcuts button
+  - the active session's name and duration
+  - **ctx**: a 48px bar plus the percentage. `/compact` is suggested at 60% or more, and the bar turns red at 75% or more.
+  - **5h**: a 48px bar, the percentage and `↻16:00`
+  - **wk**: a 48px bar and the percentage
+  - the model · effort · permissions picker, pushed to the right edge
+
+  Hovering a meter shows its full text.
 - **Theme.** v1 ships **Dusk** only: muted synthwave on a graphite base, with a purple accent. Colours are CSS variable tokens, so more themes can be added later; the design also explores Graphite, Midnight, Forest and Synthwave.
 
 ### Task workstream (v1.1)
@@ -260,6 +298,7 @@ Each phase must be usable daily before the next one starts.
 4. **My git / My reviews.** gh poller, needs-reply detection, notifications, drafts with confirm.
 5. **v1.1.** Task workstream screen: milestone timeline, structure tree, Start work.
 6. **Run PR + lid closed.** Focus-PR detection, mismatch chip, ▶ Run app entry points, worktree / base-checkout run jobs with dirty guard and ↩ Back, Run alongside; Amphetamine-backed lid-closed caffeinate with its setup check.
+7. **TUI restyle.** Apply the visual style above across all screens: TopBar and StatusBar layout, the Today counters, the caffeinate cup button and popover, and the shortcuts popover.
 
 ## Packaging
 

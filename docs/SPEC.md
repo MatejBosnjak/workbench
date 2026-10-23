@@ -58,14 +58,14 @@ Renderer (web UI)
 - **Statusline.** The configured statusline becomes a wrapper. It forwards the statusline JSON to the socket (`context_window.used_percentage`, `rate_limits.five_hour`, model, effort) and then runs the currently configured statusline command (`~/.claude/statusline-command.sh`), so terminal output stays exactly as it is now.
 - **Tab states:**
 
-  | State | Shown when |
-  |---|---|
-  | running | a prompt was submitted and no Stop has arrived |
-  | waiting for you | a Notification arrived, e.g. a permission prompt or idle input |
-  | failed | the process exited non-zero |
-  | idle | the session is stopped |
+  | State | Colour | Shown when |
+  |---|---|---|
+  | running | blue `--info` | a prompt was submitted and no Stop has arrived |
+  | waiting for you | purple `--accent` | a Notification arrived, e.g. a permission prompt or idle input |
+  | failed | red `--bad` | the process exited non-zero |
+  | idle | grey `--faint` | the session is stopped |
 
-  Tabs show the state as a coloured overline, and the open tab moves it to an underline.
+  Tabs show the state as a bar along their bottom edge (see TopBar under Shell chrome).
 - **External sessions.** Sessions started in a normal terminal report through the same hooks. They appear as read-only "external" tabs. "Take over" waits for the terminal copy to exit, then resumes the session inside Workbench.
 - **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR's row in My git or My reviews (GitHub when it's in neither), and ⌘-click opens GitHub. Hovering shows a card with the PR's state and CI status.
 - **Pickers.** The picker lives in the StatusBar (toolbar).
@@ -288,8 +288,14 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
 - **TopBar.** A separate 56px bar with the chrome background, a 2px accent line along the bottom and a shadow over the content. All items are boxed segments with no wrapping; long session names are truncated.
   - Left to right: `▌wb`, then the fixed places `1 Today` and `2 Local 6/8`, a divider, the session tabs `3…n`, and on the right the caffeinate cup and ⌘K.
   - The current screen is filled with the accent colour.
-  - The current session is outlined in the accent colour with an underline, so it never looks like a second selection.
-  - Every tab keeps its state colour dot.
+  - Session tabs have no state dot. Every tab carries its state colour as a bar along its bottom edge: 2px at 45% strength on unfocused tabs, so they stay quiet, and 3px at full strength on the current session. The current session is also outlined in the accent colour with bold text, so focus never depends on the state colour. Hovering a tab shows its state as a tooltip.
+  - **Overflow.** The session tabs take the free width between the divider and the cup and never wrap or shrink below their width. When they don't fit, the strip scrolls horizontally with no visible scrollbar:
+    - Hovering within 56px of either edge scrolls that way, faster the closer the pointer is to the edge. It stops at the end of the strip.
+    - In an edge zone the cursor is `w-resize` / `e-resize`, but only while there is more to scroll that way; otherwise it's the normal pointer.
+    - Edge hover never blocks clicks. The strip tracks the pointer itself rather than laying a zone over the tabs, so a click in an edge zone still selects the tab under it.
+    - A vertical mouse wheel over the strip scrolls it sideways.
+    - An edge fades out while there are tabs beyond it.
+    - A `+N ▾` chip after the strip counts the tabs fully or partly out of view, and is hidden when none are.
 - **⌘K.** Searches sessions, workstreams, PRs and Productive tasks, and runs a slash command in the current session (`/model` and `/effort` are refused there because they rewrite the global defaults; the picker covers them).
 - **StatusBar.** Always visible, 38px, with a chrome background and a 2px top border. Every cell has a fixed width, so a value or state change never moves anything.
   - **Left:** the ⌨ shortcuts button, then the active session's name and duration.

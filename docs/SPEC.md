@@ -142,6 +142,7 @@ Keeps the Mac awake while sessions run.
   - My git: Needs you, Ready to merge, Waiting on reviewers, Drafts. Filter by repo or "Reply needed", with a Hide drafts toggle.
   - My reviews: Changes requested, New this week, Waiting longer. Filter by repo; bots are hidden by default. PRs where my latest review asked for changes stay listed under Changes requested.
 - **Drafts.** "Draft reply with Claude" runs a headless `claude -p --model sonnet` with the thread as context (read-only tools, in my checkout of the PR's branch when there is one) and puts the result in an editable draft. Sending goes through a native confirm that shows the exact text and target. The same flow covers Productive comments ("Comment…" in the task preview). Productive status changes are not built yet.
+  - **GitHub replies change in phase 8.** The draft goes into GitHub's own reply box in the GitHub pane, and you post it with GitHub's Comment button. Workbench never posts GitHub replies itself. The native-confirm flow stays for Productive comments.
 - **Notifications.** A native macOS notification for each of:
   - a new reply or comment on my PR
   - changes requested
@@ -150,6 +151,43 @@ Keeps the Mac awake while sessions run.
   - a new review request
 
   Each notification opens the matching row or tab. The first poll on a fresh install only records what's there; more than four new items at once become one summary notification. Session notifications are skipped while that tab is on screen.
+
+### GitHub pane (phase 8)
+
+GitHub opens inside Workbench instead of the system browser. It uses an Electron `WebContentsView`, which is not an iframe, so GitHub's frame blocking doesn't apply. Decisions: `docs/decisions.md` › GitHub pane.
+
+- **Layout.** In My git and My reviews, the right-hand panel becomes the GitHub page, with a resizable divider and the list on the left.
+  - Above the page is a thin strip: PR ref, state, CI, a reply badge, ▶ Run app for frontend PRs, ⌘↩ open in browser, and close.
+  - A ⤢ button switches to full width and back.
+- **Opening.**
+  - A click or ⏎ on a PR row opens that PR in the pane; j/k in the list moves to the next PR.
+  - A PR link anywhere else (terminal, task preview, Run PR card, workstream) switches to Today › My git with that PR selected and open.
+  - A PR that isn't in your lists gets a temporary "opened" group in My git.
+  - ⌘-click always opens the system browser.
+- **Scope.** Every `github.com/productiveio/*` page stays in the pane: PRs, files, checks, Actions, issues, commits. Other orgs, other sites and new-window links open in the system browser.
+- **Views.** The 3 most recently opened PRs stay live, evicting the oldest first (about 150–200 MB each), so switching between them is instant and keeps scroll position and unsent comment text.
+  - Before evicting a page with text in a comment box, Workbench asks first.
+- **Login.** The pane uses its own persistent session (`partition: 'persist:github'`), separate from the app, so you log in once.
+  - Login is GitHub username and password plus an authenticator-app code. `productiveio` has no SAML SSO (`/orgs/productiveio/sso` returns 404), so there's no Google sign-in step.
+  - Settings has "Sign out of GitHub", which clears that partition.
+  - The pane runs with no Node integration and context isolation on.
+- **Reply state.** Opening a PR never clears "reply needed". It clears when your reply is the last message, or when you press `m`.
+  - Workbench re-fetches the pane's PR when the page navigates and after a comment is submitted.
+- **Draft reply with Claude.** Claude drafts the reply; Workbench scrolls the pane to the thread, opens its reply box and fills in the text. You edit it and post with GitHub's Comment button, which is the confirm.
+  - Filling the box is done by a small script injected into the page, which depends on GitHub's page structure.
+  - If the script can't find the reply box, Workbench copies the draft to the clipboard and scrolls to the thread instead.
+- **Keyboard.** While the pane has focus, plain keys and Esc go to GitHub. Workbench keeps only ⌘ shortcuts:
+
+  | Shortcut | Action |
+  |---|---|
+  | `⌘J` | back to the list (also leaves full width) |
+  | `⌘[` / `⌘]` | back / forward |
+  | `⌘R` | reload |
+  | `⌘L` | copy URL |
+  | `⌘↩` | open in browser |
+  | `⌘K`, `⌘1–9` | as everywhere else |
+
+- **Spike first (about 10 minutes):** check that password + authenticator login works in the embedded view, and that the reply-box fill works on a real PR thread.
 
 ### Session ↔ task linking
 
@@ -300,6 +338,7 @@ Each phase must be usable daily before the next one starts.
 5. **v1.1.** Task workstream screen: milestone timeline, structure tree, Start work.
 6. **Run PR + lid closed.** Focus-PR detection, mismatch chip, ▶ Run app entry points, worktree / base-checkout run jobs with dirty guard and ↩ Back, Run alongside; Amphetamine-backed lid-closed caffeinate with its setup check.
 7. **TUI restyle.** Apply the visual style above across all screens: TopBar and StatusBar layout, the Today counters, the caffeinate cup button and popover, and the shortcuts popover.
+8. **GitHub pane.** In-app GitHub as described above: split pane with a strip, opening from rows and links, `productiveio` scope, a pool of 3 live views, a persistent login partition, reply-state rules, Claude drafts filled into GitHub's reply box, ⌘-only keys. Starts with the login and reply-box spike.
 
 ## Packaging
 

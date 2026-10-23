@@ -5,7 +5,7 @@ import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
 import { needsBreakdown, needsYou, type NeedItem } from '../needs'
-import { navigate, openWorkstream, useStore } from '../store'
+import { navigate, openInPane, openWorkstream, useStore, type TodayTab } from '../store'
 import { Box } from './Box'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { DraftPanel } from './DraftPanel'
@@ -81,8 +81,8 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
   const five = fiveRaw && (!fiveRaw.resetsAt || fiveRaw.resetsAt * 1000 > Date.now()) ? fiveRaw : null
   const resets = five?.resetsAt ? new Date(five.resetsAt * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : null
 
-  const counters: { id: string; title: string; value: string; unit?: string; note: string; tone?: string; to?: 'tasks' | 'git' | 'reviews' }[] = [
-    { id: 'needs', title: 'Needs you', value: String(needs.length), note: needsBreakdown(needs), tone: needs.length ? 'var(--accent)' : undefined, to: 'tasks' },
+  const counters: { id: string; title: string; value: string; unit?: string; note: string; tone?: string; to?: TodayTab }[] = [
+    { id: 'needs', title: 'Needs you', value: String(needs.length), note: needsBreakdown(needs), tone: needs.length ? 'var(--accent)' : undefined, to: 'needs' },
     { id: 'tasks', title: 'My tasks', value: snapshot?.fetchedAt ? String(mine.length) : '—', note: topStatuses || 'nothing started', to: 'tasks' },
     { id: 'prs', title: 'My PRs', value: git?.fetchedAt ? String(git.mine.length) : '—', note: `${replies} need a reply · ${drafts} drafts`, to: 'git' },
     { id: 'reviews', title: 'Reviews', value: git?.fetchedAt ? String(git.reviews.length - bots) : '—', note: `${bots} bot PRs hidden`, to: 'reviews' },
@@ -120,8 +120,8 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
       {!(tab !== 'tasks' && paneFull) && (
         <div className="counters">
           {counters.map((c) => (
-            // Active = the counter whose list is shown; on the tasks tab that's Needs you.
-            <button key={c.id} className={`counter${c.to === tab && (tab !== 'tasks' || c.id === 'needs') ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
+            // Active = the counter whose view is shown.
+            <button key={c.id} className={`counter${c.to === tab ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
               <span className="box-title">{c.title}</span>
               <span className="counter-value" style={c.tone ? ({ color: c.tone, '--glow': c.tone } as CSSProperties) : undefined}>
                 {c.value}
@@ -136,10 +136,10 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
           ))}
         </div>
       )}
-      {tab === 'tasks' ? (
+      {tab === 'needs' || tab === 'tasks' ? (
         <div className="today-body">
           <main className="today-main">
-            <Home snapshot={snapshot} git={git} needs={needs} active={active} />
+            <Home view={tab} snapshot={snapshot} git={git} needs={needs} active={active} />
           </main>
           <aside className="today-side">{draft && git ? <DraftPanel target={draft} git={git} /> : snapshot && <Peek snapshot={snapshot} />}</aside>
         </div>
@@ -206,9 +206,12 @@ function Peek({ snapshot }: { snapshot: TasksSnapshot }) {
 }
 
 /** Today's home: Needs you, my tasks by project (Bugs on their own), Threads. */
-function Home({ snapshot, git, needs, active }: { snapshot: TasksSnapshot | null; git: GitSnapshot | null; needs: NeedItem[]; active: boolean }) {
-  const { sessions, peekTask, setPeekTask, setTodayTab, setFocusPr, show } = useStore()
-  const [pane, setPane] = useState<'needs' | 'tasks'>('tasks')
+const VIEWS = ['needs', 'tasks', 'git', 'reviews'] as const
+
+/** Needs you (what's waiting on me, plus the threads to answer) or My tasks (only the task lists). */
+function Home({ view: pane, snapshot, git, needs, active }: { view: 'needs' | 'tasks'; snapshot: TasksSnapshot | null; git: GitSnapshot | null; needs: NeedItem[]; active: boolean }) {
+  const { sessions, peekTask, setPeekTask, setTodayTab, show } = useStore()
+  const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)
   const [needIdx, setNeedIdx] = useState(0)
   const [filter, setFilter] = useState<string | null>(null)
   const filterRef = useRef<HTMLInputElement>(null)
@@ -233,14 +236,10 @@ function Home({ snapshot, git, needs, active }: { snapshot: TasksSnapshot | null
   const order = groups.flatMap((g) => g.lines.filter((l) => !l.header).map((l) => l.task.id))
   const threads = needs.filter((n) => n.kind === 'reply needed')
 
+  // A task opens in the panel on the right; a PR (or its thread) opens in the GitHub pane.
   const openNeed = (n: NeedItem) => {
-    if (n.task) {
-      setPeekTask(n.task.id)
-      setPane('tasks')
-    } else if (n.pr) {
-      setTodayTab('git')
-      setFocusPr(n.pr.id)
-    }
+    if (n.task) setPeekTask(n.task.id)
+    else if (n.pr) openInPane(n.conversation?.messages.at(-1)?.url || n.pr.url)
   }
 
   useKeyTarget(
@@ -263,7 +262,7 @@ function Home({ snapshot, git, needs, active }: { snapshot: TasksSnapshot | null
         const t = snapshot?.tasks.find((x) => x.id === peekTask)
         if (t && snapshot) void taskPrimary(t, snapshot, sessions, show)
       },
-      nextPane: () => setPane((p) => (p === 'tasks' && needs.length ? 'needs' : 'tasks')),
+      nextPane: () => setTodayTab(VIEWS[(VIEWS.indexOf(pane) + 1) % VIEWS.length]!),
       run: () => {
         const p = pane === 'needs' ? needs[needIdx]?.pr : null
         if (p && p.repo === FE_REPO) return void runPr(p.number)
@@ -290,10 +289,11 @@ function Home({ snapshot, git, needs, active }: { snapshot: TasksSnapshot | null
 
   return (
     <div className="home">
-      <Box title={`Needs you (${needs.length})`} active={pane === 'needs'}>
+      {pane === 'needs' && (
+      <Box title={`Needs you (${needs.length})`} active>
         {needs.length === 0 && <span className="faint">Nothing waiting on you.</span>}
         {needs.map((n, i) => (
-          <button key={n.key} className={`need-row${pane === 'needs' && i === needIdx ? ' sel' : ''}`} onClick={() => (setPane('needs'), setNeedIdx(i), openNeed(n))}>
+          <button key={n.key} className={`need-row${i === needIdx ? ' sel' : ''}`} onClick={() => (setNeedIdx(i), openNeed(n))}>
             <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
             <span className="need-ref">{n.ref}</span>
             <span className="need-text">{n.text}</span>
@@ -301,8 +301,9 @@ function Home({ snapshot, git, needs, active }: { snapshot: TasksSnapshot | null
           </button>
         ))}
       </Box>
+      )}
 
-      {filter !== null && (
+      {pane === 'tasks' && filter !== null && (
         <label className="filter-line">
           <span className="faint">/</span>
           <input
@@ -324,7 +325,7 @@ function Home({ snapshot, git, needs, active }: { snapshot: TasksSnapshot | null
       {snapshot.fetchedAt === null && snapshot.loading && <span className="faint">Loading your tasks from Productive…</span>}
       {snapshot.error && <span className="bad-text">Couldn't load tasks: {snapshot.error}</span>}
 
-      {groups.map((g, gi) => (
+      {pane === 'tasks' && groups.map((g, gi) => (
         <Box
           key={g.id}
           title={isBugProject(g.name) ? `${g.name} (${g.count})` : `My tasks › ${g.name} (${g.count})`}
@@ -372,7 +373,7 @@ function Home({ snapshot, git, needs, active }: { snapshot: TasksSnapshot | null
         </Box>
       ))}
 
-      {threads.length > 0 && (
+      {pane === 'needs' && threads.length > 0 && (
         <Box title={`Threads (${threads.length})`}>
           {threads.slice(0, 6).map((n) => {
             const last = n.conversation!.messages.at(-1)!

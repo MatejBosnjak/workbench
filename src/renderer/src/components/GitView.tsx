@@ -23,7 +23,7 @@ function when(iso: string): string {
 
 function stateOf(p: Pr): [string, string] {
   if (p.draft) return ['Draft', 'var(--muted)']
-  if (p.reviewDecision === 'CHANGES_REQUESTED') return ['Changes requested', 'var(--bad)']
+  if (p.reviewDecision === 'CHANGES_REQUESTED') return p.changesAddressed ? ['Re-review asked', 'var(--warn)'] : ['Changes requested', 'var(--bad)']
   if (p.conflict) return ['Conflicts', 'var(--bad)']
   if (p.reviewDecision === 'APPROVED') return ['Approved', 'var(--ok)']
   return ['Review required', 'var(--text-3)']
@@ -90,6 +90,11 @@ function useRowKeys(prs: Pr[]) {
       open: () => {
         const p = prs.find((x) => x.id === selPr)
         if (p) openRow(p, false)
+      },
+      nextPane: () => {
+        const order = ['needs', 'tasks', 'git', 'reviews'] as const
+        const st = useStore.getState()
+        st.setTodayTab(order[(order.indexOf(st.todayTab) + 1) % order.length]!)
       },
       key: (k) => {
         if (k !== 'm') return false

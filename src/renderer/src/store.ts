@@ -10,7 +10,7 @@ import { rootOf } from '@shared/workstream'
 import type { CaffeinateState, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
 
 export type View = { kind: 'today' } | { kind: 'local' } | { kind: 'session'; id: string } | { kind: 'workstream'; id: string }
-export type TodayTab = 'tasks' | 'git' | 'reviews'
+export type TodayTab = 'needs' | 'tasks' | 'git' | 'reviews'
 
 const LAST_VIEW = 'workbench.lastView'
 
@@ -202,9 +202,9 @@ export function openWorkstream(taskId: string): void {
 function loadTab(): TodayTab {
   try {
     const t = localStorage.getItem(TODAY_TAB)
-    return t === 'git' || t === 'reviews' ? t : 'tasks'
+    return t === 'tasks' || t === 'git' || t === 'reviews' ? t : 'needs'
   } catch {
-    return 'tasks'
+    return 'needs'
   }
 }
 

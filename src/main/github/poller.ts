@@ -11,7 +11,8 @@ const PR_FIELDS = `
   id number title url isDraft createdAt updatedAt headRefName headRefOid body reviewDecision mergeable
   repository { nameWithOwner name }
   author { login __typename }
-  commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+  commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state } } } }
+  reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login } } } }
 `
 const ACTOR = 'author { login __typename }'
 
@@ -75,7 +76,8 @@ interface RawPr {
   mergeable: string
   repository: { nameWithOwner: string; name: string }
   author: Actor | null
-  commits: { nodes: { commit: { statusCheckRollup: { state: string } | null } }[] }
+  commits: { nodes: { commit: { committedDate?: string; statusCheckRollup: { state: string } | null } }[] }
+  reviewRequests?: { nodes: { requestedReviewer: { login?: string } | null }[] }
   reviewThreads?: { nodes: { id: string; isResolved: boolean; path: string; head: { nodes: { diffHunk: string }[] }; comments: { nodes: RawComment[] } }[] }
   comments?: { nodes: RawComment[] }
   reviews?: { nodes: RawReview[] }
@@ -136,7 +138,19 @@ function changesRequestedBy(p: RawPr): Pr['changesRequestedBy'] {
   return r ? { id: r.id, author: login(r.author), at: r.submittedAt! } : null
 }
 
+/**
+ * GitHub keeps "changes requested" until the reviewer reviews again. Once I've pushed a newer commit or asked them
+ * to re-review, the next move is theirs.
+ */
+function addressed(p: RawPr, cr: Pr['changesRequestedBy']): boolean {
+  if (!cr) return false
+  const pushed = p.commits.nodes[0]?.commit.committedDate
+  const reRequested = (p.reviewRequests?.nodes ?? []).some((r) => r.requestedReviewer?.login === cr.author)
+  return reRequested || (!!pushed && pushed > cr.at)
+}
+
 function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
+  const cr = withTalk ? changesRequestedBy(p) : null
   const fromBranch = [...p.headRefName.matchAll(/(?:^|\D)(\d{7,9})(?=\D|$)/g)].map((m) => m[1]!)
   return {
     id: p.id,
@@ -157,7 +171,8 @@ function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
     updatedAt: p.updatedAt,
     taskRefs: [...new Set([...fromBranch, ...taskIdsFromText(p.body ?? '')])],
     conversations: withTalk ? conversations(p, viewer) : [],
-    changesRequestedBy: withTalk ? changesRequestedBy(p) : null,
+    changesRequestedBy: cr,
+    changesAddressed: addressed(p, cr),
   }
 }
 

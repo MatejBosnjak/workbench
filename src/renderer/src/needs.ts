@@ -1,5 +1,5 @@
 import type { Conversation, GitSnapshot, Pr } from '@shared/git'
-import { lastMessage, needsReply, prRef, verb } from '@shared/git'
+import { changesPending, lastMessage, needsReply, prRef, verb } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
 
 export interface NeedItem {
@@ -25,7 +25,7 @@ export function needsYou(git: GitSnapshot | null, tasks: TasksSnapshot | null): 
   const out: NeedItem[] = []
   for (const p of git?.mine ?? []) {
     if (p.draft) continue
-    if (p.reviewDecision === 'CHANGES_REQUESTED')
+    if (changesPending(p))
       out.push({ key: `cr:${p.id}`, kind: 'changes requested', ref: prRef(p), text: p.title, detail: p.changesRequestedBy ? `${p.changesRequestedBy.author} · ${short(p.changesRequestedBy.at)}` : '', pr: p })
     if (p.ci === 'fail') out.push({ key: `ci:${p.id}`, kind: 'ci failing', ref: prRef(p), text: p.title, detail: p.branch, pr: p })
     if (p.conflict) out.push({ key: `cf:${p.id}`, kind: 'conflicts', ref: prRef(p), text: p.title, detail: p.branch, pr: p })

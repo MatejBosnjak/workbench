@@ -63,6 +63,8 @@ describe('groupMine', () => {
       ['Drafts', [draft.id]],
     ])
     expect(groupMine([talking], 'me', { a: 'a-0' })[0]!.title).toBe('Waiting on reviewers')
+    // Changes requested, but I pushed or re-requested since: the reviewer's move.
+    expect(groupMine([pr({ reviewDecision: 'CHANGES_REQUESTED', changesAddressed: true })], 'me', {})[0]!.title).toBe('Waiting on reviewers')
   })
 })
 

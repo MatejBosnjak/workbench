@@ -82,7 +82,7 @@ export function GitPane({ active }: { active: boolean }) {
     )
 
   const [ciText, ciColor] = pr ? CI[pr.ci] : ['', '']
-  const state = !pr ? '' : pr.draft ? 'draft' : pr.reviewDecision === 'CHANGES_REQUESTED' ? 'changes requested' : pr.reviewDecision === 'APPROVED' ? 'approved' : 'open'
+  const state = !pr ? '' : pr.draft ? 'draft' : pr.reviewDecision === 'CHANGES_REQUESTED' ? (pr.changesAddressed ? 're-review asked' : 'changes requested') : pr.reviewDecision === 'APPROVED' ? 'approved' : 'open'
   const replies = pr && git ? pr.conversations.filter((c) => c.messages.at(-1)?.author !== git.viewer && git.seen[c.key] !== c.messages.at(-1)?.id).length : 0
   const n = key ? /\/pull\/(\d+)$/.exec(key)?.[1] : null
 

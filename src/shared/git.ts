@@ -50,6 +50,8 @@ export interface Pr {
   conversations: Conversation[]
   /** Mine only: the latest review that requested changes. */
   changesRequestedBy: { id: string; author: string; at: string } | null
+  /** Changes were requested, but I've pushed since or re-requested the review: waiting on the reviewer. */
+  changesAddressed?: boolean
   /** Review list only: a review is requested from me (vs. one I already asked changes on). */
   requested?: boolean
 }
@@ -105,8 +107,11 @@ export function verb(c: Conversation): string {
   return 'commented'
 }
 
+/** Changes requested and not yet answered with a push or a re-review request. */
+export const changesPending = (p: Pick<Pr, 'reviewDecision' | 'changesAddressed'>) => p.reviewDecision === 'CHANGES_REQUESTED' && !p.changesAddressed
+
 export function prNeedsYou(p: Pr, viewer: string | null, seen: Record<string, string>): boolean {
-  return !p.draft && (p.reviewDecision === 'CHANGES_REQUESTED' || p.ci === 'fail' || p.conflict || p.conversations.some((c) => needsReply(c, viewer, seen)))
+  return !p.draft && (changesPending(p) || p.ci === 'fail' || p.conflict || p.conversations.some((c) => needsReply(c, viewer, seen)))
 }
 
 export type GroupTone = 'bad' | 'ok' | 'accent' | 'faint'
@@ -172,7 +177,7 @@ export function gitEvents(s: Pick<GitSnapshot, 'viewer' | 'mine' | 'reviews' | '
       if (last.state === 'CHANGES_REQUESTED') continue
       out.push({ key: `msg:${last.id}`, title: `${last.author} ${verb(c)} ${prRef(p)}`, body: excerpt(last.body || p.title), target: at })
     }
-    if (p.changesRequestedBy && p.reviewDecision === 'CHANGES_REQUESTED')
+    if (p.changesRequestedBy && changesPending(p))
       out.push({ key: `cr:${p.changesRequestedBy.id}`, title: `Changes requested on ${prRef(p)}`, body: `${p.changesRequestedBy.author} · ${p.title}`, target: at })
     if (p.ci === 'fail' && !p.draft) out.push({ key: `ci:${p.id}:${p.headSha}`, title: `CI failed on ${prRef(p)}`, body: p.title, target: at })
   }

@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { statusColors, type Person, type Task, type TaskComment, type TaskDetail } from '@shared/tasks'
+import { useShallow } from 'zustand/react/shallow'
+import { useStore } from '../store'
 import { Box } from './Box'
 
 /**
@@ -328,6 +330,8 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
   const { detail, error: loadError } = useTaskDetail(taskId)
   const { busy, error, write } = useWrite(taskId)
   const open = detail?.todos.filter((t) => !t.closed).length ?? 0
+  const { hideDone, setHideDone } = useStore(useShallow((s) => ({ hideDone: s.hideDoneTodos, setHideDone: s.setHideDoneTodos })))
+  const done = (detail?.todos.length ?? 0) - open
 
   return (
     <Box title="Productive" className="peek task-details">
@@ -362,9 +366,15 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
                 {detail.todos.length - open}/{detail.todos.length}
               </span>
             )}
+            {done > 0 && (
+              <button className="td-toggle" aria-pressed={!hideDone} title={hideDone ? 'Show completed to-dos' : 'Hide completed to-dos'} onClick={() => setHideDone(!hideDone)}>
+                {hideDone ? `show ${done} done` : 'hide done'}
+              </button>
+            )}
           </div>
           {detail.todos.length === 0 && <span className="faint">none</span>}
-          {detail.todos.map((t) => (
+          {detail.todos.length > 0 && hideDone && open === 0 && <span className="faint">all done</span>}
+          {detail.todos.filter((t) => !(hideDone && t.closed)).map((t) => (
             <label key={t.id} className={`td-todo${t.closed ? ' done' : ''}${busy === `t:${t.id}` ? ' busy' : ''}`}>
               <input type="checkbox" checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
               <span>

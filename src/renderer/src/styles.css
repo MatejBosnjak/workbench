@@ -787,6 +787,8 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .ss-option.at { background: var(--raised, var(--accent-bg)); }
 .td-desc { color: var(--text-2); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow-y: auto; }
 .td-todo.busy { opacity: 0.5; }
+.td-toggle { border: 1px solid var(--line-heavy); background: transparent; color: var(--text-3); font: inherit; font-size: 11px; padding: 0 6px; cursor: pointer; }
+.td-toggle:hover { color: var(--text); border-color: var(--text-3); }
 .td-comment { display: flex; flex-direction: column; margin-bottom: 8px; }
 .td-author { color: var(--text); font-weight: 600; }
 .td-comment-body { color: var(--text-2); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }

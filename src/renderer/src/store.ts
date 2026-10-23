@@ -68,6 +68,9 @@ interface State {
   paneFull: boolean
   /** The sidebar beside a session's terminal: its task (⌘I) or its PR (⌘⇧I). Kept as ui:sessionSide. */
   sessionSide: SessionSide
+  /** Completed to-dos hidden in the task sidebar, for every task. Kept as ui:hideDoneTodos. */
+  hideDoneTodos: boolean
+  setHideDoneTodos(on: boolean): void
   setSessionSide(side: SessionSide): void
   /** Toggles one sidebar: opens it, or closes it when it's the one open. */
   toggleSessionSide(side: Exclude<SessionSide, null>): void
@@ -140,6 +143,11 @@ export const useStore = create<State>((set, get) => ({
   pane: null,
   paneFull: false,
   sessionSide: null,
+  hideDoneTodos: false,
+  setHideDoneTodos: (hideDoneTodos) => {
+    set({ hideDoneTodos })
+    void window.workbench.setSetting('ui:hideDoneTodos', hideDoneTodos)
+  },
   setSessionSide: (sessionSide) => {
     set({ sessionSide })
     void window.workbench.setSetting('ui:sessionSide', sessionSide)

@@ -71,6 +71,7 @@ export function App() {
     const { setRunpr } = useStore.getState()
     void window.workbench.getSetting<Record<string, number>>('ui:snoozed', {}).then((sn) => useStore.setState({ snoozed: Object.fromEntries(Object.entries(sn).filter(([, t]) => t > Date.now())) }))
     void window.workbench.getSetting<SessionSide>('ui:sessionSide', null).then((sessionSide) => useStore.setState({ sessionSide }))
+    void window.workbench.getSetting<boolean>('ui:hideDoneTodos', false).then((hideDoneTodos) => useStore.setState({ hideDoneTodos }))
     void window.workbench.runpr.snapshot().then(setRunpr)
     const offRun = window.workbench.runpr.onChanged(setRunpr)
     // ⌘J inside the GitHub pane: back to the list, out of full width.

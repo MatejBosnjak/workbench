@@ -87,7 +87,7 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
   const resets = five?.resetsAt ? new Date(five.resetsAt * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : null
 
   const counters: { id: string; title: string; value: string; unit?: string; note: string; tone?: string; to?: TodayTab }[] = [
-    { id: 'needs', title: 'Needs you', value: String(needs.length), note: needsBreakdown(needs), tone: needs.length ? 'var(--accent)' : undefined, to: 'needs' },
+    { id: 'needs', title: 'Needs you', value: String(needs.length), note: needsBreakdown(needs) + (sleeping.length ? ` · ${sleeping.length} sleeping` : ''), tone: needs.length ? 'var(--accent)' : undefined, to: 'needs' },
     { id: 'tasks', title: 'My tasks', value: snapshot?.fetchedAt ? String(mine.length) : '—', note: topStatuses || 'nothing started', to: 'tasks' },
     { id: 'prs', title: 'My PRs', value: git?.fetchedAt ? String(git.mine.length) : '—', note: `${replies} need a reply · ${drafts} drafts`, to: 'git' },
     { id: 'reviews', title: 'Reviews', value: git?.fetchedAt ? String(git.reviews.length - bots) : '—', note: `${bots} bot PRs hidden`, to: 'reviews' },
@@ -216,7 +216,6 @@ const VIEWS = ['needs', 'tasks', 'git', 'reviews'] as const
 /** Needs you (what's waiting on me, plus the threads to answer) or My tasks (only the task lists). */
 function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'needs' | 'tasks'; snapshot: TasksSnapshot | null; git: GitSnapshot | null; needs: NeedItem[]; sleeping: NeedItem[]; active: boolean }) {
   const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore(useShallow((s) => ({ sessions: s.sessions, peekTask: s.peekTask, setPeekTask: s.setPeekTask, setTodayTab: s.setTodayTab, show: s.show, snooze: s.snooze, snoozed: s.snoozed })))
-  const [showSleeping, setShowSleeping] = useState(false)
   const sleep = (n: NeedItem) => snooze(n.key, tomorrowMorning())
   const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)
   const [needIdx, setNeedIdx] = useState(0)
@@ -327,25 +326,6 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
             </button>
           </div>
         ))}
-        {sleeping.length > 0 && (
-          <button className="link-btn need-sleeping" onClick={() => setShowSleeping(!showSleeping)}>
-            {sleeping.length} sleeping until tomorrow · {showSleeping ? 'hide' : 'show'}
-          </button>
-        )}
-        {showSleeping &&
-          sleeping.map((n) => (
-            <div key={n.key} className="need-row asleep">
-              <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
-              <span className="need-ref">{n.ref}</span>
-              <span className="need-text">{n.text}</span>
-              <span className="need-detail">
-                until {new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
-              </span>
-              <button className="need-sleep wake" title="Wake it now" onClick={() => snooze(n.key, null)}>
-                wake
-              </button>
-            </div>
-          ))}
       </Box>
       )}
 
@@ -442,6 +422,23 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
               {threads.length - 6} more in My PRs
             </button>
           )}
+        </Box>
+      )}
+      {pane === 'needs' && sleeping.length > 0 && (
+        <Box title={`Sleeping (${sleeping.length})`}>
+          {sleeping.map((n) => (
+            <div key={n.key} className="need-row asleep">
+              <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
+              <span className="need-ref">{n.ref}</span>
+              <span className="need-text">{n.text}</span>
+              <span className="need-detail">
+                until {new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <button className="need-sleep wake" title="Wake it now" onClick={() => snooze(n.key, null)}>
+                wake
+              </button>
+            </div>
+          ))}
         </Box>
       )}
     </div>

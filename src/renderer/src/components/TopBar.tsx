@@ -3,6 +3,7 @@ import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { CaffeinateButton } from './CaffeinateControl'
 import { Cup } from './Cup'
+import { useShallow } from 'zustand/react/shallow'
 
 const STATE_LABEL: Record<SessionState, string> = {
   running: 'Running',
@@ -13,7 +14,7 @@ const STATE_LABEL: Record<SessionState, string> = {
 
 /** The taskbar: ▌wb, 1 Today, 2 Local, the session tabs 3…n, then the cup and ⌘K. */
 export function TopBar({ onNew }: { onNew: () => void }) {
-  const { sessions, view, show, caf, local, wsPlace, closeWorkstream } = useStore()
+  const { sessions, view, show, caf, local, wsPlace, closeWorkstream } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, show: s.show, caf: s.caf, local: s.local, wsPlace: s.wsPlace, closeWorkstream: s.closeWorkstream })))
   const inProfile = local?.services.filter((s) => s.def.profiles.includes(local.profile) && !s.transient) ?? []
   const up = inProfile.filter((s) => s.status === 'running').length
   const caffeinated = (s: Session) => {
@@ -30,6 +31,8 @@ export function TopBar({ onNew }: { onNew: () => void }) {
 
   // Overflow: the strip scrolls sideways (edge hover, wheel); +N counts tabs fully or partly out of view.
   const [fade, setFade] = useState({ l: false, r: false })
+  // Re-measure only when tabs come, go or change width (title); state changes arrive far more often and move nothing.
+  const tabsKey = sessions.map((s) => `${s.id}:${s.title}`).join('\n')
   const [edge, setEdge] = useState<'l' | 'r' | null>(null)
   const speed = useRef(0)
   useEffect(() => {
@@ -63,7 +66,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
       el.removeEventListener('scroll', measure)
       el.removeEventListener('wheel', wheel)
     }
-  }, [sessions])
+  }, [tabsKey])
 
   // Edge hover: within 56px of an edge with more tabs beyond it, scroll that way, faster nearer the edge.
   useEffect(() => {

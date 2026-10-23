@@ -198,13 +198,21 @@ void app.whenReady().then(() => {
     },
     (id) => win?.webContents.send('local:pane-exit', id),
   )
+  let lastStatus = ''
   const sessions = new Sessions(repo, {
     sessionsChanged: () => {
       const list = sessions.list()
       caffeinate.sessionsChanged(list)
       win?.webContents.send('sessions:changed', list)
     },
-    statusChanged: () => win?.webContents.send('status:changed', sessions.statusSnapshot()),
+    statusChanged: () => {
+      // Statusline ticks often repeat the last numbers; an unchanged snapshot isn't worth a renderer update.
+      const snap = sessions.statusSnapshot()
+      const json = JSON.stringify(snap)
+      if (json === lastStatus) return
+      lastStatus = json
+      win?.webContents.send('status:changed', snap)
+    },
     hook: (id, event, payload) => {
       void linker.onHook(id, event, payload)
       focus.onHook(id, event, payload)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { FE_REPO } from '@shared/runpr'
 import { groupTasks, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
@@ -13,6 +13,7 @@ import { GitPane } from './GitPane'
 import { GitView, ReviewsView } from './GitView'
 import { runPr } from './RunPr'
 import { TaskPreview, taskPrimary } from './TaskPreview'
+import { useShallow } from 'zustand/react/shallow'
 
 // Productive workflow status colours, approximated with theme tokens.
 const STATUS_COLORS = ['var(--muted)', 'var(--muted)', 'var(--info)', 'var(--teal)', 'var(--ok)', 'var(--warn)', 'var(--bad)', 'var(--violet)', 'var(--accent)', 'var(--faint)', 'var(--link)']
@@ -57,8 +58,9 @@ export function taskFePr(task: Pick<Task, 'id'>, git: GitSnapshot | null): numbe
   return pr?.number ?? null
 }
 
-export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot | null; git: GitSnapshot | null; active: boolean }) {
-  const { todayTab: tab, setTodayTab, draft, status, paneFull } = useStore()
+export const TodayView = memo(function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot | null; git: GitSnapshot | null; active: boolean }) {
+  // Only the 5h limit from status: the rest changes on every statusline tick and would re-render all of Today.
+  const { todayTab: tab, setTodayTab, draft, fiveRaw, paneFull } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, fiveRaw: s.status.usage?.fiveHour, paneFull: s.paneFull })))
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 60_000)
@@ -81,7 +83,6 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
   const replies = new Set(needs.filter((n) => n.kind === 'reply needed').map((n) => n.pr!.id)).size
   const drafts = git?.mine.filter((p) => p.draft).length ?? 0
   const bots = git?.reviews.filter((p) => p.authorBot).length ?? 0
-  const fiveRaw = status.usage?.fiveHour
   const five = fiveRaw && (!fiveRaw.resetsAt || fiveRaw.resetsAt * 1000 > Date.now()) ? fiveRaw : null
   const resets = five?.resetsAt ? new Date(five.resetsAt * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : null
 
@@ -176,7 +177,7 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
       )}
     </div>
   )
-}
+})
 
 function Sync({ src, onRefresh }: { src: { loading: boolean; error: string | null; fetchedAt: number | null }; onRefresh(): void }) {
   return (
@@ -198,7 +199,7 @@ function Sync({ src, onRefresh }: { src: { loading: boolean; error: string | nul
 }
 
 function Peek({ snapshot }: { snapshot: TasksSnapshot }) {
-  const { peekTask, setPeekTask } = useStore()
+  const { peekTask, setPeekTask } = useStore(useShallow((s) => ({ peekTask: s.peekTask, setPeekTask: s.setPeekTask })))
   const task = snapshot.tasks.find((t) => t.id === peekTask)
   return task ? (
     <TaskPreview task={task} snapshot={snapshot} onClose={() => setPeekTask(null)} />
@@ -214,7 +215,7 @@ const VIEWS = ['needs', 'tasks', 'git', 'reviews'] as const
 
 /** Needs you (what's waiting on me, plus the threads to answer) or My tasks (only the task lists). */
 function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'needs' | 'tasks'; snapshot: TasksSnapshot | null; git: GitSnapshot | null; needs: NeedItem[]; sleeping: NeedItem[]; active: boolean }) {
-  const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore()
+  const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore(useShallow((s) => ({ sessions: s.sessions, peekTask: s.peekTask, setPeekTask: s.setPeekTask, setTodayTab: s.setTodayTab, show: s.show, snooze: s.snooze, snoozed: s.snoozed })))
   const [showSleeping, setShowSleeping] = useState(false)
   const sleep = (n: NeedItem) => snooze(n.key, tomorrowMorning())
   const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)

@@ -12,6 +12,7 @@ import { Terminal } from './components/Terminal'
 import { TopBar } from './components/TopBar'
 import { installKeys } from './keys'
 import { activeSessionId, navigate, useStore } from './store'
+import { useShallow } from 'zustand/react/shallow'
 
 async function newSession(pick = false): Promise<void> {
   const s = await window.workbench.createSession({ pick })
@@ -54,7 +55,7 @@ function onMenu(cmd: MenuCommand): void {
 }
 
 export function App() {
-  const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen, local, setLocal } = useStore()
+  const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen, local, setLocal } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, mounted: s.mounted, setSessions: s.setSessions, show: s.show, setStatus: s.setStatus, setHooks: s.setHooks, paletteOpen: s.paletteOpen, local: s.local, setLocal: s.setLocal })))
 
   const git = useStore((s) => s.git)
   useEffect(() => {

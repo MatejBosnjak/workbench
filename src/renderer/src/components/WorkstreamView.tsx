@@ -8,6 +8,7 @@ import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
 import { DraftPanel } from './DraftPanel'
 import { Diamond, StatusGlyph, ago } from './TodayView'
+import { useShallow } from 'zustand/react/shallow'
 
 type Tab = 'timeline' | 'sessions' | 'prs' | 'notes'
 
@@ -34,7 +35,7 @@ function guessRepo(title: string, repos: string[]): string | null {
 }
 
 export function WorkstreamView({ rootId }: { rootId: string }) {
-  const { sessions, tasks: snap, draft, setDraft, show, setTodayTab, setPeekTask } = useStore()
+  const { sessions, tasks: snap, draft, setDraft, show, setTodayTab, setPeekTask } = useStore(useShallow((s) => ({ sessions: s.sessions, tasks: s.tasks, draft: s.draft, setDraft: s.setDraft, show: s.show, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })))
   const [ws, setWs] = useState<Workstream | null>(null)
   const [tab, setTab] = useState<Tab>('timeline')
   const [scope, setScope] = useState('all')

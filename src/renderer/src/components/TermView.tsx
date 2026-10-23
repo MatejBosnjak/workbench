@@ -56,7 +56,7 @@ export function TermView(props: TermViewProps) {
       lineHeight: 1.25,
       cursorBlink: true,
       allowProposedApi: true,
-      scrollback: 10_000,
+      scrollback: 5_000,
       theme: xtermTheme(),
     })
     const f = new FitAddon()

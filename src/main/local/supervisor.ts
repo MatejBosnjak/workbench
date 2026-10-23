@@ -91,6 +91,8 @@ export class Supervisor {
       env: { ...env, ...s.def.env, TERM: 'xterm-256color', COLORTERM: 'truecolor', FORCE_COLOR: '1' },
       cols: 120,
       rows: 40,
+      // Dev servers log constantly; the recent part is what matters on re-attach.
+      historyChars: 400_000,
     })
     Object.assign(s, { status: 'running', exitCode: null, startedAt: Date.now(), healthy: s.def.port ? false : null })
     const wc = this.wc()
@@ -135,6 +137,7 @@ export class Supervisor {
         cwd: s?.cwd ?? homedir(),
         env: { ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
         ...size,
+        historyChars: 200_000,
       })
     }
     this.pty.attach(paneId, wc)

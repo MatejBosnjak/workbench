@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RunJob, RunStep } from '@shared/runpr'
 import { activeSessionId, useOverlay, useStore } from '../store'
+import { useShallow } from 'zustand/react/shallow'
 
 const errText = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -50,7 +51,7 @@ const done = (s: RunStep) => s.state === 'done' || s.state === 'skipped'
 
 /** The status bar chip: mismatch → ▶ Run, running, ✓ in app, ↩ Back. */
 export function RunPrChip() {
-  const { runpr, view, setRunPanel, runPanel } = useStore()
+  const { runpr, view, setRunPanel, runPanel } = useStore(useShallow((s) => ({ runpr: s.runpr, view: s.view, setRunPanel: s.setRunPanel, runPanel: s.runPanel })))
   if (!runpr) return null
   const sid = activeSessionId(view)
   const focus = sid ? runpr.focus[sid] : undefined
@@ -166,7 +167,7 @@ function ms(n: number | null): string {
 /** Steps, log tail, Cancel. Opens from the chip; also shown in Local. */
 export function RunPanel({ inline = false }: { inline?: boolean }) {
   useOverlay(!inline)
-  const { runpr, setRunPanel, runError, setRunError } = useStore()
+  const { runpr, setRunPanel, runError, setRunError } = useStore(useShallow((s) => ({ runpr: s.runpr, setRunPanel: s.setRunPanel, runError: s.runError, setRunError: s.setRunError })))
   const root = useRef<HTMLDivElement>(null)
   const log = useRef<HTMLPreElement>(null)
   const job: RunJob | null = runpr?.job ?? null
@@ -263,7 +264,7 @@ export function RunPanel({ inline = false }: { inline?: boolean }) {
 
 /** Never checks out over uncommitted work. */
 export function DirtyGuardModal() {
-  const { runGuard, setRunGuard } = useStore()
+  const { runGuard, setRunGuard } = useStore(useShallow((s) => ({ runGuard: s.runGuard, setRunGuard: s.setRunGuard })))
   useOverlay(!!runGuard)
   const [busy, setBusy] = useState(false)
   if (!runGuard) return null

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import type { LocalSnapshot, ServiceState } from '@shared/local'
 import { Panes } from './Panes'
 import { WorktreeSwitcher } from './WorktreeSwitcher'
@@ -20,7 +20,7 @@ function stateText(s: ServiceState): string {
   return STATE[s.status]
 }
 
-export function LocalView({ snapshot, active }: { snapshot: LocalSnapshot | null; active: boolean }) {
+export const LocalView = memo(function LocalView({ snapshot, active }: { snapshot: LocalSnapshot | null; active: boolean }) {
   const [selected, setSelected] = useState<string | null>(null)
   const [switcher, setSwitcher] = useState(false)
   const runJob = useStore((s) => s.runpr?.job)
@@ -154,7 +154,7 @@ export function LocalView({ snapshot, active }: { snapshot: LocalSnapshot | null
       {switcher && current && <WorktreeSwitcher service={current} onClose={() => setSwitcher(false)} />}
     </div>
   )
-}
+})
 
 function BranchIcon() {
   return (

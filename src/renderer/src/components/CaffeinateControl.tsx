@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { CaffeinateState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { Cup } from './Cup'
+import { useShallow } from 'zustand/react/shallow'
 
 const OPTIONS: { mode: CaffeinateState['mode']; label: string; key: string; note: string }[] = [
   { mode: 'off', label: 'Off', key: 'o', note: 'The Mac sleeps as usual' },
@@ -11,7 +12,7 @@ const OPTIONS: { mode: CaffeinateState['mode']; label: string; key: string; note
 
 /** The 44px cup in the taskbar; click or `c` opens the popover, `o` / `a` / `l` pick, Esc closes. */
 export function CaffeinateButton() {
-  const { caf, setCaf, view, cafOpen: open, setCafOpen: setOpen } = useStore()
+  const { caf, setCaf, view, cafOpen: open, setCafOpen: setOpen } = useStore(useShallow((s) => ({ caf: s.caf, setCaf: s.setCaf, view: s.view, cafOpen: s.cafOpen, setCafOpen: s.setCafOpen })))
   const root = useRef<HTMLSpanElement>(null)
   useOverlay(open)
 

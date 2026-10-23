@@ -25,7 +25,10 @@ function loadView(): View {
 interface State {
   sessions: Session[]
   view: View
-  /** Sessions whose terminal has been shown at least once; they stay mounted. */
+  /**
+   * The most recently shown session terminals, oldest first; at most MOUNTED_MAX stay mounted. Each one holds an
+   * xterm buffer and a WebGL context; an evicted one re-attaches and main replays its history when shown again.
+   */
   mounted: Set<string>
   status: StatusSnapshot
   hooks: HooksStatus | null
@@ -92,6 +95,9 @@ interface State {
   setSessions(s: Session[]): void
   show(v: View): void
 }
+
+/** Session terminals kept mounted at once (see `mounted`). */
+const MOUNTED_MAX = 5
 
 export const useStore = create<State>((set, get) => ({
   sessions: [],
@@ -167,13 +173,19 @@ export const useStore = create<State>((set, get) => ({
   setSessions: (sessions) => {
     const { view, mounted } = get()
     const ids = new Set(sessions.map((s) => s.id))
-    const next: Partial<State> = { sessions, mounted: new Set([...mounted].filter((id) => ids.has(id))) }
+    const kept = [...mounted].filter((id) => ids.has(id))
+    const next: Partial<State> = { sessions }
+    if (kept.length !== mounted.size) next.mounted = new Set(kept)
     if (view.kind === 'session' && !ids.has(view.id)) next.view = { kind: 'today' }
     set(next)
     if (next.view) persist(next.view)
   },
   show: (view) => {
-    const mounted = view.kind === 'session' ? new Set(get().mounted).add(view.id) : get().mounted
+    let mounted = get().mounted
+    if (view.kind === 'session') {
+      const ids = [...mounted].filter((id) => id !== view.id)
+      mounted = new Set([...ids.slice(-(MOUNTED_MAX - 1)), view.id])
+    }
     set({ view, mounted, showTick: get().showTick + 1 })
     persist(view)
   },

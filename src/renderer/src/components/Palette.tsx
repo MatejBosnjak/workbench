@@ -3,6 +3,7 @@ import type { RecentSession, Session, SessionState } from '@shared/types'
 import { prRef } from '@shared/git'
 import { rootOf } from '@shared/workstream'
 import { navigate, openWorkstream, useOverlay, useStore } from '../store'
+import { useShallow } from 'zustand/react/shallow'
 
 interface Item {
   key: string
@@ -35,7 +36,7 @@ const matches = (q: string, text: string) => q.toLowerCase().split(/\s+/).filter
 
 export function Palette({ onNew }: { onNew(pick: boolean): void }) {
   useOverlay(true)
-  const { sessions, show, setPalette, view, tasks, git, setTodayTab, setPeekTask } = useStore()
+  const { sessions, show, setPalette, view, tasks, git, setTodayTab, setPeekTask } = useStore(useShallow((s) => ({ sessions: s.sessions, show: s.show, setPalette: s.setPalette, view: s.view, tasks: s.tasks, git: s.git, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })))
   const [query, setQuery] = useState('')
   const [recent, setRecent] = useState<RecentSession[]>([])
   const [index, setIndex] = useState(0)

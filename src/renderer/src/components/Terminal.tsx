@@ -1,3 +1,4 @@
+import { memo, useRef } from 'react'
 import type { Session } from '@shared/types'
 import { TermView } from './TermView'
 
@@ -5,9 +6,9 @@ import { TermView } from './TermView'
 const cleanTitle = (t: string) => t.replace(/^[^\p{L}\p{N}]+/u, '').trim()
 
 /** A claude session's terminal. */
-export function Terminal({ session, active }: { session: Session; active: boolean }) {
+export const Terminal = memo(function Terminal({ session, active }: { session: Session; active: boolean }) {
   const open = (size: { cols: number; rows: number }) => void window.workbench.openSession(session.id, size)
-  let lastTitle = ''
+  const lastTitle = useRef('')
   return (
     <TermView
       id={session.id}
@@ -18,11 +19,11 @@ export function Terminal({ session, active }: { session: Session; active: boolea
       exitMessage={`${session.state === 'failed' ? 'claude exited with an error' : 'claude exited'} · press Enter to resume`}
       onTitle={(raw) => {
         const title = cleanTitle(raw)
-        if (title && title !== lastTitle && title !== session.title) {
-          lastTitle = title
+        if (title && title !== lastTitle.current && title !== session.title) {
+          lastTitle.current = title
           void window.workbench.setTitle(session.id, title)
         }
       }}
     />
   )
-}
+})

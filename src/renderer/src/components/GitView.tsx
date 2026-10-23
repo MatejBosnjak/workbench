@@ -5,6 +5,7 @@ import type { Task, TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
 import { openInPane, useStore } from '../store'
 import { RunAppButton, runPr } from './RunPr'
+import { useShallow } from 'zustand/react/shallow'
 
 const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', faint: 'var(--faint)' }
 const CI_LABEL = { pass: 'CI passing', fail: 'CI failing', pending: 'CI running', none: 'No CI' }
@@ -58,7 +59,7 @@ export const draftTarget = (p: Pr, c: Conversation): DraftTarget =>
   c.kind === 'thread' ? { kind: 'gh-thread', key: c.key, repo: p.repo, number: p.number, threadId: c.targetId, path: c.path } : { kind: 'gh-pr', key: c.key, repo: p.repo, number: p.number }
 
 function useFocus(): string | null {
-  const { focusPr, setFocusPr } = useStore()
+  const { focusPr, setFocusPr } = useStore(useShallow((s) => ({ focusPr: s.focusPr, setFocusPr: s.setFocusPr })))
   useEffect(() => {
     if (!focusPr) return
     document.getElementById(`pr-${focusPr}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -77,7 +78,7 @@ function openRow(p: Pick<Pr, 'id' | 'url'>, external: boolean): void {
 
 /** j / k through the rows on screen, ⏎ opens the PR in the pane, r runs a frontend PR in the app, m marks its threads seen. */
 function useRowKeys(prs: Pr[]) {
-  const { selPr, setSelPr, git } = useStore()
+  const { selPr, setSelPr, git } = useStore(useShallow((s) => ({ selPr: s.selPr, setSelPr: s.setSelPr, git: s.git })))
   useKeyTarget(
     {
       move: (d) => {
@@ -152,7 +153,7 @@ function GroupHead({ title, tone, count }: { title: string; tone: GroupTone; cou
 }
 
 function TaskRef({ p, tasks }: { p: Pr; tasks: TasksSnapshot | null }) {
-  const { setTodayTab, setPeekTask } = useStore()
+  const { setTodayTab, setPeekTask } = useStore(useShallow((s) => ({ setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })))
   const t = tasksOf(p, tasks)[0]
   if (!t) return <span className="pr-task" />
   return (
@@ -214,7 +215,7 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
 
 /** PRs opened from a link that are in neither list; they stay until the app restarts. */
 function OpenedGroup({ git }: { git: GitSnapshot }) {
-  const { openedPrs, selPr } = useStore()
+  const { openedPrs, selPr } = useStore(useShallow((s) => ({ openedPrs: s.openedPrs, selPr: s.selPr })))
   const known = new Set([...git.mine, ...git.reviews].map((p) => p.url))
   const extra = openedPrs.filter((o) => !known.has(o.url))
   const [info, setInfo] = useState<Record<string, { title: string; state: string }>>({})

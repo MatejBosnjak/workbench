@@ -3,6 +3,7 @@ import { prRef, type Pr } from '@shared/git'
 import { FE_REPO } from '@shared/runpr'
 import { useStore } from '../store'
 import { RunAppButton } from './RunPr'
+import { useShallow } from 'zustand/react/shallow'
 
 const CI = { pass: ['CI passing', 'var(--ok)'], fail: ['CI failing', 'var(--bad)'], pending: ['CI running', 'var(--info)'], none: ['no CI', 'var(--faint)'] } as const
 
@@ -11,7 +12,7 @@ const CI = { pass: ['CI passing', 'var(--ok)'], fail: ['CI failing', 'var(--bad)
  * While an overlay is open the view hides and a still of it stands in, so nothing looks different.
  */
 export function GitPane({ active }: { active: boolean }) {
-  const { pane, git, overlays, paneFull, setPaneFull, paneNote, setPaneNote } = useStore()
+  const { pane, git, overlays, paneFull, setPaneFull, paneNote, setPaneNote } = useStore(useShallow((s) => ({ pane: s.pane, git: s.git, overlays: s.overlays, paneFull: s.paneFull, setPaneFull: s.setPaneFull, paneNote: s.paneNote, setPaneNote: s.setPaneNote })))
   const area = useRef<HTMLDivElement>(null)
   const [still, setStill] = useState<string | null>(null)
   const key = pane?.prUrl ?? null

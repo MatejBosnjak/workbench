@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { Limit } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { RunPrChip } from './RunPr'
+import { useShallow } from 'zustand/react/shallow'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const clock = (unix: number) => {
@@ -85,7 +86,7 @@ function Shortcuts() {
 }
 
 export function StatusBar({ children }: { children?: ReactNode }) {
-  const { sessions, view, status, hooks } = useStore()
+  const { sessions, view, status, hooks } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, status: s.status, hooks: s.hooks })))
   const now = useNow(30_000)
   const id = activeSessionId(view)
   const session = sessions.find((s) => s.id === id)

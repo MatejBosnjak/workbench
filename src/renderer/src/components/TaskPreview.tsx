@@ -7,6 +7,7 @@ import { openPrLink, openWorkstream, useStore, type View } from '../store'
 import { Box } from './Box'
 import { RunAppButton, runPr } from './RunPr'
 import { ago, dueLabel, statusColor } from './TodayView'
+import { useShallow } from 'zustand/react/shallow'
 
 type Linked = TaskLink & { live: Session | undefined }
 
@@ -50,7 +51,7 @@ const when = (ms: number) => {
 }
 
 export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
-  const { sessions, show, git, setDraft } = useStore()
+  const { sessions, show, git, setDraft } = useStore(useShallow((s) => ({ sessions: s.sessions, show: s.show, git: s.git, setDraft: s.setDraft })))
   const prs = [...(git?.mine ?? []), ...(git?.reviews ?? [])].filter((p) => p.taskRefs.includes(task.id))
   const fePr = prs.find((p) => p.repo === FE_REPO)
   const [busy, setBusy] = useState(false)

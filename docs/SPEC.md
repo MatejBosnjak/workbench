@@ -197,6 +197,9 @@ GitHub opens inside Workbench instead of the system browser. It uses an Electron
   | `⌘L` | copy URL |
   | `⌘↩` | open in browser |
   | `⌘K`, `⌘1–9` | as everywhere else |
+  | `⌘=` / `⌘-` / `⌘0` | GitHub zoom in / out / reset |
+
+  GitHub pages are zoomed on top of the app's own zoom, by 115% by default (github.com's text reads small next to the app). ⌘= / ⌘- change that in 10% steps (70–200%); it's remembered across restarts.
 
 - **Spike (done 2026-10-23):** login works in the embedded view (Google sign-in without the passkey, then the GitHub authenticator code). The reply-box fill works on a real PR thread: open the thread's URL (`#discussion_r…`), click its "Reply…" button, then set the visible `comment[body]` textarea through the native value setter and fire an `input` event; GitHub enables its Comment button.
 

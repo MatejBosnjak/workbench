@@ -12,7 +12,7 @@ import { MemoryMonitor } from './memory'
 import { Drafts } from './drafts'
 import { prInfo } from './github'
 import { GitPoller } from './github/poller'
-import { GitHubPane } from './github/pane'
+import { GitHubPane, DEFAULT_ZOOM } from './github/pane'
 import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
 import { loadConfig } from './local/config'
 import { Supervisor } from './local/supervisor'
@@ -311,7 +311,7 @@ void app.whenReady().then(() => {
       }
     },
     activity: () => git.refreshSoon(),
-  })
+  }, { get: () => repo.getSetting('pane:zoom', DEFAULT_ZOOM), set: (z) => repo.setSetting('pane:zoom', z) })
   paneRef = pane
   const memory = new MemoryMonitor(
     {

@@ -2,6 +2,8 @@ import { clipboard, dialog, session, shell, WebContentsView, type BrowserWindow 
 import { evictionOrder, paneRoute, POOL, prKey, type PaneKey, type PaneState } from '@shared/pane'
 
 export const PARTITION = 'persist:github'
+/** github.com's text reads small next to the app's; its pages start a step larger. */
+export const DEFAULT_ZOOM = 1.15
 
 interface Live {
   key: string
@@ -74,7 +76,18 @@ export class GitHubPane {
   constructor(
     private win: () => BrowserWindow | null,
     private events: PaneEvents,
+    /** GitHub's own zoom on top of the app's (⌘= / ⌘- / ⌘0 while it has focus), kept across restarts. */
+    private zoomPref: { get(): number; set(z: number): void },
   ) {}
+
+  private zoom(): number {
+    return Math.min(2, Math.max(0.7, this.zoomPref.get() || DEFAULT_ZOOM))
+  }
+
+  private setZoom(z: number): void {
+    this.zoomPref.set(Math.round(Math.min(2, Math.max(0.7, z)) * 100) / 100)
+    this.layout()
+  }
 
   state(): PaneState {
     const wc = this.active?.view.webContents
@@ -208,7 +221,11 @@ export class GitHubPane {
     wc.on('did-start-loading', () => this.emit())
     wc.on('did-stop-loading', () => this.emit())
     wc.on('page-title-updated', () => this.emit())
-    wc.on('dom-ready', () => void wc.executeJavaScript(SUBMIT_HOOK).catch(() => {}))
+    wc.on('dom-ready', () => {
+      void wc.executeJavaScript(SUBMIT_HOOK).catch(() => {})
+      // Zoom belongs to the page's origin, so a page that just loaded github.com takes it now.
+      this.layout()
+    })
     wc.on('console-message', (e) => {
       if (e.message === '__workbench_submit__') setTimeout(() => this.events.activity(key), 2500)
     })
@@ -219,6 +236,10 @@ export class GitHubPane {
       const map: Record<string, PaneKey> = { j: 'list', '[': 'back', ']': 'forward', r: 'reload', l: 'copy-url', enter: 'external', k: 'palette' }
       let action: PaneKey | undefined = map[k]
       if (!action && /^[1-9]$/.test(k)) action = { tab: Number(k) - 1 }
+      if (!action && (k === '=' || k === '+' || k === '-' || k === '0')) {
+        e.preventDefault()
+        return this.setZoom(k === '0' ? DEFAULT_ZOOM : this.zoom() + (k === '-' ? -0.1 : 0.1))
+      }
       if (!action) return
       e.preventDefault()
       if (action === 'back' || action === 'forward' || action === 'reload' || action === 'copy-url' || action === 'external') this.nav(action)
@@ -280,6 +301,9 @@ export class GitHubPane {
   }
 
   private layout(): void {
+    // The page follows the app's zoom times its own; one github.com zoom covers every page in the partition.
+    const z = (this.win()?.webContents.getZoomFactor() ?? 1) * this.zoom()
+    for (const l of this.live) if (Math.abs(l.view.webContents.getZoomFactor() - z) > 0.001) l.view.webContents.setZoomFactor(z)
     const win = this.win()
     if (!win) return
     for (const l of this.live) {

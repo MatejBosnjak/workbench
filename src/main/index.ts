@@ -332,6 +332,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('sessions:write', (_e, id: string, data: string) => sessions.write(id, data))
   ipcMain.handle('sessions:configure', (_e, id: string, change: Partial<AgentSettings>) => sessions.configure(id, change))
   ipcMain.handle('defaults:get', () => sessions.defaults())
+  ipcMain.handle('defaults:resolved', () => sessions.resolvedDefaults())
   ipcMain.handle('defaults:set', (_e, d: AgentSettings) => sessions.setDefaults(d))
   ipcMain.handle('sessions:recent', () => sessions.recent())
   ipcMain.handle('sessions:reopen', (_e, id: string) => sessions.reopen(id))

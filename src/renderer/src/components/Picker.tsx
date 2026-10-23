@@ -15,6 +15,7 @@ export function Picker() {
   const [open, setOpen] = useState(false)
   useOverlay(open)
   const [defaults, setDefaults] = useState<AgentSettings | null>(null)
+  const [resolved, setResolved] = useState<Awaited<ReturnType<typeof window.workbench.resolvedDefaults>> | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -26,6 +27,10 @@ export function Picker() {
   useEffect(() => {
     void window.workbench.getDefaults().then(setDefaults)
   }, [])
+  // Re-read on open and whenever status changes: a session reporting its model fills in what "no flag" means.
+  useEffect(() => {
+    void window.workbench.resolvedDefaults().then(setResolved)
+  }, [open, defaults, status])
 
   useEffect(() => {
     if (!open) return
@@ -74,8 +79,17 @@ export function Picker() {
     setNote('Saved as the default for new sessions')
   }
 
-  const modelShort = MODELS.find((m) => m.value === model)?.short ?? live?.model ?? 'default'
-  const modeLabel = MODES.find((m) => m.value === mode)?.label ?? mode ?? 'default'
+  // No flag means claude's own choice; show what that resolves to rather than the word "default".
+  const shownModel = model ?? resolved?.model ?? null
+  const modelShort =
+    MODELS.find((m) => m.value === shownModel)?.short ??
+    live?.model ??
+    (resolved?.modelId ? (modelFromId(resolved.modelId)?.short ?? resolved.modelId.replace(/^claude-/, '')) : null) ??
+    shownModel ??
+    'default'
+  const shownEffort = effort ?? resolved?.effort ?? null
+  const shownMode = mode ?? resolved?.permissionMode ?? null
+  const modeLabel = MODES.find((m) => m.value === shownMode)?.label ?? shownMode ?? 'default'
 
   return (
     <div className="picker" ref={root}>
@@ -91,7 +105,7 @@ export function Picker() {
         <span className="picker-agent">◆</span>
         {modelShort}
         <span className="muted">·</span>
-        <span style={{ color: 'var(--warn)' }}>{effort ?? 'default'}</span>
+        <span style={{ color: 'var(--warn)' }} title={shownEffort ? undefined : "Claude's built-in effort; the exact level shows once a session reports it (needs the hooks installed)"}>{shownEffort ?? 'auto'}</span>
         <span className="muted">·</span>
         <span style={{ color: 'var(--text-3)' }}>{modeLabel}</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2.5" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>

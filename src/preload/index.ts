@@ -26,6 +26,7 @@ const api: WorkbenchApi = {
   configureSession: (id, change) => ipcRenderer.invoke('sessions:configure', id, change),
   getDefaults: () => ipcRenderer.invoke('defaults:get'),
   setDefaults: (d) => ipcRenderer.invoke('defaults:set', d),
+  resolvedDefaults: () => ipcRenderer.invoke('defaults:resolved'),
   recentSessions: () => ipcRenderer.invoke('sessions:recent'),
   reopenSession: (id) => ipcRenderer.invoke('sessions:reopen', id),
   takeOver: (id) => ipcRenderer.invoke('sessions:takeover', id),

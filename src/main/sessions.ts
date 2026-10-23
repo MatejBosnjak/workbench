@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 import type { WebContents } from 'electron'
@@ -327,6 +327,10 @@ export class Sessions {
   }
 
   private applyStatusline(id: string, p: StatuslinePayload): void {
+    // What claude picks when it's started without --model / --effort: remembered so the picker can show it.
+    const row = this.repo.get(id)
+    if (row && !row.model && p.model?.id) this.remember({ modelId: p.model.id, model: p.model.display_name })
+    if (row && !row.effort && p.effort?.level) this.remember({ effort: p.effort.level })
     this.status.set(id, {
       ...this.status.get(id),
       model: p.model?.display_name,
@@ -347,6 +351,33 @@ export class Sessions {
       this.repo.setSetting('usage', this.usage)
     }
     this.events.statusChanged()
+  }
+
+  private remember(seen: { modelId?: string; model?: string; effort?: string }): void {
+    const cur = this.repo.getSetting<Record<string, string>>('claudeDefaultsSeen', {})
+    const next = { ...cur, ...seen }
+    if (JSON.stringify(next) !== JSON.stringify(cur)) this.repo.setSetting('claudeDefaultsSeen', next)
+  }
+
+  /**
+   * What a session started without flags really runs: Workbench's own defaults first, then the global Claude
+   * settings (read only), then what such a session last reported.
+   */
+  resolvedDefaults(): { model: string | null; modelId: string | null; effort: string | null; permissionMode: string | null } {
+    const d = this.defaults()
+    const seen = this.repo.getSetting<{ modelId?: string; effort?: string }>('claudeDefaultsSeen', {})
+    let global: { model?: string; effortLevel?: string; permissions?: { defaultMode?: string } } = {}
+    try {
+      global = JSON.parse(readFileSync(join(homedir(), '.claude', 'settings.json'), 'utf8')) as typeof global
+    } catch {
+      // no global settings
+    }
+    return {
+      model: d.model ?? global.model ?? null,
+      modelId: d.model || global.model ? null : (seen.modelId ?? null),
+      effort: d.effort ?? global.effortLevel ?? seen.effort ?? null,
+      permissionMode: d.permissionMode ?? global.permissions?.defaultMode ?? null,
+    }
   }
 
   private toSession(r: SessionRow): Session {

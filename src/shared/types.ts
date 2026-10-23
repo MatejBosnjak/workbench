@@ -128,6 +128,8 @@ export interface WorkbenchApi {
   configureSession(id: string, change: Partial<AgentSettings>): Promise<ApplyResult>
   getDefaults(): Promise<AgentSettings>
   setDefaults(d: AgentSettings): Promise<void>
+  /** What a new session really runs with: Workbench defaults, else Claude's global settings, else what one last reported. */
+  resolvedDefaults(): Promise<{ model: string | null; modelId: string | null; effort: string | null; permissionMode: string | null }>
   recentSessions(): Promise<RecentSession[]>
   reopenSession(id: string): Promise<void>
   /** Resumes an external session inside Workbench once its terminal copy has exited. */

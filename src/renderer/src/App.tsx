@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
-import { TaskSide } from './components/TaskSide'
+import { PrSide, TaskSide } from './components/TaskSide'
 import { TodayView } from './components/TodayView'
 import { WorkstreamView } from './components/WorkstreamView'
 import { DirtyGuardModal } from './components/RunPr'
@@ -12,7 +12,7 @@ import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
 import { TopBar } from './components/TopBar'
 import { installKeys } from './keys'
-import { activeSessionId, navigate, useStore } from './store'
+import { activeSessionId, navigate, useStore, type SessionSide } from './store'
 import { useShallow } from 'zustand/react/shallow'
 
 async function newSession(pick = false): Promise<void> {
@@ -45,7 +45,9 @@ function onMenu(cmd: MenuCommand): void {
       return
     }
     case 'task-side':
-      return useStore.getState().setTaskSide(!useStore.getState().taskSide)
+      return useStore.getState().toggleSessionSide('task')
+    case 'pr-side':
+      return useStore.getState().toggleSessionSide('pr')
     case 'palette':
       return useStore.getState().setPalette(!useStore.getState().paletteOpen)
     case 'cycle-tab': {
@@ -68,7 +70,7 @@ export function App() {
     const offNav = window.workbench.onNavigate(navigate)
     const { setRunpr } = useStore.getState()
     void window.workbench.getSetting<Record<string, number>>('ui:snoozed', {}).then((sn) => useStore.setState({ snoozed: Object.fromEntries(Object.entries(sn).filter(([, t]) => t > Date.now())) }))
-    void window.workbench.getSetting<boolean>('ui:taskSide', false).then((taskSide) => useStore.setState({ taskSide }))
+    void window.workbench.getSetting<SessionSide>('ui:sessionSide', null).then((sessionSide) => useStore.setState({ sessionSide }))
     void window.workbench.runpr.snapshot().then(setRunpr)
     const offRun = window.workbench.runpr.onChanged(setRunpr)
     // ⌘J inside the GitHub pane: back to the list, out of full width.
@@ -124,20 +126,22 @@ export function App() {
 
   const activeId = activeSessionId(view)
   const active = sessions.find((s) => s.id === activeId)
-  const taskSide = useStore((s) => s.taskSide)
-  const side = taskSide && view.kind === 'session' && !!active && !active.external
+  const sessionSide = useStore((s) => s.sessionSide)
+  const paneFull = useStore((s) => s.paneFull)
+  const side = view.kind === 'session' && !!active && !active.external ? sessionSide : null
 
   return (
     <div className="app">
       <TopBar onNew={() => void newSession()} />
-      <main className={`main${side ? ' with-side' : ''}`}>
+      <main className={`main${side ? ` with-side side-${side}${side === 'pr' && paneFull ? ' side-full' : ''}` : ''}`}>
         {sessions
           .filter((s) => mounted.has(s.id) && !s.external)
           .map((s) => (
             <Terminal key={s.id} session={s} active={s.id === activeId} />
           ))}
         {active?.external && <ExternalPanel session={active} />}
-        {side && <TaskSide session={active} />}
+        {side === 'task' && <TaskSide session={active!} />}
+        {side === 'pr' && <PrSide session={active!} />}
         <TodayView snapshot={tasks} git={git} active={view.kind === 'today'} />
         <LocalView snapshot={local} active={view.kind === 'local'} />
         {view.kind === 'workstream' && <WorkstreamView key={view.id} rootId={view.id} />}

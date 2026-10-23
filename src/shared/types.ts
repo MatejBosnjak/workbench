@@ -111,6 +111,7 @@ export type MenuCommand =
   | { type: 'cycle-tab'; delta: 1 | -1 }
   | { type: 'palette' }
   | { type: 'task-side' }
+  | { type: 'pr-side' }
 
 /** Where a notification click (or an in-app PR link) takes you. */
 export type NavigateTarget = { kind: 'session'; id: string } | { kind: 'git' | 'reviews'; prId: string | null }

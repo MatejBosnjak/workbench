@@ -814,6 +814,15 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .td-todo input { margin: 3px 0 0; accent-color: var(--ok); cursor: pointer; }
 .td-todo.done > span { color: var(--faint); text-decoration: line-through; }
 .main.with-side > .term { right: 400px; }
+.main.side-pr > .term { right: 45%; }
+.main.side-full > .term { visibility: hidden; }
+.pr-side { position: absolute; top: 0; right: 0; bottom: 0; width: 45%; display: flex; flex-direction: column; border-left: 1px solid var(--line-heavy); background: var(--bg); }
+.main.side-full > .pr-side { width: 100%; border-left: 0; }
+.pr-side > .ts-tabs { margin: 8px 10px 0; }
+.pr-side > .faint { padding: 18px 14px; }
+.pr-side > .gp, .pr-side > .gp-empty { flex: 1; min-height: 0; height: auto; }
+.side-btns { display: flex; gap: 6px; }
+.seg-btn.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .task-side { position: absolute; top: 0; right: 0; bottom: 0; width: 400px; overflow-y: auto; padding: 18px 14px 14px; border-left: 1px solid var(--line-heavy); background: var(--bg); }
 .ts-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .ts-filter { margin: 8px 0 4px; }

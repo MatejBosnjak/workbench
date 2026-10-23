@@ -11,7 +11,7 @@ const CI = { pass: ['CI passing', 'var(--ok)'], fail: ['CI failing', 'var(--bad)
  * The GitHub pane: a strip with the PR's facts and actions, and the area the native GitHub view is laid over.
  * While an overlay is open the view hides and a still of it stands in, so nothing looks different.
  */
-export function GitPane({ active }: { active: boolean }) {
+export function GitPane({ active, onClose }: { active: boolean; /** Replaces closing the pane (the session sidebar closes itself instead). */ onClose?(): void }) {
   const { pane, git, overlays, paneFull, setPaneFull, paneNote, setPaneNote } = useStore(useShallow((s) => ({ pane: s.pane, git: s.git, overlays: s.overlays, paneFull: s.paneFull, setPaneFull: s.setPaneFull, paneNote: s.paneNote, setPaneNote: s.setPaneNote })))
   const area = useRef<HTMLDivElement>(null)
   const [still, setStill] = useState<string | null>(null)
@@ -54,11 +54,20 @@ export function GitPane({ active }: { active: boolean }) {
     }
   }, [active, open, paneFull])
 
-  // Visible only while this screen is up and nothing covers it; a still stands in under overlays.
+  // Visible only while this screen is up and nothing covers it; a still stands in under overlays. Today and a session
+  // sidebar each mount a GitPane over the one native view, so only the instance on screen drives it; one that goes off
+  // screen hides it once.
+  const shown = useRef(false)
   useEffect(() => {
+    if (!active) {
+      if (shown.current) void window.workbench.pane.visible(false)
+      shown.current = false
+      return
+    }
+    shown.current = true
     let cancelled = false
-    const show = active && open && !covered
-    if (active && open && covered) {
+    const show = open && !covered
+    if (open && covered) {
       void window.workbench.pane.capture().then((img) => {
         if (cancelled) return
         setStill(img)
@@ -73,7 +82,7 @@ export function GitPane({ active }: { active: boolean }) {
     }
   }, [active, open, covered])
 
-  useEffect(() => () => void window.workbench.pane.visible(false), [])
+  useEffect(() => () => void (shown.current && window.workbench.pane.visible(false)), [])
 
   if (!open)
     return (
@@ -114,7 +123,8 @@ export function GitPane({ active }: { active: boolean }) {
             title="Close"
             onClick={() => {
               setPaneFull(false)
-              void window.workbench.pane.close()
+              if (onClose) onClose()
+              else void window.workbench.pane.close()
             }}
           >
             ×

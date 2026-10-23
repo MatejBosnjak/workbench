@@ -9,6 +9,8 @@ import { useEffect } from 'react'
 import { rootOf } from '@shared/workstream'
 import type { CaffeinateState, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
 
+export type SessionSide = 'task' | 'pr' | null
+
 export type View = { kind: 'today' } | { kind: 'local' } | { kind: 'session'; id: string } | { kind: 'workstream'; id: string }
 export type TodayTab = 'needs' | 'tasks' | 'git' | 'reviews'
 
@@ -64,9 +66,11 @@ interface State {
   pane: PaneState | null
   /** The GitHub pane takes the whole body (⤢). */
   paneFull: boolean
-  /** The task sidebar beside a session's terminal (⌘I). Kept as ui:taskSide. */
-  taskSide: boolean
-  setTaskSide(on: boolean): void
+  /** The sidebar beside a session's terminal: its task (⌘I) or its PR (⌘⇧I). Kept as ui:sessionSide. */
+  sessionSide: SessionSide
+  setSessionSide(side: SessionSide): void
+  /** Toggles one sidebar: opens it, or closes it when it's the one open. */
+  toggleSessionSide(side: Exclude<SessionSide, null>): void
   /** A line under the pane's strip, e.g. what happened to a Claude draft. */
   paneNote: string | null
   /** Open overlays (palette, popovers, modals); the native pane hides behind a still while any is open. */
@@ -135,11 +139,12 @@ export const useStore = create<State>((set, get) => ({
   runpr: null,
   pane: null,
   paneFull: false,
-  taskSide: false,
-  setTaskSide: (taskSide) => {
-    set({ taskSide })
-    void window.workbench.setSetting('ui:taskSide', taskSide)
+  sessionSide: null,
+  setSessionSide: (sessionSide) => {
+    set({ sessionSide })
+    void window.workbench.setSetting('ui:sessionSide', sessionSide)
   },
+  toggleSessionSide: (side) => get().setSessionSide(get().sessionSide === side ? null : side),
   paneNote: null,
   overlays: 0,
   openedPrs: [],

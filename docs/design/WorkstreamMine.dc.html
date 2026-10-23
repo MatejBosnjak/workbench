@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workstream: mine</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.box{position:relative;border:1px solid #3A3647;padding:14px 12px 10px;width:440px}
+.bt{position:absolute;top:-9px;left:10px;padding:0 6px;background:#0E0D12;color:#CDC7D8;font-weight:600;line-height:16px}
+.ba{position:absolute;top:-9px;right:10px;padding:0 6px;background:#0E0D12;color:#8FD3EA;line-height:16px;font-size:11px}
+.row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid #24222C;font-size:12px;color:#CDC7D8}
+.row:first-child{border-top:0}
+.g{width:11px;height:11px;border-radius:50%;flex-shrink:0;border:2px solid currentColor;box-sizing:border-box}
+.t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av{width:18px;height:18px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:#2A2733;color:#A69FB4}
+.av.me{background:#A07EEA;color:#120E16}
+.you{font-size:10px;padding:1px 5px;background:#211A30;color:#A07EEA}
+.cap{color:#A69FB4;max-width:440px;font-size:12px}
+.h{color:#A07EEA;font-weight:600}
+</style>
+</helmet>
+<div style="width: 1560px; height: 560px; box-sizing: border-box; padding: 48px; display: flex; gap: 56px; background: #0E0D12; color: #ECE8F2; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.55">
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="color: #6A647A; font-weight: 600">NOW</div>
+<div class="box"><span class="bt">Structure (6)</span>
+<div class="row" style="padding-left:10px"><span class="g" style="color:#4FC3F7"></span><span class="t" style="color:#ECE8F2;font-weight:600">CRM Contacts revamp</span></div>
+<div class="row" style="padding-left:26px"><span class="g" style="color:#FF6FB5"></span><span class="t">Contacts list filters</span></div>
+<div class="row" style="padding-left:26px"><span class="g" style="color:#4FD69C"></span><span class="t">Contacts copy update</span><span class="you">you</span></div>
+<div class="row" style="padding-left:42px"><span class="g" style="color:#E8D44D"></span><span class="t">Empty state illustrations</span></div>
+<div class="row" style="padding-left:26px"><span class="g" style="color:#4FC3F7"></span><span class="t">Import from CSV</span><span class="you">you</span></div>
+<div class="row" style="padding-left:26px"><span class="g" style="color:#9E9AAE"></span><span class="t">API: contact merge endpoint</span></div>
+</div>
+<div class="cap">Today: a small "you" tag, easy to miss in a long tree.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="h">A · YOUR ROWS LIT</div>
+<div class="box"><span class="bt">Structure (6)</span>
+<div class="row" style="padding-left:10px"><span class="g" style="color:#4FC3F7"></span><span class="t" style="color:#ECE8F2;font-weight:600">CRM Contacts revamp</span></div>
+<div class="row" style="padding-left:26px;color:#6A647A"><span class="g" style="color:#FF6FB5;opacity:.6"></span><span class="t">Contacts list filters</span><span style="font-size:11px">Ana K.</span></div>
+<div class="row" style="padding-left:26px;background:#1A1526;box-shadow:inset 3px 0 0 #A07EEA;color:#ECE8F2"><span class="g" style="color:#4FD69C"></span><span class="t" style="font-weight:600">Contacts copy update</span><span class="you">you</span></div>
+<div class="row" style="padding-left:42px;color:#6A647A"><span class="g" style="color:#E8D44D;opacity:.6"></span><span class="t">Empty state illustrations</span><span style="font-size:11px">Iva M.</span></div>
+<div class="row" style="padding-left:26px;background:#1A1526;box-shadow:inset 3px 0 0 #A07EEA;color:#ECE8F2"><span class="g" style="color:#4FC3F7"></span><span class="t" style="font-weight:600">Import from CSV</span><span class="you">you</span></div>
+<div class="row" style="padding-left:26px;color:#6A647A"><span class="g" style="color:#9E9AAE;opacity:.6"></span><span class="t">API: contact merge endpoint</span><span style="font-size:11px">unassigned</span></div>
+</div>
+<div class="cap">Your rows: violet bar on the left, tinted background, bright bold title. Everyone else's: dimmed, with the assignee's name at the end.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="h">B · AVATAR ON EVERY ROW</div>
+<div class="box"><span class="bt">Structure (6)</span>
+<div class="row" style="padding-left:10px"><span class="g" style="color:#4FC3F7"></span><span class="t" style="color:#ECE8F2;font-weight:600">CRM Contacts revamp</span><span class="av">DR</span></div>
+<div class="row" style="padding-left:26px"><span class="g" style="color:#FF6FB5"></span><span class="t">Contacts list filters</span><span class="av">AK</span></div>
+<div class="row" style="padding-left:26px;color:#ECE8F2"><span class="g" style="color:#4FD69C"></span><span class="t">Contacts copy update</span><span class="av me">MB</span></div>
+<div class="row" style="padding-left:42px"><span class="g" style="color:#E8D44D"></span><span class="t">Empty state illustrations</span><span class="av">IM</span></div>
+<div class="row" style="padding-left:26px;color:#ECE8F2"><span class="g" style="color:#4FC3F7"></span><span class="t">Import from CSV</span><span class="av me">MB</span></div>
+<div class="row" style="padding-left:26px"><span class="g" style="color:#9E9AAE"></span><span class="t">API: contact merge endpoint</span><span class="av" style="background:transparent;border:1px dashed #4A4657">–</span></div>
+</div>
+<div class="cap">Everyone's initials at the row end (like the to-do assignee); yours filled violet. Shows who has what, yours pop by colour.</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1560,"height":560}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

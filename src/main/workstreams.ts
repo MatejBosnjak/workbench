@@ -106,6 +106,7 @@ export class Workstreams {
       return {
         ...t,
         assignee: assignee ? `${assignee.attributes.first_name ?? ''} ${assignee.attributes.last_name ?? ''}`.trim() : null,
+        assigneeAvatar: (assignee?.attributes.avatar_url as string | null | undefined) ?? null,
         mine: r.relationships?.assignee?.data?.id === personId,
         closed: r.attributes.closed === true || t.statusCategory === 3,
         createdAt: (r.attributes.created_at as string) ?? null,

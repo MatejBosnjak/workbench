@@ -4,6 +4,8 @@ import type { Task } from './tasks'
 export interface WsTask extends Task {
   depth: number
   assignee: string | null
+  /** The assignee's Productive photo; missing in workstreams cached before it was read. */
+  assigneeAvatar?: string | null
   mine: boolean
   closed: boolean
   createdAt: string | null

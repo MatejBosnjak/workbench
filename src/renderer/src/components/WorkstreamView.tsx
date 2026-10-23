@@ -8,6 +8,7 @@ import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
 import { DraftPanel } from './DraftPanel'
 import { Diamond, StatusGlyph, ago } from './TodayView'
+import { Avatar } from './TaskDetails'
 import { useShallow } from 'zustand/react/shallow'
 
 type Tab = 'timeline' | 'sessions' | 'prs' | 'notes'
@@ -364,7 +365,9 @@ function Structure({ ws, sessionsOf, prsOf, live, onTask }: { ws: Workstream | n
                 <StatusGlyph task={t} size={13} />
                 {t.milestone && <Diamond />}
                 <span className={`ws-node-title${t.depth === 0 ? ' root' : ''}`}>{t.title}</span>
-                {t.mine && <span className="ws-mine">you</span>}
+                <span className="ws-who" title={t.mine ? 'Assigned to you' : t.assignee ? `Assigned to ${t.assignee}` : 'Unassigned'}>
+                  <Avatar name={t.assignee} url={t.assigneeAvatar} mine={t.mine} />
+                </span>
               </button>
               {(prsOf(t.id).length > 0 || wt || n > 0) && (
                 <div className="ws-node-chips">

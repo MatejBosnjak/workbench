@@ -205,13 +205,14 @@ const initials = (name: string) =>
     .toUpperCase()
 
 /** Productive's photo, or initials when there's none or it fails to load; a dashed ring when nobody's assigned. */
-function Avatar({ name, url }: { name: string | null; url?: string | null }) {
+export function Avatar({ name, url, mine }: { name: string | null; url?: string | null; mine?: boolean }) {
   const [broken, setBroken] = useState(false)
   useEffect(() => setBroken(false), [url])
+  const cls = `avatar${mine ? ' mine' : ''}`
   if (!name) return <span className="avatar none" aria-hidden="true" />
-  if (url && !broken) return <img className="avatar" src={url} alt="" onError={() => setBroken(true)} />
+  if (url && !broken) return <img className={cls} src={url} alt="" onError={() => setBroken(true)} />
   return (
-    <span className="avatar" aria-hidden="true">
+    <span className={cls} aria-hidden="true">
       {initials(name)}
     </span>
   )

@@ -597,7 +597,12 @@ button:disabled { cursor: default; opacity: 0.6; }
 .ws-node-main:hover .ws-node-title { color: var(--text); }
 .ws-node-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ws-node-title.root { font-weight: 600; color: var(--text); }
-.ws-mine { font-size: 10px; padding: 1px 5px; border-radius: 0; background: var(--accent-bg); color: var(--accent); flex-shrink: 0; }
+/* Every row ends with its assignee: yours filled (or ringed) violet, everyone else's grey, unassigned a dashed ring. */
+.ws-who { flex-shrink: 0; display: inline-flex; }
+.ws-who .avatar { width: 18px; height: 18px; background: var(--line-heavy); color: var(--text-3); }
+.ws-who .avatar.none { background: transparent; }
+.ws-who .avatar.mine { background: var(--accent); color: var(--on-accent); font-weight: 700; box-shadow: 0 0 0 2px var(--accent); }
+.ws-node-row:has(.avatar.mine) .ws-node-title { color: var(--text); }
 .ws-node-chips { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 21px; }
 .ws-tag { font-size: 11px; font-family: var(--mono); padding: 2px 6px; border-radius: 0; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .ws-tag.pr { background: var(--info-bg); color: var(--link); }

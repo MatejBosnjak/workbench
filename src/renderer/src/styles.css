@@ -759,12 +759,15 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 
 /* Task sidebar: the Productive section, and the panel beside a session's terminal (⌘I) */
 .task-details { margin-top: 18px; }
-.td-statuses { display: flex; flex-wrap: wrap; gap: 4px; }
-.td-status { border: 1px solid transparent; padding: 2px 6px; font-size: 11.5px; cursor: pointer; opacity: 0.55; border-radius: 4px; }
-.td-status:hover:not(:disabled) { opacity: 1; }
-.td-status.on { opacity: 1; border-color: currentColor; cursor: default; font-weight: 600; }
-.td-status:disabled:not(.on) { cursor: progress; }
+.status-select { display: flex; align-items: center; gap: 8px; }
+.ss-field { position: relative; display: inline-flex; margin-left: -5px; }
+.ss-field::after { content: '▾'; position: absolute; right: 5px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.7; }
+.ss-field select { appearance: none; field-sizing: content; font: inherit; color: inherit; background: transparent; border: 1px solid transparent; padding: 1px 18px 1px 4px; cursor: pointer; outline: none; }
+.ss-field select:hover, .ss-field select:focus-visible { border-color: var(--line-heavy); }
+.ss-field select:disabled { cursor: progress; }
+.ss-field select option { color: var(--text); background: var(--bg); }
 .td-desc { color: var(--text-2); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow-y: auto; }
+.td-todo.busy { opacity: 0.5; }
 .td-desc a, .td-todo a, .task-details .peek-title a { color: var(--link); text-decoration: none; }
 .td-desc a:hover, .td-todo a:hover { text-decoration: underline; }
 .td-todo { display: flex; align-items: flex-start; gap: 8px; color: var(--text-2); line-height: 1.5; cursor: pointer; overflow-wrap: anywhere; }

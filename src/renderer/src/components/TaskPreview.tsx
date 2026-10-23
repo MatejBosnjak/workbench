@@ -6,7 +6,8 @@ import type { Session } from '@shared/types'
 import { openPrLink, openWorkstream, useStore, type View } from '../store'
 import { Box } from './Box'
 import { RunAppButton, runPr } from './RunPr'
-import { ago, dueLabel, statusColor } from './TodayView'
+import { StatusSelect } from './TaskDetails'
+import { ago, dueLabel } from './TodayView'
 import { useShallow } from 'zustand/react/shallow'
 
 type Linked = TaskLink & { live: Session | undefined }
@@ -84,9 +85,7 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
 
   return (
     <Box title="Task" className="peek" aside={<button className="icon-btn" aria-label="Close task" onClick={onClose}>×</button>}>
-      <span style={{ color: statusColor(task) }}>
-        {task.statusCategory === 2 ? '●' : '○'} {task.statusName}
-      </span>
+      <StatusSelect task={task} />
       {parent && (
         <button className="peek-parent" title="Open workstream" onClick={() => openWorkstream(task.id)}>
           {parent.milestone ? '◆' : '◇'} {parent.title}

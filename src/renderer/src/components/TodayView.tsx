@@ -192,11 +192,19 @@ function TaskStrip({ statuses, only, setOnly, groupBy, setGroupBy }: {
 }) {
   const total = statuses.reduce((n, s) => n + s.count, 0) || 1
   const on = (name: string) => !only.length || only.includes(name)
+  const toggle = (name: string) => setOnly(only.includes(name) ? only.filter((x) => x !== name) : [...only, name])
   return (
     <div className="task-strip">
       <div className="task-strip-bar">
         {statuses.map((s) => (
-          <span key={s.name} title={`${s.name} ${s.count}`} style={{ width: `${(s.count / total) * 100}%`, background: s.color, opacity: on(s.name) ? 1 : 0.25 }} />
+          <button
+            key={s.name}
+            title={`${s.name} ${s.count} · click to filter`}
+            aria-label={`Filter: ${s.name} (${s.count})`}
+            aria-pressed={only.includes(s.name)}
+            style={{ width: `${(s.count / total) * 100}%`, background: s.color, opacity: on(s.name) ? 1 : 0.25 }}
+            onClick={() => toggle(s.name)}
+          />
         ))}
       </div>
       <div className="task-strip-row">
@@ -208,7 +216,7 @@ function TaskStrip({ statuses, only, setOnly, groupBy, setGroupBy }: {
               className={`fchip status-chip${picked ? ' picked' : ''}`}
               style={{ '--st': s.color } as CSSProperties}
               aria-pressed={picked}
-              onClick={() => setOnly(picked ? only.filter((x) => x !== s.name) : [...only, s.name])}
+              onClick={() => toggle(s.name)}
             >
               <span className="status-swatch" />
               {s.name} <b>{s.count}</b>

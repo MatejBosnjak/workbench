@@ -422,7 +422,8 @@ button:disabled { cursor: default; opacity: 0.6; }
 .task-status { width: 110px; flex-shrink: 0; text-align: right; color: var(--st); overflow: hidden; text-overflow: ellipsis; }
 .task-strip { display: flex; flex-direction: column; gap: 8px; }
 .task-strip-bar { display: flex; height: 8px; gap: 2px; }
-.task-strip-bar > span { min-width: 4px; transition: opacity 0.2s ease, width 0.4s ease; }
+.task-strip-bar > button { min-width: 4px; height: 100%; padding: 0; border: 0; cursor: pointer; transition: opacity 0.2s ease, width 0.4s ease, filter 0.15s ease; }
+.task-strip-bar > button:hover { filter: brightness(1.25); }
 .task-strip-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .fchip.status-chip { color: var(--text-2); }
 .status-chip b { color: var(--text); }

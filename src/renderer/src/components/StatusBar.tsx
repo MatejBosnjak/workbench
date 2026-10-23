@@ -36,6 +36,46 @@ function Meter({ pct, width, color }: { pct: number; width: number; color: strin
   )
 }
 
+export const SHORTCUTS: [string, string][] = [
+  ['j / k', 'move'],
+  ['⏎', 'open'],
+  ['tab', 'next pane'],
+  ['r', 'run app'],
+  ['s', 'new session'],
+  ['/', 'filter'],
+  ['g', 'my git'],
+  ['v', 'my reviews'],
+  ['1–9', 'switch tab'],
+  ['c', 'caffeinate'],
+  ['esc', 'back'],
+  ['?', 'all shortcuts'],
+]
+
+/** The ⌨ cell: all shortcuts in a popover on hover or focus (`?` toggles it). */
+function Shortcuts() {
+  const open = useStore((s) => s.keysOpen)
+  return (
+    <span className={`sb-keys${open ? ' open' : ''}`} tabIndex={0} aria-label="Keyboard shortcuts">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+        <rect x="2.5" y="6" width="19" height="12" />
+        <path d="M6 10h1M10 10h1M14 10h1M18 10h0M7 14h10" />
+      </svg>
+      <span className="kbpop" role="tooltip">
+        <span className="kbpop-title">Shortcuts</span>
+        <span className="kbpop-grid">
+          {SHORTCUTS.map(([k, what]) => (
+            <span key={k} style={{ display: 'contents' }}>
+              <span className="kbpop-key">{k}</span>
+              <span>{what}</span>
+            </span>
+          ))}
+        </span>
+        <span className="kbpop-note">Keys work when no terminal or text field has focus.</span>
+      </span>
+    </span>
+  )
+}
+
 export function StatusBar({ children }: { children?: ReactNode }) {
   const { sessions, view, status, hooks } = useStore()
   const now = useNow(30_000)
@@ -48,72 +88,57 @@ export function StatusBar({ children }: { children?: ReactNode }) {
   const fresh = (l?: Limit) => (l && (!l.resetsAt || l.resetsAt * 1000 > now) ? l : undefined)
   const five = fresh(usage?.fiveHour)
   const week = fresh(usage?.sevenDay)
+  const pct = (n?: number | null) => (n == null ? '—' : `${Math.round(n)}%`)
 
   return (
     <footer className="statusbar">
-      {session ? (
-        <span className="sb-session">
-          <span className={`sb-dot state-${session.state}`} />
-          <span className="sb-title">{session.title}</span>
-          {session.external && <span className="sb-tag">external</span>}
-          <span className="mono muted">{age(now - session.startedAt)}</span>
+      <Shortcuts />
+      <span className="sb-session" title={session ? `${session.title} · ${session.cwd}` : undefined}>
+        {session ? (
+          <>
+            <span className={`dot-${session.state}`}>●</span>
+            <span className="sb-title">{session.title}</span>
+            {session.external && <span className="faint">ext</span>}
+            <span className="faint">{age(now - session.startedAt)}</span>
+          </>
+        ) : (
+          <span className="faint">no session</span>
+        )}
+      </span>
+
+      <span className="sb-middle">
+        <RunPrChip />
+        {hooks && !(hooks.hooks && hooks.statusline) && (
+          <button className="sb-chip warn" title="Workbench hooks aren't installed, so tab states and limits don't update. Click to install." onClick={() => void window.workbench.installHooks()}>
+            ⚠ hooks
+          </button>
+        )}
+      </span>
+
+      <span className="sb-meters">
+        <span className="sb-meter" title={ctx != null ? `Context ${Math.round(ctx)}%${live?.contextSize ? ` of ${sizeLabel(live.contextSize)}` : ''}${ctx >= 60 ? ' · /compact suggested' : ''}` : 'Context of the active session'}>
+          <span className="sb-k">ctx</span>
+          <Meter pct={ctx ?? 0} width={48} color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'} />
+          <span className="sb-v" style={{ color: ctx != null && ctx >= 75 ? 'var(--bad)' : undefined }}>
+            {pct(ctx)}
+          </span>
+          {ctx != null && ctx >= 60 && session?.alive && !session.external && (
+            <button className="sb-compact" title="Run /compact in this session" onClick={() => void window.workbench.writeSession(session.id, '/compact\r')}>
+              /compact
+            </button>
+          )}
         </span>
-      ) : (
-        <span className="sb-session muted">No session</span>
-      )}
-
-      {hooks && !(hooks.hooks && hooks.statusline) && (
-        <button className="sb-chip warn" onClick={() => void window.workbench.installHooks()}>
-          Hooks not installed · Install…
-        </button>
-      )}
-
-      <RunPrChip />
-
-      <span className="sb-group push" title="Context window of the active session">
-        <span>Context</span>
-        {ctx != null ? (
-          <>
-            <Meter pct={ctx} width={72} color={ctx >= 75 ? 'var(--bad)' : ctx >= 60 ? 'var(--accent)' : 'var(--ok)'} />
-            <span className="mono" style={{ color: ctx >= 75 ? 'var(--bad)' : ctx >= 60 ? 'var(--warn)' : 'var(--text)' }}>
-              {Math.round(ctx)}% {live?.contextSize ? <span className="muted">of {sizeLabel(live.contextSize)}</span> : null}
-            </span>
-            {ctx >= 60 && session?.alive && !session.external && (
-              <button className="sb-compact" onClick={() => void window.workbench.writeSession(session.id, '/compact\r')}>
-                /compact
-              </button>
-            )}
-          </>
-        ) : (
-          <span className="mono muted">—</span>
-        )}
-      </span>
-
-      <span className="sb-sep" />
-
-      <span className="sb-group" title={usage ? `Plan usage, updated ${new Date(usage.at).toLocaleTimeString()}` : 'Plan usage'}>
-        <span>5h limit</span>
-        {five ? (
-          <>
-            <Meter pct={five.pct} width={72} color="var(--accent)" />
-            <span className="mono">{Math.round(five.pct)}%</span>
-            {five.resetsAt && <span className="muted">resets {clock(five.resetsAt)}</span>}
-          </>
-        ) : (
-          <span className="mono muted">—</span>
-        )}
-      </span>
-
-      <span className="sb-group" title={week?.resetsAt ? `Resets ${day(week.resetsAt)}` : undefined}>
-        <span>Week</span>
-        {week ? (
-          <>
-            <Meter pct={week.pct} width={48} color="var(--info)" />
-            <span className="mono">{Math.round(week.pct)}%</span>
-          </>
-        ) : (
-          <span className="mono muted">—</span>
-        )}
+        <span className="sb-meter" title={five ? `5h limit ${Math.round(five.pct)}%${five.resetsAt ? ` · resets ${clock(five.resetsAt)}` : ''}` : '5h limit'}>
+          <span className="sb-k">5h</span>
+          <Meter pct={five?.pct ?? 0} width={48} color="var(--accent)" />
+          <span className="sb-v">{pct(five?.pct)}</span>
+          <span className="faint sb-reset">{five?.resetsAt ? `↻${clock(five.resetsAt)}` : ''}</span>
+        </span>
+        <span className="sb-meter" title={week ? `Week ${Math.round(week.pct)}%${week.resetsAt ? ` · resets ${day(week.resetsAt)}` : ''}` : 'Week limit'}>
+          <span className="sb-k">wk</span>
+          <Meter pct={week?.pct ?? 0} width={48} color="var(--info)" />
+          <span className="sb-v">{pct(week?.pct)}</span>
+        </span>
       </span>
 
       {children}

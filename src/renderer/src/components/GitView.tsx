@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@shared/git'
 import { ageDays, groupMine, groupReviews, lastMessage, needsReply, prRef, verb } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
+import { useKeyTarget } from '../keys'
 import { useStore } from '../store'
-import { RunAppButton } from './RunPr'
+import { RunAppButton, runPr } from './RunPr'
 
 const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', faint: 'var(--faint)' }
 const CI_LABEL = { pass: 'CI passing', fail: 'CI failing', pending: 'CI running', none: 'No CI' }
@@ -65,6 +66,32 @@ function useFocus(): string | null {
     return () => clearTimeout(t)
   }, [focusPr, setFocusPr])
   return focusPr
+}
+
+/** j / k through the rows on screen, ⏎ opens the PR on GitHub, r runs a frontend PR in the app. */
+function useRowKeys(prs: Pr[]) {
+  const { selPr, setSelPr } = useStore()
+  useKeyTarget(
+    {
+      move: (d) => {
+        const i = selPr ? prs.findIndex((p) => p.id === selPr) : -1
+        const next = prs[i < 0 ? 0 : Math.max(0, Math.min(prs.length - 1, i + d))]
+        if (!next) return
+        setSelPr(next.id)
+        document.getElementById(`pr-${next.id}`)?.scrollIntoView({ block: 'nearest' })
+      },
+      open: () => {
+        const p = prs.find((x) => x.id === selPr)
+        if (p) void window.workbench.openExternal(p.url)
+      },
+      run: () => {
+        const p = prs.find((x) => x.id === selPr)
+        if (p?.repo === 'productiveio/frontend') void runPr(p.number)
+      },
+    },
+    true,
+  )
+  return selPr
 }
 
 function RepoChips({ prs, repo, setRepo, extra }: { prs: Pr[]; repo: string; setRepo(r: string): void; extra?: React.ReactNode }) {
@@ -130,6 +157,7 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
   const items = shown.filter((p) => (repo === 'All' ? true : repo === 'Reply needed' ? open(p) : p.repoName === repo))
   const groups = groupMine(items, git.viewer, git.seen)
   const replyCount = shown.filter(open).length
+  const sel = useRowKeys(groups.flatMap((g) => g.prs))
 
   return (
     <>
@@ -153,7 +181,7 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
           <section key={g.title} className="group">
             <GroupHead title={g.title} tone={g.tone} count={g.prs.length} />
             {g.prs.map((p) => (
-              <PrRow key={p.id} p={p} git={git} tasks={tasks} focused={focus === p.id} />
+              <PrRow key={p.id} p={p} git={git} tasks={tasks} focused={focus === p.id} selected={sel === p.id} />
             ))}
           </section>
         ))}
@@ -162,7 +190,7 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
   )
 }
 
-function PrRow({ p, git, tasks, focused }: { p: Pr; git: GitSnapshot; tasks: TasksSnapshot | null; focused: boolean }) {
+function PrRow({ p, git, tasks, focused, selected }: { p: Pr; git: GitSnapshot; tasks: TasksSnapshot | null; focused: boolean; selected: boolean }) {
   const setDraft = useStore((s) => s.setDraft)
   const [state, stateColor] = stateOf(p)
   const open = p.conversations.filter((c) => needsReply(c, git.viewer, git.seen))
@@ -176,7 +204,7 @@ function PrRow({ p, git, tasks, focused }: { p: Pr; git: GitSnapshot; tasks: Tas
   }
 
   return (
-    <div id={`pr-${p.id}`} className={`pr-wrap${open.length ? ' needs' : ''}${focused ? ' focus' : ''}`}>
+    <div id={`pr-${p.id}`} className={`pr-wrap${open.length ? ' needs' : ''}${focused ? ' focus' : ''}${selected ? ' sel' : ''}`}>
       <div className="pr-row">
         <button className="pr-main" title="Open on GitHub" onClick={() => void window.workbench.openExternal(p.url)}>
           <span className="pr-ref mono">{prRef(p)}</span>
@@ -230,6 +258,7 @@ export function ReviewsView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnap
   const bots = git.reviews.filter((p) => p.authorBot).length
   const shown = git.reviews.filter((p) => !(hideBots && p.authorBot) || p.id === focus)
   const groups = groupReviews(shown.filter((p) => repo === 'All' || p.repoName === repo))
+  const sel = useRowKeys(groups.flatMap((g) => g.prs))
 
   return (
     <>
@@ -247,7 +276,7 @@ export function ReviewsView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnap
               const d = ageDays(p.createdAt)
               const mine = tasksOf(p, tasks)[0]
               return (
-                <div key={p.id} id={`pr-${p.id}`} className={`pr-wrap${focus === p.id ? ' focus' : ''}`}>
+                <div key={p.id} id={`pr-${p.id}`} className={`pr-wrap${focus === p.id ? ' focus' : ''}${sel === p.id ? ' sel' : ''}`}>
                   <div className="pr-row rev">
                     <button className="pr-main" title="Open on GitHub" onClick={() => void window.workbench.openExternal(p.url)}>
                       <span className="pr-ref mono">{prRef(p)}</span>

@@ -52,7 +52,7 @@ function createWindow(): BrowserWindow {
     show: false,
     backgroundColor: '#0E0D12',
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 17 },
+    trafficLightPosition: { x: 16, y: 21 },
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.mjs'),
       sandbox: false,
@@ -117,7 +117,7 @@ async function confirmUninstall(): Promise<HooksStatus> {
 
 function buildMenu(): void {
   const tabs: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
-    label: `Tab ${i + 1}`,
+    label: i === 0 ? 'Today' : i === 1 ? 'Local' : i === 8 ? 'Last Session' : `Tab ${i + 1}`,
     accelerator: `CmdOrCtrl+${i + 1}`,
     click: () => send({ type: 'select-tab', index: i }),
   }))

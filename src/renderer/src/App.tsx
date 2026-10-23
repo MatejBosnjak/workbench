@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
-import { CaffeinateControl } from './components/CaffeinateControl'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
 import { TodayView } from './components/TodayView'
@@ -11,6 +10,7 @@ import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
 import { TopBar } from './components/TopBar'
+import { installKeys } from './keys'
 import { activeSessionId, navigate, useStore } from './store'
 
 async function newSession(pick = false): Promise<void> {
@@ -35,7 +35,10 @@ function onMenu(cmd: MenuCommand): void {
       return void window.workbench.closeSession(id)
     }
     case 'select-tab': {
-      const s = cmd.index === 8 ? sessions.at(-1) : sessions[cmd.index]
+      // Same numbering as the taskbar: 1 Today, 2 Local, 3… sessions; ⌘9 is the last session.
+      if (cmd.index === 0) return show({ kind: 'today' })
+      if (cmd.index === 1) return show({ kind: 'local' })
+      const s = cmd.index === 8 ? sessions.at(-1) : sessions[cmd.index - 2]
       if (s) show({ kind: 'session', id: s.id })
       return
     }
@@ -102,9 +105,11 @@ export function App() {
     })
     const offSessions = window.workbench.onSessionsChanged(setSessions)
     const offMenu = window.workbench.onMenuCommand(onMenu)
+    const offKeys = installKeys(() => void newSession())
     return () => {
       offSessions()
       offMenu()
+      offKeys()
     }
   }, [setSessions, show])
 
@@ -126,9 +131,6 @@ export function App() {
         {view.kind === 'workstream' && <WorkstreamView key={view.id} rootId={view.id} />}
       </main>
       <StatusBar>
-        <span className="sb-sep" />
-        <CaffeinateControl />
-        <span className="sb-sep" />
         <Picker />
       </StatusBar>
       <DirtyGuardModal />

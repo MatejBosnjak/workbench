@@ -28,6 +28,10 @@ interface State {
   hooks: HooksStatus | null
   caf: CaffeinateState | null
   paletteOpen: boolean
+  cafOpen: boolean
+  keysOpen: boolean
+  setKeysOpen(open: boolean): void
+  setCafOpen(open: boolean): void
   local: LocalSnapshot | null
   git: GitSnapshot | null
   tasks: TasksSnapshot | null
@@ -38,6 +42,9 @@ interface State {
   peekTask: string | null
   /** A PR row to scroll to and highlight. */
   focusPr: string | null
+  /** The PR row picked with j / k in My PRs and Reviews. */
+  selPr: string | null
+  setSelPr(id: string | null): void
   /** Bumped on every show(), so re-selecting the current tab still hands focus back to its terminal. */
   showTick: number
   /** The draft open in Today's side panel. */
@@ -74,6 +81,10 @@ export const useStore = create<State>((set, get) => ({
   hooks: null,
   caf: null,
   paletteOpen: false,
+  cafOpen: false,
+  keysOpen: false,
+  setKeysOpen: (keysOpen) => set({ keysOpen }),
+  setCafOpen: (cafOpen) => set({ cafOpen }),
   local: null,
   git: null,
   tasks: null,
@@ -81,6 +92,8 @@ export const useStore = create<State>((set, get) => ({
   todayTab: loadTab(),
   peekTask: null,
   focusPr: null,
+  selPr: null,
+  setSelPr: (selPr) => set({ selPr }),
   showTick: 0,
   draft: null,
   setLocal: (local) => set({ local }),

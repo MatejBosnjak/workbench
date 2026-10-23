@@ -5,6 +5,7 @@ import type { TimelineItem, Workstream, WsLink, WsPr, WsTask } from '@shared/wor
 import { subtree, timeline } from '@shared/workstream'
 import { shortRepo } from '@shared/git'
 import { useStore } from '../store'
+import { Box } from './Box'
 import { DraftPanel } from './DraftPanel'
 import { Diamond, StatusGlyph, ago } from './TodayView'
 
@@ -289,11 +290,7 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
               }}
             />
             <StartWork ws={ws} rootId={rootId} sessionsOf={sessionsOf} liveById={liveById} open={open} />
-            <section className="peek-section">
-              <span className="peek-label">
-                Where I left off
-                {latest[0] && <Summarize taskId={latest[0].taskId} />}
-              </span>
+            <Box title="Where I left off" aside={latest[0] && <Summarize taskId={latest[0].taskId} />}>
               {sessionIds.filter((id) => snap?.summaries[id]).length ? (
                 sessionIds
                   .filter((id) => snap?.summaries[id])
@@ -307,7 +304,7 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
               ) : (
                 <span className="muted">No summaries yet. Summarize reads the latest session's transcript with Haiku.</span>
               )}
-            </section>
+            </Box>
           </aside>
         )}
       </div>
@@ -346,15 +343,16 @@ function Structure({ ws, sessionsOf, prsOf, live, onTask }: { ws: Workstream | n
   const closed = ws.tasks.filter((t) => t.depth > 0 && t.closed)
   const rows = ws.tasks.filter((t) => t.depth === 0 || showClosed || !t.closed)
   return (
-    <section className="peek-section">
-      <span className="peek-label">
-        Structure <span className="mono muted">{ws.tasks.length - 1}</span>
-        {closed.length > 0 && (
+    <Box
+      title={`Structure (${ws.tasks.length - 1})`}
+      aside={
+        closed.length > 0 && (
           <button className="link-btn" onClick={() => setShowClosed(!showClosed)}>
-            {showClosed ? 'Hide closed' : `Show ${closed.length} closed`}
+            {showClosed ? 'hide closed' : `show ${closed.length} closed`}
           </button>
-        )}
-      </span>
+        )
+      }
+    >
       <div className="ws-tree">
         {rows.map((t) => {
           const n = sessionsOf(t.id).length
@@ -383,7 +381,7 @@ function Structure({ ws, sessionsOf, prsOf, live, onTask }: { ws: Workstream | n
           )
         })}
       </div>
-    </section>
+    </Box>
   )
 }
 
@@ -415,8 +413,7 @@ function StartWork({ ws, rootId, sessionsOf, liveById, open }: { ws: Workstream 
   }
 
   return (
-    <section className="peek-section">
-      <span className="peek-label">Start work</span>
+    <Box title="Start work">
       {mineOpen.length === 0 && <span className="muted">Nothing open is assigned to you here.</span>}
       <div className="ws-start">
         {mineOpen.map((t) => {
@@ -455,7 +452,7 @@ function StartWork({ ws, rootId, sessionsOf, liveById, open }: { ws: Workstream 
         })}
       </div>
       {err && <span className="bad-text">{err}</span>}
-    </section>
+    </Box>
   )
 }
 

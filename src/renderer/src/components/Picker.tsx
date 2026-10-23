@@ -87,7 +87,7 @@ export function Picker() {
           setNote(null)
         }}
       >
-        <span className="picker-agent">C</span>
+        <span className="picker-agent">◆</span>
         {modelShort}
         <span className="muted">·</span>
         <span style={{ color: 'var(--warn)' }}>{effort ?? 'default'}</span>

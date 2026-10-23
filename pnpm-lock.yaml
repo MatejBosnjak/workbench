@@ -12,7 +12,7 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource/jetbrains-mono':
-        specifier: ^5.3.0
+        specifier: '5'
         version: 5.3.0
       '@fontsource/orbitron':
         specifier: ^5.3.0

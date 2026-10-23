@@ -25,17 +25,6 @@ function Play() {
   )
 }
 
-function Branch() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <circle cx="6" cy="6" r="2.5" />
-      <circle cx="6" cy="18" r="2.5" />
-      <circle cx="18" cy="8" r="2.5" />
-      <path d="M6 8.5v7M18 10.5c0 4-6 3-11 6" />
-    </svg>
-  )
-}
-
 /** ▶ Run app with the hint under it, or "In app" for the PR the app already runs. */
 export function RunAppButton({ n, compact = false }: { n: number; compact?: boolean }) {
   const runpr = useStore((s) => s.runpr)
@@ -97,8 +86,8 @@ export function RunPrChip() {
     chip = (
       <span className="run-chip mismatch">
         <span className="muted">App</span>
-        <span className="run-branch" title={runpr.app.path}>
-          <Branch /> {runpr.app.running ? (runpr.app.branch ?? 'detached') : 'stopped'}
+        <span className="run-branch" title={`${runpr.app.branch ?? 'detached'} · ${runpr.app.path}`}>
+          ⑂ {runpr.app.running ? (runpr.app.branch ?? 'detached') : 'stopped'}
         </span>
         <span className="run-arrow">→</span>
         <span className="muted">Session</span>
@@ -162,7 +151,7 @@ function BackButton() {
         })
       }
     >
-      ↩ Back to {to}
+      ↩ {to}
     </button>
   )
 }

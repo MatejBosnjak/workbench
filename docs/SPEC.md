@@ -280,7 +280,7 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
   | Reviews | e.g. 11 bot PRs hidden |
   | 5h limit | percentage, with the reset time |
 
-- **Keyboard.** The app is keyboard-first (j/k move, ⏎ open, tab next pane, r run app, s new session, / filter, g my git, v my reviews, 1–6 switch tab, c caffeinate). Shortcuts are not printed in the UI. A ⌨ icon at the left of the StatusBar shows them all in a popover on hover or focus.
+- **Keyboard.** ⌘1–⌘9 follow the taskbar numbers too (⌘1 Today, ⌘2 Local, ⌘3… sessions, ⌘9 the last session). The app is keyboard-first (j/k move, ⏎ open, tab next pane, r run app, s new session, / filter, g my git, v my reviews, 1–6 switch tab, c caffeinate). Shortcuts are not printed in the UI. A ⌨ icon at the left of the StatusBar shows them all in a popover on hover or focus.
 - **Theme.** Dusk tokens are unchanged; only the shapes and type change.
 
 ### Shell chrome

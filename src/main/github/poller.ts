@@ -24,10 +24,10 @@ query {
       reviewThreads(first: 50) { nodes {
         id isResolved path
         head: comments(first: 1) { nodes { diffHunk } }
-        comments(last: 6) { nodes { id ${ACTOR} createdAt body url } }
+        comments(last: 6) { nodes { id ${ACTOR} createdAt body url reactionGroups { viewerHasReacted } } }
       } }
-      comments(last: 8) { nodes { id ${ACTOR} createdAt body url } }
-      reviews(last: 15) { nodes { id ${ACTOR} state submittedAt body url } }
+      comments(last: 8) { nodes { id ${ACTOR} createdAt body url reactionGroups { viewerHasReacted } } }
+      reviews(last: 15) { nodes { id ${ACTOR} state submittedAt body url reactionGroups { viewerHasReacted } } }
     } }
   }
   requested: search(query: "is:pr is:open review-requested:@me archived:false", type: ISSUE, first: 50) {
@@ -42,14 +42,17 @@ interface Actor {
   login: string
   __typename?: string
 }
-interface RawComment {
+interface Reactions {
+  reactionGroups?: { viewerHasReacted: boolean }[] | null
+}
+interface RawComment extends Reactions {
   id: string
   author: Actor | null
   createdAt: string
   body: string
   url: string
 }
-interface RawReview {
+interface RawReview extends Reactions {
   id: string
   author: Actor | null
   state: string
@@ -96,9 +99,10 @@ function ci(p: RawPr): Ci {
   return 'pending'
 }
 
-const comment = (c: RawComment): GhMessage => ({ id: c.id, author: login(c.author), at: c.createdAt, body: c.body, url: c.url })
+const reacted = (r: Reactions) => !!r.reactionGroups?.some((g) => g.viewerHasReacted)
+const comment = (c: RawComment): GhMessage => ({ id: c.id, author: login(c.author), at: c.createdAt, body: c.body, url: c.url, reacted: reacted(c) })
 
-function conversations(p: RawPr): Conversation[] {
+function conversations(p: RawPr, viewer: string): Conversation[] {
   const threads: Conversation[] = (p.reviewThreads?.nodes ?? [])
     .filter((t) => !t.isResolved)
     .map((t) => ({
@@ -111,9 +115,10 @@ function conversations(p: RawPr): Conversation[] {
     }))
   // The PR's conversation tab: plain comments plus reviews that said something or decided something.
   const reviews = (p.reviews?.nodes ?? [])
-    // A bare approval says nothing to answer; a bare "changes requested" still wants a response.
-    .filter((r) => human(r.author) && r.submittedAt && (r.body.trim() || r.state === 'CHANGES_REQUESTED'))
-    .map((r): GhMessage => ({ id: r.id, author: login(r.author), at: r.submittedAt!, body: r.body, url: r.url, state: r.state }))
+    // A bare approval says nothing to answer; a bare "changes requested" still wants a response. My own reviews always
+    // count: one without top-level text is how GitHub stores replies made in review threads.
+    .filter((r) => human(r.author) && r.submittedAt && (r.body.trim() || r.state === 'CHANGES_REQUESTED' || login(r.author) === viewer))
+    .map((r): GhMessage => ({ id: r.id, author: login(r.author), at: r.submittedAt!, body: r.body, url: r.url, state: r.state, reacted: reacted(r) }))
   const comments = (p.comments?.nodes ?? []).filter((c) => human(c.author)).map(comment)
   const pr: Conversation = {
     key: `pr:${p.id}`,
@@ -131,7 +136,7 @@ function changesRequestedBy(p: RawPr): Pr['changesRequestedBy'] {
   return r ? { id: r.id, author: login(r.author), at: r.submittedAt! } : null
 }
 
-function toPr(p: RawPr, withTalk: boolean): Pr {
+function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
   const fromBranch = [...p.headRefName.matchAll(/(?:^|\D)(\d{7,9})(?=\D|$)/g)].map((m) => m[1]!)
   return {
     id: p.id,
@@ -151,7 +156,7 @@ function toPr(p: RawPr, withTalk: boolean): Pr {
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     taskRefs: [...new Set([...fromBranch, ...taskIdsFromText(p.body ?? '')])],
-    conversations: withTalk ? conversations(p) : [],
+    conversations: withTalk ? conversations(p, viewer) : [],
     changesRequestedBy: withTalk ? changesRequestedBy(p) : null,
   }
 }
@@ -165,7 +170,7 @@ export function normalize(r: RawResult): { viewer: string; mine: Pr[]; reviews: 
     .filter((p) => p.id && !ids.has(p.id))
     .filter((p) => p.latestOpinionatedReviews?.nodes.some((v) => v.author?.login === viewer && v.state === 'CHANGES_REQUESTED'))
     .map((p) => ({ ...toPr(p, false), reviewDecision: 'CHANGES_REQUESTED', requested: false }))
-  return { viewer, mine: r.mine.nodes.filter((p) => p.id).map((p) => toPr(p, true)), reviews: [...requested, ...asked] }
+  return { viewer, mine: r.mine.nodes.filter((p) => p.id).map((p) => toPr(p, true, viewer)), reviews: [...requested, ...asked] }
 }
 
 /** Polls my PRs and review requests through `gh api graphql`. Read-only. */

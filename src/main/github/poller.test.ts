@@ -40,6 +40,8 @@ describe('normalize', () => {
               nodes: [
                 { id: 'R1', author: actor('rev'), state: 'CHANGES_REQUESTED', submittedAt: '2026-10-02', body: '', url: '' },
                 { id: 'R2', author: actor('rev'), state: 'COMMENTED', submittedAt: '2026-10-02', body: '', url: '' },
+                // My reply in a review thread arrives as a review with no top-level text: it answers the PR conversation.
+                { id: 'R3', author: actor('me'), state: 'COMMENTED', submittedAt: '2026-10-03', body: '', url: '', reactionGroups: [] },
               ],
             },
           }),
@@ -61,7 +63,7 @@ describe('normalize', () => {
     expect([p.ci, p.conflict, p.taskRefs]).toEqual(['fail', true, ['21071355', '20135272']])
     expect(p.conversations.map((x) => [x.key, x.messages.map((m) => m.id)])).toEqual([
       ['thread:T1', ['c1', 'c2']],
-      ['pr:P1', ['c5', 'R1']],
+      ['pr:P1', ['c5', 'R1', 'R3']],
     ])
     expect(p.conversations[0]!.diffHunk).toBe('@@')
     expect(p.changesRequestedBy?.id).toBe('R1')

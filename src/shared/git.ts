@@ -10,6 +10,8 @@ export interface GhMessage {
   url: string
   /** For review bodies: APPROVED, CHANGES_REQUESTED, COMMENTED. */
   state?: string
+  /** I reacted to it with an emoji, which counts as an answer. */
+  reacted?: boolean
 }
 
 /** Something that can need a reply: a review thread, or the PR's own conversation (comments and review bodies). */
@@ -88,10 +90,10 @@ export function lastMessage(c: Conversation): GhMessage | null {
   return c.messages.at(-1) ?? null
 }
 
-/** The last message isn't mine and hasn't been marked seen. */
+/** The last message isn't mine, I haven't reacted to it, and it hasn't been marked seen. */
 export function needsReply(c: Conversation, viewer: string | null, seen: Record<string, string>): boolean {
   const last = lastMessage(c)
-  return !!last && !!viewer && last.author !== viewer && seen[c.key] !== last.id
+  return !!last && !!viewer && last.author !== viewer && !last.reacted && seen[c.key] !== last.id
 }
 
 /** "opened a thread on", "replied on", "requested changes" … for a conversation's last message. */

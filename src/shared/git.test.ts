@@ -41,6 +41,10 @@ describe('needsReply', () => {
     expect(needsReply(talk('t', 'rev', 'me'), 'me', {})).toBe(false)
     // A newer message after the seen one brings it back.
     expect(needsReply(talk('t', 'rev', 'me', 'rev'), 'me', { t: 't-1' })).toBe(true)
+    // An emoji reaction from me on the last message is an answer.
+    const r = talk('t', 'me', 'rev')
+    r.messages[1]!.reacted = true
+    expect(needsReply(r, 'me', {})).toBe(false)
   })
 })
 

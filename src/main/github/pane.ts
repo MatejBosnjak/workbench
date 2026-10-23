@@ -55,7 +55,11 @@ const fillScript = (text: string) => `(async () => {
   return { filled: true }
 })()`
 
-const HAS_TEXT = `[...document.querySelectorAll('textarea')].some((t) => t.value.trim().length > 0)`
+/**
+ * Text I typed and haven't sent: a visible textarea whose value differs from what the page loaded with. GitHub
+ * prefills some itself (the merge box's commit message, hidden reply templates), which don't count.
+ */
+const HAS_TEXT = `[...document.querySelectorAll('textarea')].some((t) => t.value.trim().length > 0 && t.value !== t.defaultValue && t.getClientRects().length > 0)`
 
 /**
  * GitHub inside Workbench: a small pool of WebContentsViews on one persistent login partition, laid over the

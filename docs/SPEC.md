@@ -175,7 +175,7 @@ GitHub opens inside Workbench instead of the system browser. It uses an Electron
   - ⌘-click always opens the system browser.
 - **Scope.** Every `github.com/productiveio/*` page stays in the pane: PRs, files, checks, Actions, issues, commits. Other orgs, other sites and new-window links open in the system browser.
 - **Views.** The 3 most recently opened PRs stay live, evicting the oldest first (about 150–200 MB each), so switching between them is instant and keeps scroll position and unsent comment text.
-  - Before evicting a page with text in a comment box, Workbench asks first.
+  - Before evicting a page with text I typed and haven't sent, Workbench asks first. Only a visible text box whose text differs from what the page loaded with counts, so GitHub's own prefilled boxes (the merge commit message) don't trigger it.
 - **Login.** The pane uses its own persistent session (`partition: 'persist:github'`), separate from the app, so you log in once.
   - Login is GitHub's own login page inside the pane. The account signs in with Google (personal Google account), then GitHub's authenticator-app code. `productiveio` has no SAML SSO (`/orgs/productiveio/sso` returns 404).
   - Passkeys don't work in an embedded Electron view (no macOS passkey prompt), so on Google's passkey step choose "Try another way" (password plus the phone prompt). Verified in the spike, 2026-10-23.

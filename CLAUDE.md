@@ -18,6 +18,7 @@ Personal Electron desktop app for working with Claude Code. Read these first:
 | `StyleTui.dc.html` | **the visual style to follow** (TUI, direction 1b): taskbar, counters, panels, status bar |
 | `CaffeinateButton.dc.html` | caffeinate cup button states and its popover |
 | `RunPR.dc.html` | Run PR in app: chip states, ▶ Run app entry points, run panels, dirty guard |
+| `SessionBookmarks.dc.html` | bookmark rail beside a session's terminal: prompts, Subagent results, questions; ⌘[ / ⌘] |
 
 ## Working rules
 

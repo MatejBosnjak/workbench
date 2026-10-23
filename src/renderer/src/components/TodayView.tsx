@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { FE_REPO } from '@shared/runpr'
-import { groupTasks, statusColors, type Task, type TasksSnapshot } from '@shared/tasks'
+import { groupByStatus, groupTasks, statusColors, statusCounts, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
@@ -22,6 +22,7 @@ import { useShallow } from 'zustand/react/shallow'
 export const statusColor = (t: Pick<Task, 'statusColorId'>) => statusColors({ colorId: t.statusColorId })[1]
 
 const isBugProject = (name: string) => /bug/i.test(name)
+const GROUP_KEY = 'workbench.taskGroup'
 
 export function dueLabel(d: string | null): { text: string; late: boolean } | null {
   if (!d) return null
@@ -181,6 +182,60 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
   )
 })
 
+/** The My tasks strip: the mix of statuses as a bar, chips that filter by status, and the grouping switch. */
+function TaskStrip({ statuses, only, setOnly, groupBy, setGroupBy }: {
+  statuses: StatusCount[]
+  only: string[]
+  setOnly(v: string[]): void
+  groupBy: 'project' | 'status'
+  setGroupBy(g: 'project' | 'status'): void
+}) {
+  const total = statuses.reduce((n, s) => n + s.count, 0) || 1
+  const on = (name: string) => !only.length || only.includes(name)
+  return (
+    <div className="task-strip">
+      <div className="task-strip-bar">
+        {statuses.map((s) => (
+          <span key={s.name} title={`${s.name} ${s.count}`} style={{ width: `${(s.count / total) * 100}%`, background: s.color, opacity: on(s.name) ? 1 : 0.25 }} />
+        ))}
+      </div>
+      <div className="task-strip-row">
+        {statuses.map((s) => {
+          const picked = only.includes(s.name)
+          return (
+            <button
+              key={s.name}
+              className={`fchip status-chip${picked ? ' picked' : ''}`}
+              style={{ '--st': s.color } as CSSProperties}
+              aria-pressed={picked}
+              onClick={() => setOnly(picked ? only.filter((x) => x !== s.name) : [...only, s.name])}
+            >
+              <span className="status-swatch" />
+              {s.name} <b>{s.count}</b>
+            </button>
+          )
+        })}
+        {only.length > 0 && (
+          <button className="link-btn" onClick={() => setOnly([])}>
+            clear
+          </button>
+        )}
+        <span className="task-group">
+          group by
+          <span className="seg-pair">
+            <button aria-pressed={groupBy === 'project'} onClick={() => setGroupBy('project')}>
+              project
+            </button>
+            <button aria-pressed={groupBy === 'status'} onClick={() => setGroupBy('status')}>
+              status
+            </button>
+          </span>
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function Sync({ src, onRefresh }: { src: { loading: boolean; error: string | null; fetchedAt: number | null }; onRefresh(): void }) {
   return (
     <span className="sync">
@@ -238,6 +293,23 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
   const [needIdx, setNeedIdx] = useState(0)
   const [filter, setFilter] = useState<string | null>(null)
   const filterRef = useRef<HTMLInputElement>(null)
+  // My tasks: group by project (with the parent/subtask tree) or by status; the strip's chips filter by status.
+  const [groupBy, setGroupBy] = useState<'project' | 'status'>(() => {
+    try {
+      return localStorage.getItem(GROUP_KEY) === 'status' ? 'status' : 'project'
+    } catch {
+      return 'project'
+    }
+  })
+  const pickGroup = (g: 'project' | 'status') => {
+    setGroupBy(g)
+    try {
+      localStorage.setItem(GROUP_KEY, g)
+    } catch {
+      // per-viewer convenience only
+    }
+  }
+  const [only, setOnly] = useState<string[]>([])
 
   const bySession = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions])
   const linksByTask = useMemo(() => {
@@ -251,11 +323,15 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
       return s?.alive && (s.state === 'running' || s.state === 'waiting')
     })
 
+  const statuses = useMemo(() => statusCounts(snapshot?.tasks ?? []), [snapshot?.tasks])
+  const byId = useMemo(() => new Map((snapshot?.tasks ?? []).map((t) => [t.id, t])), [snapshot?.tasks])
   const groups = useMemo(() => {
     const q = filter?.trim().toLowerCase()
-    const all = snapshot?.tasks ?? []
-    return groupTasks(q ? all.filter((t) => t.context || t.title.toLowerCase().includes(q) || String(t.number ?? '').includes(q)) : all)
-  }, [snapshot?.tasks, filter])
+    const shown = (snapshot?.tasks ?? []).filter(
+      (t) => t.context || ((!q || t.title.toLowerCase().includes(q) || String(t.number ?? '').includes(q)) && (!only.length || only.includes(t.statusName || 'No status'))),
+    )
+    return groupBy === 'status' ? groupByStatus(shown) : groupTasks(shown)
+  }, [snapshot?.tasks, filter, only, groupBy])
   const order = groups.flatMap((g) => g.lines.filter((l) => !l.header).map((l) => l.task.id))
   const threads = needs.filter((n) => n.kind === 'reply needed')
 
@@ -375,10 +451,24 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
       {snapshot.fetchedAt === null && snapshot.loading && <span className="faint">Loading your tasks from Productive…</span>}
       {snapshot.error && <span className="bad-text">Couldn't load tasks: {snapshot.error}</span>}
 
+      {pane === 'tasks' && statuses.length > 0 && (
+        <TaskStrip statuses={statuses} only={only} setOnly={setOnly} groupBy={groupBy} setGroupBy={pickGroup} />
+      )}
+
       {pane === 'tasks' && groups.map((g, gi) => (
         <Box
           key={g.id}
-          title={isBugProject(g.name) ? `${g.name} (${g.count})` : `My tasks › ${g.name} (${g.count})`}
+          title={
+            groupBy === 'status' ? (
+              <span style={{ color: statuses.find((s) => s.name === g.name)?.color }}>
+                ■ {g.name} ({g.count})
+              </span>
+            ) : isBugProject(g.name) ? (
+              `${g.name} (${g.count})`
+            ) : (
+              `My tasks › ${g.name} (${g.count})`
+            )
+          }
           active={pane === 'tasks' && g.id === activeGroup}
           aside={gi === 0 ? <Sync src={snapshot} onRefresh={() => void window.workbench.tasks.refresh()} /> : undefined}
         >
@@ -398,20 +488,25 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
             const n = linksByTask.get(t.id)?.length ?? 0
             const due = dueLabel(t.dueDate)
             const sel = peekTask === t.id
+            // A subtask shown without its parent above it names the parent instead of drawing a tree mark.
+            const parent = l.depth === 0 && t.parentId ? byId.get(t.parentId) : undefined
             return (
               <button
                 key={t.id}
                 id={`task-${t.id}`}
-                className={`task-line${sel ? ' sel' : ''}`}
+                className={`task-line rail${t.statusCategory === 1 ? ' not-started' : ''}${sel ? ' sel' : ''}`}
+                style={{ '--st': statusColor(t) } as CSSProperties}
+                title={t.statusName}
                 onClick={() => (setPane('tasks'), setPeekTask(sel ? null : t.id))}
                 onDoubleClick={() => void taskPrimary(t, snapshot, sessions, show)}
               >
-                <StatusGlyph task={t} />
                 <span className="task-name">
                   {indent && <span className="task-pad">{indent}</span>}
                   {t.milestone && '◆ '}
                   {t.title}
+                  {parent && <span className="faint">{`  ${parent.milestone ? '◆' : '◇'} ${parent.title}`}</span>}
                 </span>
+                <span className="task-status">{(t.statusName || 'No status').toLowerCase()}</span>
                 <span className={`task-due${due?.late ? ' late' : ''}`}>{due?.text ?? ''}</span>
                 <span className="task-sess">
                   {n ? `▸${n}` : ''}

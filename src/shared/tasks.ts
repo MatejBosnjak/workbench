@@ -12,6 +12,8 @@ export interface Task {
   /** 1 not started, 2 started, 3 closed. */
   statusCategory: number
   statusColorId: string | null
+  /** The status's place in its workflow; missing in tasks cached before it was read. */
+  statusPosition?: number
   dueDate: string | null
   lastActivityAt: string | null
   placement: number
@@ -48,6 +50,46 @@ export interface TaskLine {
   header?: 'milestone' | 'filtered'
   /** The task list, shown only when it differs from the parent's. */
   list: string | null
+}
+
+/** A status in the My tasks strip and its status grouping. */
+export interface StatusCount {
+  name: string
+  /** Text colour as Productive draws the status. */
+  color: string
+  category: number
+  count: number
+}
+
+/**
+ * The statuses among my tasks, nearest-done first: started before not started, then later in the workflow first.
+ * Statuses from different workflows that share a name count as one.
+ */
+export function statusCounts(tasks: Task[]): StatusCount[] {
+  const by = new Map<string, StatusCount & { position: number }>()
+  for (const t of tasks) {
+    if (t.context) continue
+    const name = t.statusName || 'No status'
+    const e = by.get(name)
+    if (e) e.count++
+    else by.set(name, { name, color: statusColors({ colorId: t.statusColorId })[1], category: t.statusCategory, count: 1, position: t.statusPosition ?? 0 })
+  }
+  return [...by.values()]
+    .sort((a, b) => b.category - a.category || b.position - a.position || a.name.localeCompare(b.name))
+    .map(({ position: _, ...s }) => s)
+}
+
+/** My tasks as one group per status, in statusCounts order; rows are flat and keep their project order. */
+export function groupByStatus(tasks: Task[]): ProjectGroup[] {
+  const mine = tasks.filter((t) => !t.context)
+  const order = new Map(groupTasks(tasks).flatMap((g) => g.lines.map((l) => l.task.id)).map((id, i) => [id, i]))
+  return statusCounts(tasks).map((s) => {
+    const lines = mine
+      .filter((t) => (t.statusName || 'No status') === s.name)
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+      .map((task) => ({ task, depth: 0, list: null }))
+    return { id: `status:${s.name}`, name: s.name, lines, count: lines.length }
+  })
 }
 
 export interface ProjectGroup {

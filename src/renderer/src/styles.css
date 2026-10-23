@@ -411,6 +411,24 @@ button:disabled { cursor: default; opacity: 0.6; }
 .task-due.late { color: var(--bad); }
 .task-sess { width: 70px; flex-shrink: 0; text-align: right; color: var(--warn); }
 .task-line.ctx { cursor: default; color: var(--faint); gap: 0; }
+/* Status rail: a bar and a faint tint in the status's Productive colour (--st), and its name at the right. */
+.task-line.rail { border-left: 3px solid var(--st); padding-left: 6px; margin-bottom: 2px; min-height: 24px; background: color-mix(in srgb, var(--st) 7%, transparent); }
+.task-line.rail.not-started { background: transparent; }
+.task-line.rail:hover { background: var(--raised); }
+.task-line.rail.sel { background: var(--accent); }
+.task-status { width: 110px; flex-shrink: 0; text-align: right; color: var(--st); overflow: hidden; text-overflow: ellipsis; }
+.task-strip { display: flex; flex-direction: column; gap: 8px; }
+.task-strip-bar { display: flex; height: 8px; gap: 2px; }
+.task-strip-bar > span { min-width: 4px; transition: opacity 0.2s ease, width 0.4s ease; }
+.task-strip-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fchip.status-chip { color: var(--text-2); }
+.status-chip b { color: var(--text); }
+.fchip.status-chip.picked { border-color: var(--st); background: color-mix(in srgb, var(--st) 14%, transparent); }
+.status-swatch { width: 8px; height: 8px; background: var(--st); }
+.task-group { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--text-3); }
+.seg-pair { display: flex; border: 1px solid var(--line-heavy); }
+.seg-pair button { height: 24px; padding: 0 10px; border: 0; background: transparent; color: var(--text-3); cursor: pointer; }
+.seg-pair button[aria-pressed='true'] { background: var(--text); color: var(--on-accent); font-weight: 700; }
 .task-line.ctx:hover { background: transparent; }
 .ctx-open { border: 0; background: transparent; padding: 0; font: inherit; color: var(--faint); cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; }
 .ctx-open:hover { color: var(--link); }

@@ -112,13 +112,20 @@ Keeps the Mac awake while sessions run.
 ### Today › My tasks
 
 - **Source.** The Productive REST API, using the token from the macOS keychain. The filter is the saved "List view" filter, read once from the API's saved filters (`/filters`, creator = me) and stored in settings with the org and person ids.
-- **Shape.** Tasks are grouped by project, with Bugs pinned first, then Product: CRM, then the rest alphabetically. Inside a project they're ordered by placement and nested under their parent or milestone.
+- **Status strip** (design: the "1b · Task status — D rail + label" board). Above the list:
+  - a bar showing the mix of statuses among my tasks;
+  - one chip per status with its count, in the status's Productive colour. Clicking chips filters the list (several can be picked; "clear" resets). The bar dims the statuses filtered out.
+  - a **group by: project / status** switch, remembered per machine.
+  - Statuses are the real Productive status names, ordered nearest-done first: started before not started, then later in the workflow (the status's `position`) first. Statuses from different workflows that share a name count as one.
+- **Shape.** By default tasks are grouped by project, with Bugs pinned first, then Product: CRM, then the rest alphabetically. Inside a project they're ordered by placement and nested under their parent or milestone.
+  - **Grouped by status:** one box per status in strip order, titled in the status colour; rows are flat, in their project order.
+  - A subtask shown without its parent above it (status grouping, or the parent filtered out) names the parent in faint text after its title instead of drawing a tree mark.
   - A milestone that isn't mine gets a muted header.
   - A parent hidden by a filter shows as "filtered out".
   - Subtasks don't repeat the parent's task list.
 - **Row.** Each row shows:
-  - a status glyph: a ring in the status colour, with a filled core once started; not-started statuses get a dashed, tinted ring
-  - a left stripe for started tasks
+  - a 3px rail on the left and a faint background tint in the status's Productive colour (no tint for not-started statuses)
+  - the status name at the right, in its colour, in a fixed-width column so it lines up across rows
   - a background tint for bug priority (not shown yet: none of the current bug tasks carry a priority field)
   - the title, with a milestone or bug icon
   - the task list, shown only when it differs from the parent's

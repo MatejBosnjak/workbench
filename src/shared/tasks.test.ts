@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupTasks, taskIdsFromName, taskIdsFromText, type Task } from './tasks'
+import { groupByStatus, groupTasks, statusCounts, taskIdsFromName, taskIdsFromText, type Task } from './tasks'
 
 let n = 0
 const task = (p: Partial<Task>): Task => ({
@@ -74,5 +74,28 @@ describe('link inference', () => {
     expect(taskIdsFromName('feature/20794624-jira-connect', known)).toEqual(['20794624'])
     expect(taskIdsFromName('fix/12345678-unknown', known)).toEqual([])
     expect(taskIdsFromName('frontend-pr-30197', known)).toEqual([])
+  })
+})
+
+describe('statuses', () => {
+  const tasks = () => [
+    task({ statusName: 'To do', statusCategory: 1, statusPosition: 1 }),
+    task({ statusName: 'In progress', statusCategory: 2, statusPosition: 2 }),
+    task({ statusName: 'Peer Review', statusCategory: 2, statusPosition: 3, title: 'b' }),
+    task({ statusName: 'Peer Review', statusCategory: 2, statusPosition: 3, title: 'a' }),
+    task({ statusName: 'Epic', statusCategory: 2, statusPosition: 9, context: true }),
+  ]
+
+  it('counts my tasks per status, nearest-done first', () => {
+    expect(statusCounts(tasks()).map((s) => `${s.name} ${s.count}`)).toEqual(['Peer Review 2', 'In progress 1', 'To do 1'])
+  })
+
+  it('groups by status with flat rows in list order', () => {
+    const groups = groupByStatus(tasks())
+    expect(groups.map((g) => g.name)).toEqual(['Peer Review', 'In progress', 'To do'])
+    expect(groups[0]!.lines.map((l) => [l.task.title, l.depth])).toEqual([
+      ['b', 0],
+      ['a', 0],
+    ])
   })
 })

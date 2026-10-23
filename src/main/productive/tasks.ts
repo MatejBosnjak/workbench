@@ -157,6 +157,7 @@ export function taskMapper(included: JsonApiResource[], orgSlug: string): (t: Js
       statusName: attr<string>(status, 'name') ?? '',
       statusCategory: attr<number>(status, 'category_id') ?? 1,
       statusColorId: attr<string>(status, 'color_id') ?? null,
+      statusPosition: attr<number>(status, 'position') ?? 0,
       dueDate: attr<string>(t, 'due_date') ?? null,
       lastActivityAt: attr<string>(t, 'last_activity_at') ?? null,
       placement: attr<number>(t, 'placement') ?? 0,

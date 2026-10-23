@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@shared/git'
-import { ageDays, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, shortRepo } from '@shared/git'
+import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, shortRepo } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
 import { openInPane, useStore } from '../store'
+import { Box } from './Box'
 import { RunAppButton, runPr } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -291,58 +292,74 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
   )
 }
 
-export function ReviewsView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot | null }) {
+/**
+ * Reviews: a box of PRs waiting on my review, and under it a box of PRs where I asked for changes and the author
+ * hasn't come back yet. The repo chips and Hide bots filter both.
+ */
+export function ReviewsView({ git, tasks, aside }: { git: GitSnapshot; tasks: TasksSnapshot | null; aside?: React.ReactNode }) {
   const [repo, setRepo] = useState('All')
   const [hideBots, setHideBots] = usePref('workbench.hideBots', true)
   const focus = useFocus()
   const bots = git.reviews.filter((p) => p.authorBot).length
   const shown = git.reviews.filter((p) => !(hideBots && p.authorBot) || p.id === focus)
-  const groups = groupReviews(shown.filter((p) => repo === 'All' || p.repoName === repo))
-  const sel = useRowKeys(groups.flatMap((g) => g.prs))
+  const inRepo = shown.filter((p) => repo === 'All' || p.repoName === repo)
+  const groups = groupReviews(inRepo)
+  const asked = askedForChanges(inRepo)
+  const sel = useRowKeys([...groups.flatMap((g) => g.prs), ...asked])
+  const row = (p: Pr) => <ReviewRow key={p.id} p={p} tasks={tasks} focused={focus === p.id} selected={sel === p.id} />
 
   return (
     <>
-      <div className="chips">
-        <RepoChips prs={shown} repo={repo} setRepo={setRepo} />
-        <Toggle on={hideBots} label={`Hide bots (${bots})`} set={setHideBots} />
-      </div>
-      {git.fetchedAt === null && git.loading && <div className="today-empty muted">Loading review requests from GitHub…</div>}
-      {git.fetchedAt !== null && groups.length === 0 && <div className="today-empty muted">No reviews waiting on you.</div>}
-      <div className="groups">
-        {groups.map((g) => (
-          <section key={g.title} className="group">
-            <GroupHead title={g.title} tone={g.tone} count={g.prs.length} />
-            {g.prs.map((p) => {
-              const d = ageDays(p.createdAt)
-              const mine = tasksOf(p, tasks)[0]
-              return (
-                <div key={p.id} id={`pr-${p.id}`} className={`pr-wrap${focus === p.id ? ' focus' : ''}${sel === p.id ? ' sel' : ''}`}>
-                  <div className="pr-row rev">
-                    <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
-                      <span className="pr-ref mono">{prRef(p)}</span>
-                      <span className="pr-title-wrap">
-                        <span className="pr-title">{p.title}</span>
-                        <span className="pr-branch">
-                          {p.author}
-                          {p.authorBot ? ' · bot' : ''}
-                          {!p.requested ? ' · you asked for changes' : ''}
-                        </span>
-                      </span>
-                    </button>
-                    <span className="pr-note">{mine ? `your task #${mine.number ?? mine.id}` : ''}</span>
-                    <span className={`ci-dot ci-${p.ci}`} role="img" aria-label={CI_LABEL[p.ci]} title={CI_LABEL[p.ci]} />
-                    <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
-                    <span className="pr-age mono" style={{ color: d > 14 ? 'var(--bad)' : d > 3 ? 'var(--warn)' : 'var(--faint)' }}>
-                      {age(p.createdAt)}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-          </section>
-        ))}
-      </div>
+      <Box title={`Reviews (${groups.reduce((n, g) => n + g.prs.length, 0)})`} active aside={aside}>
+        <div className="chips">
+          <RepoChips prs={shown} repo={repo} setRepo={setRepo} />
+          <Toggle on={hideBots} label={`Hide bots (${bots})`} set={setHideBots} />
+        </div>
+        {git.fetchedAt === null && git.loading && <div className="today-empty muted">Loading review requests from GitHub…</div>}
+        {git.fetchedAt !== null && groups.length === 0 && <div className="today-empty muted">No reviews waiting on you.</div>}
+        <div className="groups">
+          {groups.map((g) => (
+            <section key={g.title} className="group">
+              <GroupHead title={g.title} tone={g.tone} count={g.prs.length} />
+              {g.prs.map(row)}
+            </section>
+          ))}
+        </div>
+      </Box>
+      {asked.length > 0 && (
+        <Box title={`You asked for changes (${asked.length})`} className="asked-box">
+          <div className="faint asked-note">Waiting on the author; they come back up when your review is requested again.</div>
+          <div className="groups">{asked.map(row)}</div>
+        </Box>
+      )}
     </>
+  )
+}
+
+function ReviewRow({ p, tasks, focused, selected }: { p: Pr; tasks: TasksSnapshot | null; focused: boolean; selected: boolean }) {
+  const d = ageDays(p.createdAt)
+  const mine = tasksOf(p, tasks)[0]
+  return (
+    <div id={`pr-${p.id}`} className={`pr-wrap${focused ? ' focus' : ''}${selected ? ' sel' : ''}`}>
+      <div className="pr-row rev">
+        <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
+          <span className="pr-ref mono">{prRef(p)}</span>
+          <span className="pr-title-wrap">
+            <span className="pr-title">{p.title}</span>
+            <span className="pr-branch">
+              {p.author}
+              {p.authorBot ? ' · bot' : ''}
+            </span>
+          </span>
+        </button>
+        <span className="pr-note">{mine ? `your task #${mine.number ?? mine.id}` : ''}</span>
+        <span className={`ci-dot ci-${p.ci}`} role="img" aria-label={CI_LABEL[p.ci]} title={CI_LABEL[p.ci]} />
+        <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
+        <span className="pr-age mono" style={{ color: d > 14 ? 'var(--bad)' : d > 3 ? 'var(--warn)' : 'var(--faint)' }}>
+          {age(p.createdAt)}
+        </span>
+      </div>
+    </div>
   )
 }
 

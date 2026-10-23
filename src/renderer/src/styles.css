@@ -520,6 +520,7 @@ button:disabled { cursor: default; opacity: 0.6; }
 .pr-replies:hover { text-decoration: underline; }
 .pr-score { font-size: 12px; text-align: right; color: var(--text-3); }
 .pr-score.full { color: var(--ok); font-weight: 700; }
+.asked-note { font-size: 12px; margin-bottom: 4px; }
 .pr-main { min-width: 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 0 6px 12px; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .pr-main:hover .pr-title { color: var(--text); }
 .pr-ref { font-size: 12px; color: var(--text-3); white-space: nowrap; }

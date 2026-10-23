@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { gitEvents, groupByStage, groupReviews, mergeChecks, mergeScore, needsReply, type Conversation, type Pr } from './git'
+import { askedForChanges, gitEvents, groupByStage, groupReviews, mergeChecks, mergeScore, needsReply, type Conversation, type Pr } from './git'
 
 let n = 0
 const pr = (p: Partial<Pr>): Pr => ({
@@ -80,16 +80,18 @@ describe('mergeChecks', () => {
 })
 
 describe('groupReviews', () => {
-  it('puts changes requested first, then by age', () => {
+  it('groups reviews waiting on me by age and keeps the ones where I asked for changes apart', () => {
     const now = new Date('2026-10-22T12:00:00Z').getTime()
-    const cr = pr({ reviewDecision: 'CHANGES_REQUESTED', createdAt: '2026-01-01T00:00:00Z' })
-    const fresh = pr({ createdAt: '2026-10-21T00:00:00Z' })
-    const old = pr({ createdAt: '2026-09-01T00:00:00Z' })
-    expect(groupReviews([old, fresh, cr], now).map((g) => [g.title, g.prs.map((p) => p.id)])).toEqual([
-      ['Changes requested', [cr.id]],
-      ['New this week', [fresh.id]],
+    const asked = pr({ reviewDecision: 'CHANGES_REQUESTED', requested: false, createdAt: '2026-01-01T00:00:00Z' })
+    // Someone else asked for changes and the author re-requested me: it's waiting on me.
+    const rerequested = pr({ reviewDecision: 'CHANGES_REQUESTED', requested: true, createdAt: '2026-10-21T00:00:00Z' })
+    const fresh = pr({ requested: true, createdAt: '2026-10-21T00:00:00Z' })
+    const old = pr({ requested: true, createdAt: '2026-09-01T00:00:00Z' })
+    expect(groupReviews([old, fresh, asked, rerequested], now).map((g) => [g.title, g.prs.map((p) => p.id).sort()])).toEqual([
+      ['New this week', [fresh.id, rerequested.id].sort()],
       ['Waiting longer', [old.id]],
     ])
+    expect(askedForChanges([old, asked, fresh]).map((p) => p.id)).toEqual([asked.id])
   })
 })
 

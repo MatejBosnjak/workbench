@@ -92,6 +92,7 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
   const replies = new Set(needs.filter((n) => n.kind === 'reply needed').map((n) => n.pr!.id)).size
   const drafts = git?.mine.filter((p) => p.draft).length ?? 0
   const bots = git?.reviews.filter((p) => p.authorBot).length ?? 0
+  const asked = git?.reviews.filter((p) => p.requested === false && !p.authorBot).length ?? 0
   const five = fiveRaw && (!fiveRaw.resetsAt || fiveRaw.resetsAt * 1000 > Date.now()) ? fiveRaw : null
   const resets = five?.resetsAt ? new Date(five.resetsAt * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : null
 
@@ -106,7 +107,14 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
     },
     { id: 'tasks', title: 'My tasks', value: snapshot?.fetchedAt ? String(mine.length) : '—', note: topStatuses || 'nothing started', to: 'tasks' },
     { id: 'prs', title: 'My PRs', value: git?.fetchedAt ? String(git.mine.length) : '—', note: `${replies} need a reply · ${drafts} drafts`, to: 'git' },
-    { id: 'reviews', title: 'Reviews', value: git?.fetchedAt ? String(git.reviews.length - bots) : '—', note: `${bots} bot PRs hidden`, to: 'reviews' },
+    {
+      id: 'reviews',
+      title: 'Reviews',
+      // Only reviews waiting on me; PRs where I asked for changes are the author's move.
+      value: git?.fetchedAt ? String(git.reviews.filter((p) => p.requested !== false && !p.authorBot).length) : '—',
+      note: [asked && `${asked} waiting on authors`, `${bots} bot PRs hidden`].filter(Boolean).join(' · '),
+      to: 'reviews',
+    },
     {
       id: 'five',
       title: '5h limit',
@@ -131,9 +139,7 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
         <GitView git={git} tasks={snapshot} />
       </Box>
     ) : tab === 'reviews' && git ? (
-      <Box title="Reviews" active aside={<Sync src={git} onRefresh={() => void window.workbench.git.refresh()} />}>
-        <ReviewsView git={git} tasks={snapshot} />
-      </Box>
+      <ReviewsView git={git} tasks={snapshot} aside={<Sync src={git} onRefresh={() => void window.workbench.git.refresh()} />} />
     ) : null
 
   return (

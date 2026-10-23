@@ -166,16 +166,21 @@ export function groupByStage(prs: Pr[]): PrGroup[] {
 
 export const ageDays = (iso: string, now = Date.now()) => Math.floor((now - new Date(iso).getTime()) / 86_400_000)
 
-/** My reviews: Changes requested, New this week, Waiting longer. */
+/**
+ * Reviews waiting on me (requested from me, or re-requested after I asked for changes): New this week, then
+ * Waiting longer, oldest first. PRs where I asked for changes and the author hasn't come back are listed apart.
+ */
 export function groupReviews(prs: Pr[], now = Date.now()): PrGroup[] {
-  const cr = (p: Pr) => p.reviewDecision === 'CHANGES_REQUESTED'
+  const waiting = prs.filter((p) => p.requested !== false)
   const oldestFirst = (a: Pr, b: Pr) => a.createdAt.localeCompare(b.createdAt)
   return [
-    { title: 'Changes requested', tone: 'bad' as const, prs: prs.filter(cr) },
-    { title: 'New this week', tone: 'accent' as const, prs: prs.filter((p) => !cr(p) && ageDays(p.createdAt, now) < 7) },
-    { title: 'Waiting longer', tone: 'faint' as const, prs: prs.filter((p) => !cr(p) && ageDays(p.createdAt, now) >= 7).sort(oldestFirst) },
+    { title: 'New this week', tone: 'accent' as const, prs: waiting.filter((p) => ageDays(p.createdAt, now) < 7) },
+    { title: 'Waiting longer', tone: 'faint' as const, prs: waiting.filter((p) => ageDays(p.createdAt, now) >= 7).sort(oldestFirst) },
   ].filter((g) => g.prs.length)
 }
+
+/** PRs where my latest review asked for changes and nothing's back for me yet: the author's move. Latest first. */
+export const askedForChanges = (prs: Pr[]): Pr[] => prs.filter((p) => p.requested === false).sort(byUpdated)
 
 export interface GitEvent {
   key: string

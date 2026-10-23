@@ -116,12 +116,14 @@ button { font: inherit; color: inherit; }
 .faint { color: var(--faint); }
 
 /* Terminal */
-.term { position: absolute; inset: 0; padding: 14px 0 6px 18px; background: var(--bg); }
+.term { position: absolute; inset: 14px 0 6px 0; background: var(--bg); }
 .term[hidden] { display: block; visibility: hidden; }
 /* Session terminals leave 16px on the right for the bookmark rail. */
 .main > .term { right: 16px; }
-.term .xterm { height: 100%; }
-.term .xterm-viewport { scrollbar-width: thin; scrollbar-color: var(--line-heavy) transparent; }
+/* The gaps are insets on .term and padding on .xterm, never padding on .term: the fit addon measures the parent's box
+   with its padding, which made the terminal 20px too tall and 18px too wide, running under the status bar. */
+.term .xterm { height: 100%; padding-left: 18px; background: var(--bg); }
+.term .xterm-viewport { background-color: var(--bg); scrollbar-width: thin; scrollbar-color: var(--line-heavy) transparent; }
 
 /* Placeholder places */
 .empty { height: 100%; display: grid; place-content: center; justify-items: center; gap: 14px; color: var(--muted); }
@@ -857,18 +859,18 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .ts-pick { display: flex; flex-direction: column; max-height: 60vh; overflow-y: auto; }
 
 /* Bookmark rail: a mark per prompt, Subagent result and question, placed by its line in the whole scrollback. */
-.marks { position: absolute; top: 14px; bottom: 6px; right: 0; width: 16px; z-index: 3; }
+.marks { position: absolute; top: 14px; bottom: 6px; right: 0; width: 16px; z-index: 3; --mk-prompt: #C77DFF; --mk-result: #2CF0D0; --mk-question: #FF9F1C; }
 .main.with-side > .marks { right: 400px; }
 .main.side-pr > .marks { right: 45%; }
 .main.side-full > .marks { display: none; }
+.marks-track { position: absolute; inset: 0 0 22px 0; }
 .marks-bar { position: absolute; inset: 0; }
 .mark { position: absolute; left: 0; width: 16px; height: 12px; margin-top: -6px; padding: 0; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.mark > span { display: block; background: var(--text-3); transition: transform 80ms; }
-.mark-prompt > span { width: 8px; height: 8px; border-radius: 50%; }
-.mark-result > span { width: 7px; height: 7px; transform: rotate(45deg); }
-.mark-question > span { width: 0; height: 0; background: transparent; border-left: 4.5px solid transparent; border-right: 4.5px solid transparent; border-bottom: 8px solid var(--warn); }
-.mark:hover > span, .mark.key:focus-visible > span { transform: scale(1.25); background-color: var(--text); }
-.mark-question:hover > span, .mark-question.key:focus-visible > span { background-color: transparent; }
+.mark > span, .mark-shape > span { display: block; transition: transform 80ms; }
+.mark-prompt > span { width: 8px; height: 8px; border-radius: 50%; background: var(--mk-prompt); box-shadow: 0 0 6px color-mix(in srgb, var(--mk-prompt) 70%, transparent); }
+.mark-result > span { width: 7px; height: 7px; transform: rotate(45deg); background: var(--mk-result); box-shadow: 0 0 6px color-mix(in srgb, var(--mk-result) 70%, transparent); }
+.mark-question > span { width: 0; height: 0; border-left: 4.5px solid transparent; border-right: 4.5px solid transparent; border-bottom: 8px solid var(--mk-question); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--mk-question) 80%, transparent)); }
+.mark:hover > span, .mark.key:focus-visible > span { transform: scale(1.25); }
 .mark-result:hover > span, .mark-result.key:focus-visible > span { transform: rotate(45deg) scale(1.25); }
 .mark:focus { outline: none; }
 .mark.key:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
@@ -876,5 +878,11 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .mark-tip-text { overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .mark-tip-meta { font-size: 11px; color: var(--text-3); }
 .marks-earlier { position: absolute; top: -12px; left: 0; width: 16px; text-align: center; font-size: 9px; color: var(--text-3); cursor: default; }
+.marks-legend-btn { position: absolute; left: 0; bottom: 0; width: 16px; height: 16px; padding: 0; border: 1px solid var(--line-heavy); background: var(--bg); color: var(--text-3); font: inherit; font-size: 10px; line-height: 14px; cursor: pointer; }
+.marks-legend-btn:hover { border-color: var(--text-3); color: var(--text); }
+.marks-legend-btn.on { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.marks-legend { position: absolute; right: 24px; bottom: 0; width: 260px; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--popover); border: 1px solid var(--accent); box-shadow: 0 18px 44px var(--shadow); font-size: 11px; color: var(--text); z-index: 5; }
+.marks-legend-row { display: flex; align-items: center; gap: 10px; }
+.mark-shape { width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; }
 .mark-flash { outline: 1px solid var(--accent); outline-offset: -1px; background: color-mix(in srgb, var(--accent) 14%, transparent); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .mark > span { transition: none; } }

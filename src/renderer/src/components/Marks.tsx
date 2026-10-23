@@ -67,6 +67,7 @@ export function MarkRail({ session }: { session: Session }) {
   const btns = useRef<(HTMLButtonElement | null)[]>([])
   // The mark last jumped to and where that left the viewport: stepping goes on from it until the user scrolls.
   const from = useRef<{ index: number; top: number } | null>(null)
+  const smoothOff = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // The transcript grows on every hook event (lastEventAt moves with it) and while output streams.
   const [tick, setTick] = useState(0)
@@ -117,9 +118,16 @@ export function MarkRail({ session }: { session: Session }) {
   const jump = (i: number) => {
     const p = placed[i]
     if (!term || !p) return
+    // A soft scroll, only for the jump: wheel and keys keep scrolling instantly.
+    if (!reducedMotion()) {
+      term.options.smoothScrollDuration = 180
+      clearTimeout(smoothOff.current)
+      smoothOff.current = setTimeout(() => (term.options.smoothScrollDuration = 0), 260)
+    }
     term.scrollToLine(Math.max(0, p.line - 1))
     if (!reducedMotion()) flash(term, p.line)
-    from.current = { index: i, top: term.buffer.active.viewportY }
+    // Where the viewport ends up (a smooth scroll is still on its way): the bottom caps it.
+    from.current = { index: i, top: Math.min(Math.max(0, p.line - 1), term.buffer.active.baseY) }
     setStop(i)
   }
 
@@ -167,42 +175,90 @@ export function MarkRail({ session }: { session: Session }) {
           +{earlier.length}
         </span>
       )}
-      <div role="toolbar" aria-orientation="vertical" aria-label="Bookmarks" className="marks-bar">
-        {placed.map((p, i) => (
-          <button
-            key={p.mark.id}
-            ref={(el) => void (btns.current[i] = el)}
-            className={`mark mark-${p.mark.kind}${keyFocus.current ? ' key' : ''}`}
-            style={{ top: top(p.line) }}
-            tabIndex={i === Math.min(stop, placed.length - 1) ? 0 : -1}
-            aria-label={nameOf(p.mark)}
-            onMouseEnter={() => setHover(p.mark.id)}
-            onMouseLeave={() => setHover(null)}
-            onFocus={() => setFocus(p.mark.id)}
-            onBlur={() => {
-              setFocus(null)
-              keyFocus.current = false
-            }}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              jump(i)
-              // A click hands the keyboard back to the terminal; Enter on a focused mark keeps it here.
-              if (e.detail > 0) term?.focus()
-            }}
-            onKeyDown={(e) => onKey(e, i)}
-          >
-            <span aria-hidden="true" />
-          </button>
-        ))}
-      </div>
-      {shown >= 0 && (
-        <div className="mark-tip" aria-hidden="true" style={{ top: top(placed[shown]!.line) }}>
-          <div className="mark-tip-text">{placed[shown]!.mark.text}</div>
-          <div className="mark-tip-meta">
-            {MARK_LABEL[placed[shown]!.mark.kind]} · {time(placed[shown]!.mark.at)}
+      <div className="marks-track">
+        <div role="toolbar" aria-orientation="vertical" aria-label="Bookmarks" className="marks-bar">
+          {placed.map((p, i) => (
+            <button
+              key={p.mark.id}
+              ref={(el) => void (btns.current[i] = el)}
+              className={`mark mark-${p.mark.kind}${keyFocus.current ? ' key' : ''}`}
+              style={{ top: top(p.line) }}
+              tabIndex={i === Math.min(stop, placed.length - 1) ? 0 : -1}
+              aria-label={nameOf(p.mark)}
+              onMouseEnter={() => setHover(p.mark.id)}
+              onMouseLeave={() => setHover(null)}
+              onFocus={() => setFocus(p.mark.id)}
+              onBlur={() => {
+                setFocus(null)
+                keyFocus.current = false
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                jump(i)
+                // A click hands the keyboard back to the terminal; Enter on a focused mark keeps it here.
+                if (e.detail > 0) term?.focus()
+              }}
+              onKeyDown={(e) => onKey(e, i)}
+            >
+              <span aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+        {shown >= 0 && (
+          <div className="mark-tip" aria-hidden="true" style={{ top: top(placed[shown]!.line) }}>
+            <div className="mark-tip-text">{placed[shown]!.mark.text}</div>
+            <div className="mark-tip-meta">
+              {MARK_LABEL[placed[shown]!.mark.kind]} · {time(placed[shown]!.mark.at)}
+            </div>
           </div>
+        )}
+      </div>
+      <Legend />
+    </nav>
+  )
+}
+
+const KINDS: Mark['kind'][] = ['prompt', 'result', 'question']
+
+/** ? at the foot of the rail: what the shapes and colours mean. */
+function Legend() {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const btn = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const down = (e: MouseEvent) => !box.current?.contains(e.target as Node) && !btn.current?.contains(e.target as Node) && setOpen(false)
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      btn.current?.focus()
+    }
+    addEventListener('mousedown', down)
+    addEventListener('keydown', key)
+    return () => {
+      removeEventListener('mousedown', down)
+      removeEventListener('keydown', key)
+    }
+  }, [open])
+  return (
+    <>
+      <button ref={btn} className={`marks-legend-btn${open ? ' on' : ''}`} aria-label="Bookmark legend" aria-expanded={open} title="What the marks mean" onClick={() => setOpen(!open)}>
+        ?
+      </button>
+      {open && (
+        <div ref={box} className="marks-legend" role="dialog" aria-label="Bookmark legend">
+          <b>Bookmarks</b>
+          {KINDS.map((k) => (
+            <div key={k} className="marks-legend-row">
+              <span className={`mark-shape mark-${k}`} aria-hidden="true">
+                <span />
+              </span>
+              {k === 'question' ? 'Question for you' : MARK_LABEL[k]}
+            </div>
+          ))}
+          <span className="faint">Placed where each sits in the session. Click to jump · ⌘[ ⌘] step · +N = older, past the scrollback</span>
         </div>
       )}
-    </nav>
+    </>
   )
 }

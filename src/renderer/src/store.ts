@@ -64,6 +64,9 @@ interface State {
   overlays: number
   /** PRs opened from a link that aren't in My git or My reviews: a temporary "Opened" group. */
   openedPrs: { url: string; title: string }[]
+  /** Needs-you items put to sleep: item key → until (ms). Kept in SQLite as ui:snoozed. */
+  snoozed: Record<string, number>
+  snooze(key: string, until: number | null): void
   setPane(p: PaneState): void
   setPaneFull(v: boolean): void
   setPaneNote(n: string | null): void
@@ -121,6 +124,13 @@ export const useStore = create<State>((set, get) => ({
   paneNote: null,
   overlays: 0,
   openedPrs: [],
+  snoozed: {},
+  snooze: (key, until) => {
+    const next = Object.fromEntries(Object.entries(get().snoozed).filter(([k, t]) => k !== key && t > Date.now()))
+    if (until) next[key] = until
+    set({ snoozed: next })
+    void window.workbench.setSetting('ui:snoozed', next)
+  },
   setPane: (pane) => set({ pane }),
   setPaneFull: (paneFull) => set({ paneFull }),
   setPaneNote: (paneNote) => set({ paneNote }),

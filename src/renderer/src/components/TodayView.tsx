@@ -4,7 +4,7 @@ import { groupTasks, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
-import { needsBreakdown, needsYou, type NeedItem } from '../needs'
+import { needsBreakdown, needsYou, tomorrowMorning, type NeedItem } from '../needs'
 import { navigate, openInPane, openWorkstream, useStore, type TodayTab } from '../store'
 import { Box } from './Box'
 import { Group, Panel, Separator } from 'react-resizable-panels'
@@ -65,7 +65,11 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
     return () => clearInterval(t)
   }, [])
 
-  const needs = useMemo(() => needsYou(git, snapshot), [git, snapshot])
+  const snoozed = useStore((st) => st.snoozed)
+  const allNeeds = useMemo(() => needsYou(git, snapshot), [git, snapshot])
+  const now = Date.now()
+  const needs = allNeeds.filter((n) => !(snoozed[n.key]! > now))
+  const sleeping = allNeeds.filter((n) => snoozed[n.key]! > now)
   const mine = snapshot?.tasks.filter((t) => !t.context) ?? []
   const byStatus = new Map<string, number>()
   for (const t of mine) if (t.statusCategory === 2) byStatus.set(t.statusName, (byStatus.get(t.statusName) ?? 0) + 1)
@@ -139,7 +143,7 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
       {tab === 'needs' || tab === 'tasks' ? (
         <div className="today-body">
           <main className="today-main">
-            <Home view={tab} snapshot={snapshot} git={git} needs={needs} active={active} />
+            <Home view={tab} snapshot={snapshot} git={git} needs={needs} sleeping={sleeping} active={active} />
           </main>
           <aside className="today-side">{draft && git ? <DraftPanel target={draft} git={git} /> : snapshot && <Peek snapshot={snapshot} />}</aside>
         </div>
@@ -209,8 +213,10 @@ function Peek({ snapshot }: { snapshot: TasksSnapshot }) {
 const VIEWS = ['needs', 'tasks', 'git', 'reviews'] as const
 
 /** Needs you (what's waiting on me, plus the threads to answer) or My tasks (only the task lists). */
-function Home({ view: pane, snapshot, git, needs, active }: { view: 'needs' | 'tasks'; snapshot: TasksSnapshot | null; git: GitSnapshot | null; needs: NeedItem[]; active: boolean }) {
-  const { sessions, peekTask, setPeekTask, setTodayTab, show } = useStore()
+function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'needs' | 'tasks'; snapshot: TasksSnapshot | null; git: GitSnapshot | null; needs: NeedItem[]; sleeping: NeedItem[]; active: boolean }) {
+  const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore()
+  const [showSleeping, setShowSleeping] = useState(false)
+  const sleep = (n: NeedItem) => snooze(n.key, tomorrowMorning())
   const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)
   const [needIdx, setNeedIdx] = useState(0)
   const [filter, setFilter] = useState<string | null>(null)
@@ -275,6 +281,15 @@ function Home({ view: pane, snapshot, git, needs, active }: { view: 'needs' | 't
         void window.workbench.tasks.start(peekTask).then((s) => s && show({ kind: 'session', id: s.id }))
         return true
       },
+      key: (k) => {
+        if (k !== 'z' || pane !== 'needs') return false
+        const n = needs[needIdx]
+        if (n) {
+          sleep(n)
+          setNeedIdx((i) => Math.max(0, Math.min(needs.length - 2, i)))
+        }
+        return true
+      },
       filter: () => {
         setFilter((f) => f ?? '')
         setPane('tasks')
@@ -293,13 +308,43 @@ function Home({ view: pane, snapshot, git, needs, active }: { view: 'needs' | 't
       <Box title={`Needs you (${needs.length})`} active>
         {needs.length === 0 && <span className="faint">Nothing waiting on you.</span>}
         {needs.map((n, i) => (
-          <button key={n.key} className={`need-row${i === needIdx ? ' sel' : ''}`} onClick={() => (setNeedIdx(i), openNeed(n))}>
+          <div key={n.key} className={`need-row${i === needIdx ? ' sel' : ''}`} role="button" tabIndex={-1} onClick={() => (setNeedIdx(i), openNeed(n))}>
             <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
             <span className="need-ref">{n.ref}</span>
             <span className="need-text">{n.text}</span>
             <span className="need-detail">{n.detail}</span>
-          </button>
+            <button
+              className="need-sleep"
+              title="Sleep until tomorrow 08:00 (z). Comes back sooner if something new happens."
+              aria-label="Sleep until tomorrow"
+              onClick={(e) => {
+                e.stopPropagation()
+                sleep(n)
+              }}
+            >
+              zz
+            </button>
+          </div>
         ))}
+        {sleeping.length > 0 && (
+          <button className="link-btn need-sleeping" onClick={() => setShowSleeping(!showSleeping)}>
+            {sleeping.length} sleeping until tomorrow · {showSleeping ? 'hide' : 'show'}
+          </button>
+        )}
+        {showSleeping &&
+          sleeping.map((n) => (
+            <div key={n.key} className="need-row asleep">
+              <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
+              <span className="need-ref">{n.ref}</span>
+              <span className="need-text">{n.text}</span>
+              <span className="need-detail">
+                until {new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <button className="need-sleep wake" title="Wake it now" onClick={() => snooze(n.key, null)}>
+                wake
+              </button>
+            </div>
+          ))}
       </Box>
       )}
 

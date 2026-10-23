@@ -53,6 +53,7 @@ export const SHORTCUTS: [string, string][] = [
   ['v', 'my reviews'],
   ['1–9', 'switch tab'],
   ['c', 'caffeinate'],
+  ['z', 'sleep until tomorrow'],
   ['esc', 'back'],
   ['?', 'all shortcuts'],
 ]

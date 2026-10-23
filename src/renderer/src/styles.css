@@ -709,3 +709,11 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
   .pr-row .pr-run { display: none; }
   .pr-row.rev { grid-template-columns: minmax(0, 1fr) 12px 44px; }
 }
+
+/* Sleep (snooze) on Needs you rows */
+.need-sleep { flex-shrink: 0; width: 36px; border: 0; background: transparent; color: var(--faint); cursor: pointer; padding: 0; visibility: hidden; text-align: right; }
+.need-row:hover .need-sleep, .need-row.sel .need-sleep, .need-sleep.wake { visibility: visible; }
+.need-sleep:hover { color: var(--text); }
+.need-sleeping { align-self: flex-start; margin-top: 6px; color: var(--faint); }
+.need-row.asleep { opacity: 0.55; cursor: default; }
+.need-row.asleep:hover { background: transparent; }

@@ -3,5 +3,11 @@
 # Exits at once when Workbench isn't running.
 SOCK='@@SOCKET@@'
 [ -S "$SOCK" ] || exit 0
-{ printf 'hook %s\n' "$WORKBENCH_SESSION_ID"; cat; } | nc -U -w 2 "$SOCK" >/dev/null 2>&1
+# PostToolUse carries the tool's whole input and output (a file read can be megabytes); Workbench only needs
+# a Bash command. Trim with jq when it's there; send the payload as is when it isn't or the trim fails.
+payload=$(cat)
+if command -v jq >/dev/null 2>&1; then
+  trimmed=$(printf '%s' "$payload" | jq -c 'del(.tool_response) | if .tool_name == "Bash" then .tool_input |= {command: .command} else del(.tool_input) end' 2>/dev/null) && payload=$trimmed
+fi
+{ printf 'hook %s\n' "$WORKBENCH_SESSION_ID"; printf '%s' "$payload"; } | nc -U -w 2 "$SOCK" >/dev/null 2>&1
 exit 0

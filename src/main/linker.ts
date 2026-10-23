@@ -188,5 +188,5 @@ export function transcriptTail(jsonl: string, maxChars = 24_000): string {
 
 function runSummary(tail: string, cwd: string): Promise<string> {
   const prompt = `Below is the end of a Claude Code session transcript. In 2–4 short sentences, say where the work left off: what was done, what is unfinished, and the obvious next step. No preamble.\n\n${tail}`
-  return runHeadless(prompt, { model: SUMMARY_MODEL, cwd, timeoutMs: 120_000 })
+  return runHeadless(prompt, { model: SUMMARY_MODEL, cwd, timeoutMs: 120_000, systemPrompt: 'You summarize coding-session transcripts briefly and plainly.' })
 }

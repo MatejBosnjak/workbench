@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Conversation, DraftTarget, Pr } from '@shared/git'
-import { runHeadless } from './claude'
+import { runHeadless, type HeadlessOptions } from './claude'
 import type { GitPoller } from './github/poller'
 import type { Linker } from './linker'
 import { listWorktrees, readWtrc } from './local/git'
@@ -30,6 +30,9 @@ export class Drafts {
     private dataDir: string,
   ) {}
 
+  /** Targets with a claude run in flight; a second click waits for the first instead of starting another run. */
+  private busy = new Set<string>()
+
   /** An empty draft to write by hand, or the unsent one already open for the same target. */
   open(target: DraftTarget): number {
     const existing = this.repo.drafts().find((d) => d.target.key === target.key && d.status !== 'sent')
@@ -41,23 +44,33 @@ export class Drafts {
 
   /** Asks Claude for a draft into the target's draft (created if needed). */
   async generate(target: DraftTarget, instruction: string): Promise<void> {
+    if (this.busy.has(target.key)) return
+    this.busy.add(target.key)
     const id = this.open(target)
     this.repo.updateDraft(id, { status: 'drafting', error: null })
     this.changed()
     try {
-      const { prompt, cwd } = target.kind === 'productive' ? await this.productivePrompt(target, instruction) : await this.githubPrompt(target, instruction)
-      const body = await runHeadless(prompt, { model: DRAFT_MODEL, cwd, tools: READ_ONLY })
+      const { prompt, cwd, tools } = target.kind === 'productive' ? await this.productivePrompt(target, instruction) : await this.githubPrompt(target, instruction)
+      const body = await runHeadless(prompt, draftRun(cwd, tools))
       this.repo.updateDraft(id, { body, status: 'ready' })
     } catch (e) {
       this.repo.updateDraft(id, { status: 'ready', error: (e as Error).message })
+    } finally {
+      this.busy.delete(target.key)
     }
     this.changed()
   }
 
   /** Claude's text for a GitHub conversation, for the pane to fill into its reply box. */
   async compose(target: Extract<DraftTarget, { kind: 'gh-thread' | 'gh-pr' }>, instruction: string): Promise<string> {
-    const { prompt, cwd } = await this.githubPrompt(target, instruction)
-    return runHeadless(prompt, { model: DRAFT_MODEL, cwd, tools: READ_ONLY })
+    if (this.busy.has(target.key)) throw new Error('Already drafting this reply')
+    this.busy.add(target.key)
+    try {
+      const { prompt, cwd, tools } = await this.githubPrompt(target, instruction)
+      return await runHeadless(prompt, draftRun(cwd, tools))
+    } finally {
+      this.busy.delete(target.key)
+    }
   }
 
   save(id: number, body: string): void {
@@ -89,7 +102,7 @@ export class Drafts {
     return true
   }
 
-  private async githubPrompt(t: Extract<DraftTarget, { kind: 'gh-thread' | 'gh-pr' }>, instruction: string): Promise<{ prompt: string; cwd: string }> {
+  private async githubPrompt(t: Extract<DraftTarget, { kind: 'gh-thread' | 'gh-pr' }>, instruction: string): Promise<{ prompt: string; cwd: string; tools: string[] }> {
     const pr = this.git.mine.find((p) => p.repo === t.repo && p.number === t.number)
     const c = pr?.conversations.find((x) => x.key === t.key)
     if (!pr || !c) throw new Error('That conversation is no longer in My git; refresh and try again')
@@ -99,17 +112,16 @@ export class Drafts {
       c.kind === 'thread' ? `It's a review thread on ${c.path}.${c.diffHunk ? `\n\nDiff hunk:\n${c.diffHunk}` : ''}` : `It's the PR's main conversation.`,
       `Conversation, oldest first:\n${transcript(c)}`,
       instruction.trim() ? `What I want to say: ${instruction.trim()}` : '',
-      checkout.onBranch
-        ? 'The current directory is a checkout of that branch; read the code if it helps you get facts right.'
-        : 'The current directory may not be on that branch; only use it for general context.',
+      checkout.onBranch ? 'The current directory is a checkout of that branch; read the code if it helps you get facts right.' : '',
       'Write only the reply text, in the language the conversation uses, short and direct, in my voice. No preamble, no sign-off, no quoting the reviewer back.',
     ]
       .filter(Boolean)
       .join('\n\n')
-    return { prompt, cwd: checkout.path ?? this.dataDir }
+    // Reading code only helps on the PR's own branch; elsewhere it's tokens spent on the wrong version.
+    return { prompt, cwd: checkout.path ?? this.dataDir, tools: checkout.onBranch ? READ_ONLY : [] }
   }
 
-  private async productivePrompt(t: Extract<DraftTarget, { kind: 'productive' }>, instruction: string): Promise<{ prompt: string; cwd: string }> {
+  private async productivePrompt(t: Extract<DraftTarget, { kind: 'productive' }>, instruction: string): Promise<{ prompt: string; cwd: string; tools: string[] }> {
     const { api } = await this.tasks.client()
     const task = await api.getOne(`/tasks/${t.taskId}`)
     const comments = await api.getAll('/comments', [`filter%5Btask_id%5D=${t.taskId}`, 'sort=-created_at', 'include=creator'])
@@ -130,8 +142,16 @@ export class Drafts {
     ]
       .filter(Boolean)
       .join('\n\n')
-    return { prompt, cwd: this.linker.worktreeFor(t.taskId) ?? this.dataDir }
+    // Everything it needs is in the prompt.
+    return { prompt, cwd: this.linker.worktreeFor(t.taskId) ?? this.dataDir, tools: [] }
   }
+}
+
+/** Draft runs: a few turns of reading when it has tools, a plain writer's prompt when it has none. */
+function draftRun(cwd: string, tools: string[]): HeadlessOptions {
+  return tools.length
+    ? { model: DRAFT_MODEL, cwd, tools, maxTurns: 6 }
+    : { model: DRAFT_MODEL, cwd, tools, systemPrompt: 'You draft short replies in the user\'s voice. Output only the reply text.' }
 }
 
 export function describe(t: DraftTarget): string {

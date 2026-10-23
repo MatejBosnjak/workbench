@@ -6,6 +6,7 @@ import type { AgentSettings } from '@shared/agent'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { HooksStatus, MenuCommand, NavigateTarget } from '@shared/types'
 import { Caffeinate } from './caffeinate'
+import { killHeadless } from './claude'
 import { Drafts } from './drafts'
 import { prInfo } from './github'
 import { GitPoller } from './github/poller'
@@ -473,6 +474,9 @@ void app.whenReady().then(() => {
       void caffeinate.stop().finally(() => app.quit())
       return
     }
+    // Run PR's install and build run detached; without this they outlive the app.
+    runpr.cancel()
+    killHeadless()
     tasks.stop()
     git.stop()
     focus.stop()

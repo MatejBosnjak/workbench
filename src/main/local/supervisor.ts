@@ -141,7 +141,7 @@ export class Supervisor {
   }
 
   closePane(paneId: string): void {
-    this.pty.kill(paneId)
+    void this.pty.killAndWait(paneId)
   }
 
   isAlive(paneId: string): boolean {

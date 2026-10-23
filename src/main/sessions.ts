@@ -233,7 +233,8 @@ export class Sessions {
   }
 
   close(id: string): void {
-    this.pty.kill(id)
+    // SIGHUP, then SIGKILL if it's still there after 5s, so a stuck process can't keep its pty and history alive.
+    void this.pty.killAndWait(id)
     this.repo.closeTab(id)
     this.status.delete(id)
     this.events.sessionsChanged()
@@ -264,6 +265,7 @@ export class Sessions {
       const event = sig.payload.hook_event_name
       const state = nextState(row.state, event)
       if (state) patch.state = state
+      const wasAlive = this.externalAlive.has(row.id)
       if (row.external) {
         if (event === 'SessionEnd') this.externalAlive.delete(row.id)
         else this.externalAlive.add(row.id)
@@ -276,7 +278,14 @@ export class Sessions {
       if (event === 'SessionStart' && row.cwd !== p.cwd) patch.cwd = p.cwd
       if (sig.payload.permission_mode) this.status.set(row.id, { ...this.status.get(row.id), permissionMode: sig.payload.permission_mode })
       this.repo.update(row.id, patch)
-      this.events.sessionsChanged()
+      // Most events (every tool call) change nothing the tab list shows; only state, place or identity changes go out.
+      const shown =
+        (patch.state && patch.state !== row.state) ||
+        (patch.cwd && patch.cwd !== row.cwd) ||
+        row.claudeId !== p.session_id ||
+        (p.transcript_path && p.transcript_path !== row.transcriptPath) ||
+        wasAlive !== this.externalAlive.has(row.id)
+      if (shown) this.events.sessionsChanged()
       this.events.hook?.(row.id, event, sig.payload)
       if (event === 'Stop' && this.pending.delete(row.id)) void this.restart(row.id)
     } else {

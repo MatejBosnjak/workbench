@@ -127,7 +127,7 @@ export function StatusBar({ children }: { children?: ReactNode }) {
       <span className="sb-meters">
         <span className="sb-meter" title={ctx != null ? `Context ${Math.round(ctx)}%${live?.contextSize ? ` of ${sizeLabel(live.contextSize)}` : ''}${ctx >= 60 ? ' · /compact suggested' : ''}` : 'Context of the active session'}>
           <span className="sb-k">ctx</span>
-          <Meter pct={ctx ?? 0} width={48} color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'} strength={[35, 100]} loading={ctx == null && !!session?.alive} />
+          <Meter pct={ctx ?? 0} width={48} color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'} strength={[35, 100]} loading={ctx == null && !!session?.alive && limitsExpected} />
           <span className="sb-v" style={{ color: ctx != null && ctx >= 75 ? 'var(--bad)' : undefined }}>
             {pct(ctx)}
           </span>

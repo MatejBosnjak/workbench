@@ -25,10 +25,11 @@ export function GitPane({ active }: { active: boolean }) {
   }, [])
 
   // Report the rectangle; the native view follows it. Size changes come from the ResizeObserver; moves without a
-  // resize (counters appearing, split sizes loading, zoom) are caught by checking the position every frame.
+  // resize (counters appearing, split sizes loading, zoom) are caught by checking the position every frame,
+  // but only while the pane is on screen: Today stays mounted when hidden, and the loop would never let the renderer idle.
   useLayoutEffect(() => {
     const el = area.current
-    if (!el) return
+    if (!el || !active || !open) return
     let last = ''
     const report = () => {
       const r = el.getBoundingClientRect()
@@ -50,7 +51,7 @@ export function GitPane({ active }: { active: boolean }) {
       ro.disconnect()
       cancelAnimationFrame(frame)
     }
-  }, [open, paneFull])
+  }, [active, open, paneFull])
 
   // Visible only while this screen is up and nothing covers it; a still stands in under overlays.
   useEffect(() => {

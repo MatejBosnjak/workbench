@@ -417,11 +417,32 @@ button:disabled { cursor: default; opacity: 0.6; }
 .task-sess { width: 70px; flex-shrink: 0; text-align: right; color: var(--warn); }
 .task-line.ctx { cursor: default; color: var(--faint); gap: 0; }
 /* Status rail: a bar and a faint tint in the status's Productive colour (--st), and its name at the right. */
-.task-line.rail { border-left: 3px solid var(--st); padding-left: 6px; margin-bottom: 2px; min-height: 24px; background: color-mix(in srgb, var(--st) 7%, transparent); }
-.task-line.rail.not-started { background: transparent; }
-.task-line.rail:hover { background: var(--raised); }
-.task-line.rail.sel { background: var(--accent); }
-.task-status { width: 110px; flex-shrink: 0; text-align: right; color: var(--st); overflow: hidden; text-overflow: ellipsis; }
+/* My tasks rows: quiet hairline rows, a glowing status mark, and tree lines tying subtasks to their parent. */
+.task-line.row, .task-line.ctx { position: relative; min-height: 28px; border-top: 1px solid var(--line-soft); gap: 10px; }
+.box > .task-line.row:first-of-type, .box > .task-line.ctx:first-of-type { border-top: 0; }
+.task-line.row:hover { background: var(--raised); }
+.task-line.row.sel { background: var(--accent); }
+.task-line.parent .task-name { font-weight: 700; color: var(--text); }
+.task-kids { margin-left: 8px; font-size: 11px; font-weight: 400; color: var(--text-3); }
+.task-mark { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--st); box-shadow: 0 0 6px color-mix(in srgb, var(--st) 60%, transparent); }
+.task-mark.not-started { background: transparent; border: 2px solid var(--st); box-shadow: none; }
+.task-mark.milestone { width: 9px; height: 9px; margin: 0 0.5px; border-radius: 0; transform: rotate(45deg); }
+.task-mark.ctx-mark { width: 9px; height: 9px; margin: 0 0.5px; border-radius: 0; transform: rotate(45deg); background: transparent; border: 1px solid var(--faint); box-shadow: none; }
+.task-line.sel .task-mark { background: var(--on-accent); border-color: var(--on-accent); box-shadow: none; }
+.task-todos { flex: none; font-size: 11px; padding: 0 5px; color: var(--accent); border: 1px solid var(--accent-line); }
+.task-line.todo-only .task-name { color: var(--text-2); }
+/* Someone else's task in my list for a to-do of mine: their avatar; my own tasks leave the column empty. */
+.task-who { flex: none; width: 20px; display: inline-flex; }
+.task-who .avatar { background: var(--line-heavy); color: var(--text-3); }
+.task-live { padding: 0 5px; background: var(--warn); color: var(--bg); font-weight: 700; font-size: 11px; }
+/* One 16px column per tree level; the lines run the full row height so they join across rows. */
+.tree { align-self: stretch; display: flex; flex: none; margin: -1px -4px -1px 2px; }
+.tree-g { position: relative; width: 16px; }
+.tree-g.pipe::before, .tree-g.mid::before, .tree-g.end::before { content: ''; position: absolute; left: 5px; top: 0; bottom: 0; border-left: 1px solid var(--line-heavy); }
+.tree-g.end::before { bottom: 50%; }
+.tree-g.mid::after, .tree-g.end::after { content: ''; position: absolute; left: 5px; right: 0; top: 50%; border-top: 1px solid var(--line-heavy); }
+.task-line.sel .tree-g::before, .task-line.sel .tree-g::after { border-color: var(--on-accent); }
+.task-status { width: 110px; flex-shrink: 0; text-align: right; color: var(--st); overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
 .task-strip { display: flex; flex-direction: column; gap: 8px; }
 .task-strip-bar { display: flex; height: 8px; gap: 2px; }
 .task-strip-bar > button { min-width: 4px; height: 100%; padding: 0; border: 0; cursor: pointer; transition: opacity 0.2s ease, width 0.4s ease, filter 0.15s ease; }
@@ -803,6 +824,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .ss-option.at { background: var(--raised, var(--accent-bg)); }
 .td-desc { color: var(--text-2); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow-y: auto; }
 .td-todo.busy { opacity: 0.5; }
+.td-todo.mine { margin: 0 -6px; padding: 2px 6px; background: var(--accent-bg); box-shadow: inset 2px 0 0 var(--accent); color: var(--text); }
 .td-toggle { border: 1px solid var(--line-heavy); background: transparent; color: var(--text-3); font: inherit; font-size: 11px; padding: 0 6px; cursor: pointer; }
 .td-toggle:hover { color: var(--text); border-color: var(--text-3); }
 .td-add { width: 20px; height: 18px; display: grid; place-items: center; border: 1px solid var(--line-heavy); background: transparent; color: var(--text-2); font: inherit; line-height: 1; cursor: pointer; }

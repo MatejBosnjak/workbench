@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Task list, cleaner</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.box{position:relative;border:1px solid #3A3647;padding:14px 12px 8px;width:560px}
+.bt{position:absolute;top:-9px;left:10px;padding:0 6px;background:#0E0D12;color:#CDC7D8;font-weight:600;line-height:16px}
+.h{color:#A07EEA;font-weight:600}
+.cap{color:#A69FB4;max-width:560px;font-size:12px}
+/* now */
+.rl{display:flex;gap:8px;align-items:center;min-height:24px;margin-bottom:2px;padding-left:6px;border-left:3px solid var(--st);background:color-mix(in srgb,var(--st) 8%,transparent);font-size:12px;white-space:nowrap}
+.rl .n{flex:1;overflow:hidden;text-overflow:ellipsis}
+.rl .s{width:96px;text-align:right;color:var(--st)}
+.rl .x{width:56px;text-align:right;color:#F5C04A}
+/* proposed */
+.r{position:relative;display:flex;gap:10px;align-items:center;height:30px;padding:0 6px;border-top:1px solid #1F1D26;font-size:12px;white-space:nowrap;color:#CDC7D8}
+.r:first-child{border-top:0}
+.r .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--st);box-shadow:0 0 6px color-mix(in srgb,var(--st) 60%,transparent)}
+.dot.ns{background:transparent;border:2px solid var(--st);box-sizing:border-box;box-shadow:none}
+.st{width:92px;text-align:right;font-size:11px;color:var(--st)}
+.due{width:52px;text-align:right;font-size:11px;color:#6A647A}
+.due.late{color:#FF5C72}
+.ses{width:58px;text-align:right;font-size:11px}
+.live{color:#120E16;background:#F5C04A;padding:0 5px;font-weight:700}
+.par .n{color:#ECE8F2;font-weight:700}
+.cnt{color:#6A647A;font-size:11px;font-weight:400;margin-left:6px}
+.dia{width:9px;height:9px;transform:rotate(45deg);background:var(--st);flex-shrink:0;margin:0 0.5px}
+/* A: guide lines */
+.kid{padding-left:26px}
+.kid::before{content:"";position:absolute;left:10px;top:-1px;bottom:0;border-left:1px solid #4A4657}
+.kid.last::before{bottom:50%}
+.kid::after{content:"";position:absolute;left:10px;top:50%;width:12px;border-top:1px solid #4A4657}
+/* B: nested block */
+.avs{width:20px;flex-shrink:0}
+.av{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:#2A2733;color:#A69FB4}
+.tdc{font-size:11px;color:#A07EEA;border:1px solid #4A3A72;padding:0 5px;flex-shrink:0}
+.todo .n{color:#A69FB4}
+</style>
+</helmet>
+<div style="width: 1960px; height: 620px; box-sizing: border-box; padding: 48px; display: flex; gap: 56px; background: #0E0D12; color: #ECE8F2; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.55">
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="color: #6A647A; font-weight: 600">NOW</div>
+<div class="box"><span class="bt">My tasks › Platform: Frontend (5)</span>
+<div class="rl" style="--st:#F5C04A"><span class="n">◆ Frontend Ember CI: stop flaky red runs (browser hangs + racy tests)</span><span class="s">working</span><span class="x"></span></div>
+<div class="rl" style="--st:#5AA8FF"><span class="n"><span style="color:#4A4657">└ </span>[frontend] Log heap and machine memory in Ember exam CI jobs</span><span class="s">on latest</span><span class="x">▸2 live</span></div>
+<div class="rl" style="--st:#5AA8FF"><span class="n"><span style="color:#4A4657">└ </span>[frontend] app-block loading test: hold the request behind a gate</span><span class="s">on latest</span><span class="x"></span></div>
+<div class="rl" style="--st:#5AA8FF"><span class="n"><span style="color:#4A4657">└ </span>[frontend] Cancel TimelineGrid throttled updates on teardown</span><span class="s">on latest</span><span class="x"></span></div>
+<div class="rl" style="--st:#E8628F"><span class="n"><span style="color:#4A4657">└ </span>[frontend] ViewSetup: skip error flash when the store is destroyed</span><span class="s">peer review</span><span class="x"></span></div>
+</div>
+<div class="cap">Every row a tinted block with a thick bar: loud, and the └ marks are faint, so parent and children blur together.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="h">A · QUIET ROWS + TREE LINES (chosen)</div>
+<div class="box"><span class="bt">My tasks › Platform: Frontend (5)</span>
+<div class="r par" style="--st:#F5C04A"><span class="dia"></span><span class="n">Frontend Ember CI: stop flaky red runs (browser hangs + racy tests)<span class="cnt">4</span></span><span class="st">working</span><span class="due"></span><span class="ses"></span></div>
+<div class="r kid" style="--st:#5AA8FF"><span class="dot"></span><span class="n">[frontend] Log heap and machine memory in Ember exam CI jobs</span><span class="st">on latest</span><span class="due"></span><span class="ses"><span class="live">2 live</span></span></div>
+<div class="r kid" style="--st:#5AA8FF"><span class="dot"></span><span class="n">[frontend] app-block loading test: hold the request behind a gate</span><span class="st">on latest</span><span class="due">24 Oct</span><span class="ses"></span></div>
+<div class="r kid" style="--st:#5AA8FF"><span class="dot"></span><span class="n">[frontend] Cancel TimelineGrid throttled updates on teardown</span><span class="st">on latest</span><span class="due"></span><span class="ses"></span></div>
+<div class="r kid last" style="--st:#E8628F"><span class="dot ns"></span><span class="n">[frontend] ViewSetup: skip error flash when the store is destroyed</span><span class="st">peer review</span><span class="due late">21 Oct</span><span class="ses" style="color:#6A647A">▸1</span></div>
+</div>
+<div class="cap">Hairline rows, no tint. Status is a glowing dot (ring = not started) plus its name in the status colour. The parent is bold with its child count; children hang off one continuous tree line. Titles stay exactly as in Productive.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="h">A · WITH TASKS WHERE ONLY A TO-DO IS YOURS</div>
+<div class="box"><span class="bt">My tasks › Product: Budgeting (4)</span>
+<div class="r par" style="--st:#F5C04A"><span class="dia"></span><span class="n">Section descriptions<span class="cnt">3</span></span><span class="st">working</span><span class="due"></span><span class="ses"></span><span class="avs"></span></div>
+<div class="r kid" style="--st:#5AA8FF"><span class="dot"></span><span class="n">BE: Section description field and API</span><span class="st">on latest</span><span class="due"></span><span class="ses"><span class="live">1 live</span></span><span class="avs"></span></div>
+<div class="r kid todo" style="--st:#E8628F"><span class="dot"></span><span class="n">FE: Section description — render rich text</span><span class="tdc">☐ 1 to-do</span><span class="st">peer review</span><span class="due"></span><span class="ses"></span><span class="av">KP</span></div>
+<div class="r kid last todo" style="--st:#FF9A5C"><span class="dot ns"></span><span class="n">FE: Section description — rich text editor in section header</span><span class="tdc">☐ 2 to-dos</span><span class="st">ready</span><span class="due late">22 Oct</span><span class="ses"></span><span class="av">KP</span></div>
+</div>
+<div class="cap">Tasks assigned to someone else that are in your list because one of their open to-dos is yours: the assignee's photo at the row end, and a "☐ 1 to-do" chip that says why it's here. Your own tasks get nothing extra (the avatar column stays empty), so the exceptions stand out. In the task details the to-dos assigned to you are highlighted.</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1960,"height":620}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -20,6 +20,10 @@ export interface Task {
   url: string
   /** Not assigned to me or filtered out; included only as a parent header. */
   context: boolean
+  /** Missing in tasks cached before it was read. */
+  assignedTo?: { id: string; name: string; avatarUrl: string | null } | null
+  /** Open to-dos assigned to me on a task assigned to someone else: why it's in my list. */
+  myTodos?: number
 }
 
 export interface TaskLink {
@@ -198,6 +202,8 @@ export interface TaskDetail {
   todos: Todo[]
   /** Oldest first. */
   comments: TaskComment[]
+  /** My Productive person id, so my to-dos can be told apart. */
+  me: string
 }
 
 const MENTION = /@\[(\{[^\]]*?\})\]/g
@@ -286,4 +292,35 @@ export function statusColors(s: { id?: string; colorId: string | null }): [strin
 /** A status's bright colour for rails, labels and chips. */
 export function statusVivid(s: { id?: string; colorId: string | null }): string {
   return VIVID_COLORS[colorIndex(s)]!
+}
+
+/** How a line hangs in its group's tree: a line per ancestor level that goes on below it, its own joint, its child count. */
+export interface TreeShape {
+  /** Levels 1..depth-1: true where that ancestor's branch continues past this line. */
+  through: boolean[]
+  /** ├ when a sibling follows, └ when this is the last child; null at the top level. */
+  joint: 'mid' | 'end' | null
+  kids: number
+}
+
+/** Tree lines for a group's lines (as groupTasks orders them: each parent followed by its subtree). */
+export function treeShapes(lines: { depth: number }[]): TreeShape[] {
+  // Whether another line at `level` comes after i before the tree climbs above that level.
+  const continues = (i: number, level: number) => {
+    for (let j = i + 1; j < lines.length; j++) {
+      const d = lines[j]!.depth
+      if (d < level) return false
+      if (d === level) return true
+    }
+    return false
+  }
+  return lines.map((l, i) => {
+    let kids = 0
+    for (let j = i + 1; j < lines.length && lines[j]!.depth > l.depth; j++) if (lines[j]!.depth === l.depth + 1) kids++
+    return {
+      through: Array.from({ length: Math.max(0, l.depth - 1) }, (_, k) => continues(i, k + 1)),
+      joint: l.depth === 0 ? null : continues(i, l.depth) ? 'mid' : 'end',
+      kids,
+    }
+  })
 }

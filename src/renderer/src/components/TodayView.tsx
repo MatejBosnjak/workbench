@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { FE_REPO } from '@shared/runpr'
-import { groupByStatus, groupTasks, statusCounts, statusVivid, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
+import { groupByStatus, groupTasks, statusCounts, statusVivid, treeShapes, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
@@ -13,7 +13,7 @@ import { GitPane } from './GitPane'
 import { GitView, ReviewsView } from './GitView'
 import { runPr } from './RunPr'
 import { NeedPreview } from './NeedPreview'
-import { TaskDetails } from './TaskDetails'
+import { Avatar, TaskDetails } from './TaskDetails'
 import { TaskPreview, taskPrimary } from './TaskPreview'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -63,7 +63,13 @@ export function taskFePr(task: Pick<Task, 'id'>, git: GitSnapshot | null): numbe
 
 export const TodayView = memo(function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot | null; git: GitSnapshot | null; active: boolean }) {
   // Only the 5h limit from status: the rest changes on every statusline tick and would re-render all of Today.
-  const { todayTab: tab, setTodayTab, draft, fiveRaw, paneFull } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, fiveRaw: s.status.usage?.fiveHour, paneFull: s.paneFull })))
+  const {
+    todayTab: tab,
+    setTodayTab,
+    draft,
+    fiveRaw,
+    paneFull,
+  } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, fiveRaw: s.status.usage?.fiveHour, paneFull: s.paneFull })))
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 60_000)
@@ -90,7 +96,14 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
   const resets = five?.resetsAt ? new Date(five.resetsAt * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : null
 
   const counters: { id: string; title: string; value: string; unit?: string; note: string; tone?: string; to?: TodayTab }[] = [
-    { id: 'needs', title: 'Needs you', value: String(needs.length), note: needsBreakdown(needs) + (sleeping.length ? ` · ${sleeping.length} sleeping` : ''), tone: needs.length ? 'var(--accent)' : undefined, to: 'needs' },
+    {
+      id: 'needs',
+      title: 'Needs you',
+      value: String(needs.length),
+      note: needsBreakdown(needs) + (sleeping.length ? ` · ${sleeping.length} sleeping` : ''),
+      tone: needs.length ? 'var(--accent)' : undefined,
+      to: 'needs',
+    },
     { id: 'tasks', title: 'My tasks', value: snapshot?.fetchedAt ? String(mine.length) : '—', note: topStatuses || 'nothing started', to: 'tasks' },
     { id: 'prs', title: 'My PRs', value: git?.fetchedAt ? String(git.mine.length) : '—', note: `${replies} need a reply · ${drafts} drafts`, to: 'git' },
     { id: 'reviews', title: 'Reviews', value: git?.fetchedAt ? String(git.reviews.length - bots) : '—', note: `${bots} bot PRs hidden`, to: 'reviews' },
@@ -183,7 +196,13 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
 })
 
 /** The My tasks strip: the mix of statuses as a bar, chips that filter by status, and the grouping switch. */
-function TaskStrip({ statuses, only, setOnly, groupBy, setGroupBy }: {
+function TaskStrip({
+  statuses,
+  only,
+  setOnly,
+  groupBy,
+  setGroupBy,
+}: {
   statuses: StatusCount[]
   only: string[]
   setOnly(v: string[]): void
@@ -211,13 +230,7 @@ function TaskStrip({ statuses, only, setOnly, groupBy, setGroupBy }: {
         {statuses.map((s) => {
           const picked = only.includes(s.name)
           return (
-            <button
-              key={s.name}
-              className={`fchip status-chip${picked ? ' picked' : ''}`}
-              style={{ '--st': s.color } as CSSProperties}
-              aria-pressed={picked}
-              onClick={() => toggle(s.name)}
-            >
+            <button key={s.name} className={`fchip status-chip${picked ? ' picked' : ''}`} style={{ '--st': s.color } as CSSProperties} aria-pressed={picked} onClick={() => toggle(s.name)}>
               <span className="status-swatch" />
               {s.name} <b>{s.count}</b>
             </button>
@@ -272,9 +285,7 @@ function openNeedItem(n: NeedItem, snapshot: TasksSnapshot | null): void {
 
 /** The right sidebar: the Needs you item shown (a PR card or the task), or the selected task. */
 function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab; needs: NeedItem[] }) {
-  const { peekTask, setPeekTask, peekNeed, setPeekNeed } = useStore(
-    useShallow((s) => ({ peekTask: s.peekTask, setPeekTask: s.setPeekTask, peekNeed: s.peekNeed, setPeekNeed: s.setPeekNeed })),
-  )
+  const { peekTask, setPeekTask, peekNeed, setPeekNeed } = useStore(useShallow((s) => ({ peekTask: s.peekTask, setPeekTask: s.setPeekTask, peekNeed: s.peekNeed, setPeekNeed: s.setPeekNeed })))
   const item = tab === 'needs' ? needs.find((n) => n.key === peekNeed) : undefined
   if (item?.pr) return <NeedPreview item={item} tasks={snapshot} onOpen={() => openNeedItem(item, snapshot)} onClose={() => setPeekNeed(null)} />
   const task = tab === 'needs' ? (item?.task ?? null) : snapshot.tasks.find((t) => t.id === peekTask)
@@ -294,8 +305,24 @@ function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab
 const VIEWS = ['needs', 'tasks', 'git', 'reviews'] as const
 
 /** Needs you (what's waiting on me, plus the threads to answer) or My tasks (only the task lists). */
-function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'needs' | 'tasks'; snapshot: TasksSnapshot | null; git: GitSnapshot | null; needs: NeedItem[]; sleeping: NeedItem[]; active: boolean }) {
-  const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore(useShallow((s) => ({ sessions: s.sessions, peekTask: s.peekTask, setPeekTask: s.setPeekTask, setTodayTab: s.setTodayTab, show: s.show, snooze: s.snooze, snoozed: s.snoozed })))
+function Home({
+  view: pane,
+  snapshot,
+  git,
+  needs,
+  sleeping,
+  active,
+}: {
+  view: 'needs' | 'tasks'
+  snapshot: TasksSnapshot | null
+  git: GitSnapshot | null
+  needs: NeedItem[]
+  sleeping: NeedItem[]
+  active: boolean
+}) {
+  const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore(
+    useShallow((s) => ({ sessions: s.sessions, peekTask: s.peekTask, setPeekTask: s.setPeekTask, setTodayTab: s.setTodayTab, show: s.show, snooze: s.snooze, snoozed: s.snoozed })),
+  )
   const sleep = (n: NeedItem) => snooze(n.key, tomorrowMorning())
   const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)
   const [needIdx, setNeedIdx] = useState(0)
@@ -406,35 +433,35 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
   return (
     <div className="home">
       {pane === 'needs' && (
-      <Box title={`Needs you (${needs.length})`} active>
-        {needs.length === 0 && <span className="faint">Nothing waiting on you.</span>}
-        {needs.map((n, i) => (
-          <div
-            key={n.key}
-            className={`need-row${i === needIdx ? ' sel' : ''}${peekNeed === n.key ? ' shown' : ''}`}
-            role="button"
-            tabIndex={-1}
-            onClick={() => (setNeedIdx(i), previewNeed(n))}
-            onDoubleClick={() => openNeed(n)}
-          >
-            <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
-            <span className="need-ref">{n.ref}</span>
-            <span className="need-text">{n.text}</span>
-            <span className="need-detail">{n.detail}</span>
-            <button
-              className="need-sleep"
-              title="Sleep until tomorrow 08:00 (z). Comes back sooner if something new happens."
-              aria-label="Sleep until tomorrow"
-              onClick={(e) => {
-                e.stopPropagation()
-                sleep(n)
-              }}
+        <Box title={`Needs you (${needs.length})`} active>
+          {needs.length === 0 && <span className="faint">Nothing waiting on you.</span>}
+          {needs.map((n, i) => (
+            <div
+              key={n.key}
+              className={`need-row${i === needIdx ? ' sel' : ''}${peekNeed === n.key ? ' shown' : ''}`}
+              role="button"
+              tabIndex={-1}
+              onClick={() => (setNeedIdx(i), previewNeed(n))}
+              onDoubleClick={() => openNeed(n)}
             >
-              zz
-            </button>
-          </div>
-        ))}
-      </Box>
+              <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
+              <span className="need-ref">{n.ref}</span>
+              <span className="need-text">{n.text}</span>
+              <span className="need-detail">{n.detail}</span>
+              <button
+                className="need-sleep"
+                title="Sleep until tomorrow 08:00 (z). Comes back sooner if something new happens."
+                aria-label="Sleep until tomorrow"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  sleep(n)
+                }}
+              >
+                zz
+              </button>
+            </div>
+          ))}
+        </Box>
       )}
 
       {pane === 'tasks' && filter !== null && (
@@ -459,84 +486,90 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
       {snapshot.fetchedAt === null && snapshot.loading && <span className="faint">Loading your tasks from Productive…</span>}
       {snapshot.error && <span className="bad-text">Couldn't load tasks: {snapshot.error}</span>}
 
-      {pane === 'tasks' && statuses.length > 0 && (
-        <TaskStrip statuses={statuses} only={only} setOnly={setOnly} groupBy={groupBy} setGroupBy={pickGroup} />
-      )}
+      {pane === 'tasks' && statuses.length > 0 && <TaskStrip statuses={statuses} only={only} setOnly={setOnly} groupBy={groupBy} setGroupBy={pickGroup} />}
 
-      {pane === 'tasks' && groups.map((g, gi) => (
-        <Box
-          key={g.id}
-          title={
-            groupBy === 'status' ? (
-              <span style={{ color: statuses.find((s) => s.name === g.name)?.color }}>
-                ■ {g.name} ({g.count})
-              </span>
-            ) : isBugProject(g.name) ? (
-              `${g.name} (${g.count})`
-            ) : (
-              `My tasks › ${g.name} (${g.count})`
-            )
-          }
-          active={pane === 'tasks' && g.id === activeGroup}
-          aside={gi === 0 ? <Sync src={snapshot} onRefresh={() => void window.workbench.tasks.refresh()} /> : undefined}
-        >
-          {g.lines.map((l) => {
-            const t = l.task
-            const indent = l.depth > 0 ? `${'  '.repeat(l.depth - 1)}└ ` : ''
-            if (l.header)
-              return (
-                <div key={t.id} className="task-line ctx">
-                  <span className="task-pad">{indent}</span>
-                  <button className="ctx-open" title="Open workstream" onClick={() => openWorkstream(t.id)}>
-                    ◇ {t.title}
-                  </button>
-                  <span className="faint">{l.header === 'milestone' ? ' (not assigned to you)' : ' (filtered out)'}</span>
-                </div>
+      {pane === 'tasks' &&
+        groups.map((g, gi) => (
+          <Box
+            key={g.id}
+            title={
+              groupBy === 'status' ? (
+                <span style={{ color: statuses.find((s) => s.name === g.name)?.color }}>
+                  ■ {g.name} ({g.count})
+                </span>
+              ) : isBugProject(g.name) ? (
+                `${g.name} (${g.count})`
+              ) : (
+                `My tasks › ${g.name} (${g.count})`
               )
-            const n = linksByTask.get(t.id)?.length ?? 0
-            const due = dueLabel(t.dueDate)
-            const sel = peekTask === t.id
-            // A subtask shown without its parent above it names the parent instead of drawing a tree mark.
-            const parent = l.depth === 0 && t.parentId ? byId.get(t.parentId) : undefined
-            return (
-              <button
-                key={t.id}
-                id={`task-${t.id}`}
-                className={`task-line rail${t.statusCategory === 1 ? ' not-started' : ''}${sel ? ' sel' : ''}`}
-                style={{ '--st': statusColor(t) } as CSSProperties}
-                title={t.statusName}
-                onClick={() => (setPane('tasks'), setPeekTask(sel ? null : t.id))}
-                onDoubleClick={() => void taskPrimary(t, snapshot, sessions, show)}
-              >
-                <span className="task-name">
-                  {indent && <span className="task-pad">{indent}</span>}
-                  {t.milestone && '◆ '}
-                  {t.title}
-                  {parent && <span className="faint">{`  ${parent.milestone ? '◆' : '◇'} ${parent.title}`}</span>}
-                </span>
-                <span className="task-status">{(t.statusName || 'No status').toLowerCase()}</span>
-                <span className={`task-due${due?.late ? ' late' : ''}`}>{due?.text ?? ''}</span>
-                <span className="task-sess">
-                  {n ? `▸${n}` : ''}
-                  {live(t.id) ? ' live' : ''}
-                </span>
-              </button>
-            )
-          })}
-        </Box>
-      ))}
+            }
+            active={pane === 'tasks' && g.id === activeGroup}
+            aside={gi === 0 ? <Sync src={snapshot} onRefresh={() => void window.workbench.tasks.refresh()} /> : undefined}
+          >
+            {(() => {
+              const shapes = treeShapes(g.lines)
+              return g.lines.map((l, li) => {
+                const t = l.task
+                const shape = shapes[li]!
+                const tree = shape.joint && (
+                  <span className="tree" aria-hidden="true">
+                    {shape.through.map((on, k) => (
+                      <span key={k} className={`tree-g${on ? ' pipe' : ''}`} />
+                    ))}
+                    <span className={`tree-g ${shape.joint}`} />
+                  </span>
+                )
+                if (l.header)
+                  return (
+                    <div key={t.id} className="task-line ctx">
+                      {tree}
+                      <span className="task-mark ctx-mark" aria-hidden="true" />
+                      <button className="ctx-open" title="Open workstream" onClick={() => openWorkstream(t.id)}>
+                        {t.title}
+                      </button>
+                      <span className="faint">{l.header === 'milestone' ? ' (not assigned to you)' : ' (filtered out)'}</span>
+                    </div>
+                  )
+                const n = linksByTask.get(t.id)?.length ?? 0
+                const due = dueLabel(t.dueDate)
+                const sel = peekTask === t.id
+                // A subtask shown without its parent above it names the parent instead of drawing a tree mark.
+                const parent = l.depth === 0 && t.parentId ? byId.get(t.parentId) : undefined
+                return (
+                  <button
+                    key={t.id}
+                    id={`task-${t.id}`}
+                    className={`task-line row${shape.kids ? ' parent' : ''}${t.myTodos ? ' todo-only' : ''}${sel ? ' sel' : ''}`}
+                    style={{ '--st': statusColor(t) } as CSSProperties}
+                    title={t.myTodos ? `${t.statusName} · assigned to ${t.assignedTo?.name}; ${t.myTodos === 1 ? 'one open to-do is' : `${t.myTodos} open to-dos are`} yours` : t.statusName}
+                    onClick={() => (setPane('tasks'), setPeekTask(sel ? null : t.id))}
+                    onDoubleClick={() => void taskPrimary(t, snapshot, sessions, show)}
+                  >
+                    {tree}
+                    <span className={`task-mark${t.milestone ? ' milestone' : t.statusCategory === 1 ? ' not-started' : ''}`} aria-hidden="true" />
+                    <span className="task-name">
+                      {t.title}
+                      {shape.kids > 0 && <span className="task-kids">{shape.kids}</span>}
+                      {parent && <span className="faint">{`  ${parent.milestone ? '◆' : '◇'} ${parent.title}`}</span>}
+                    </span>
+                    {!!t.myTodos && <span className="task-todos">☐ {t.myTodos === 1 ? '1 to-do' : `${t.myTodos} to-dos`}</span>}
+                    <span className="task-status">{(t.statusName || 'No status').toLowerCase()}</span>
+                    <span className={`task-due${due?.late ? ' late' : ''}`}>{due?.text ?? ''}</span>
+                    <span className="task-sess">{live(t.id) ? <span className="task-live">{n} live</span> : n ? `▸${n}` : ''}</span>
+                    <span className="task-who">{!!t.myTodos && <Avatar name={t.assignedTo?.name ?? null} url={t.assignedTo?.avatarUrl} />}</span>
+                  </button>
+                )
+              })
+            })()}
+          </Box>
+        ))}
 
       {pane === 'needs' && threads.length > 0 && (
         <Box title={`Threads (${threads.length})`}>
           {threads.slice(0, 6).map((n) => {
             const last = n.conversation!.messages.at(-1)!
             return (
-              <button
-                key={n.key}
-                className={`thread${peekNeed === n.key ? ' shown' : ''}`}
-                onClick={() => (setNeedIdx(needs.indexOf(n)), previewNeed(n))}
-                onDoubleClick={() => openNeed(n)}
-              >
+              <button key={n.key} className={`thread${peekNeed === n.key ? ' shown' : ''}`} onClick={() => (setNeedIdx(needs.indexOf(n)), previewNeed(n))} onDoubleClick={() => openNeed(n)}>
                 <span className="thread-head">
                   <span className="warn-text">reply</span>
                   <span className="need-ref">{n.ref}</span>
@@ -563,9 +596,7 @@ function Home({ view: pane, snapshot, git, needs, sleeping, active }: { view: 'n
               <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
               <span className="need-ref">{n.ref}</span>
               <span className="need-text">{n.text}</span>
-              <span className="need-detail">
-                until {new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
-              </span>
+              <span className="need-detail">until {new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
               <button className="need-sleep wake" title="Wake it now" onClick={() => snooze(n.key, null)}>
                 wake
               </button>

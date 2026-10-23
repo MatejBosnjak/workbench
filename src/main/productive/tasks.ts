@@ -48,11 +48,19 @@ export class TasksPoller {
       const account = await this.account()
       this.api.setOrg(account.orgId)
       const filter = JSON.parse(JSON.stringify(account.filter).replaceAll('{me}', account.personId)) as Record<string, unknown>
-      const { data, included } = await this.api.getAll('/tasks', [
-        ...encodeParams('filter', filter),
-        'include=project,task_list,workflow_status,parent_task',
+      // Productive's assignee filter also matches tasks where only an open to-do is mine; counting my open
+      // to-dos per task lets the list say why such a task is there.
+      const [{ data, included }, todos] = await Promise.all([
+        this.api.getAll('/tasks', [...encodeParams('filter', filter), 'include=project,task_list,workflow_status,parent_task,assignee']),
+        // The task link comes back only when the task is included.
+        this.api.getAll('/todos', [...encodeParams('filter', { assignee_id: account.personId, status: 1 }), 'include=task']),
       ])
-      this.tasks = normalize(data, included, account.orgSlug)
+      const myTodos = new Map<string, number>()
+      for (const t of todos.data) {
+        const id = t.relationships?.task?.data?.id
+        if (id) myTodos.set(id, (myTodos.get(id) ?? 0) + 1)
+      }
+      this.tasks = normalize(data, included, account.orgSlug).map((t) => (t.assignedTo && t.assignedTo.id !== account.personId && myTodos.has(t.id) ? { ...t, myTodos: myTodos.get(t.id) } : t))
       this.fetchedAt = Date.now()
       this.error = null
       this.repo.setSetting('tasks:cache', { tasks: this.tasks, at: this.fetchedAt })
@@ -75,9 +83,9 @@ export class TasksPoller {
   private statuses = new Map<string, WorkflowStatus[]>()
 
   async detail(taskId: string): Promise<TaskDetail> {
-    const { api, orgSlug } = await this.client()
+    const { api, orgSlug, personId } = await this.client()
     const [{ data, included }, comments] = await Promise.all([
-      api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status.workflow,parent_task,todos,todos.assignee']),
+      api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status.workflow,parent_task,assignee,todos,todos.assignee']),
       api.getAll('/comments', [`filter%5Btask_id%5D=${taskId}`, 'sort=created_at', 'include=creator']),
     ])
     const names = new Map(comments.included.filter((i) => i.type === 'people').map((p) => [p.id, personName(p)]))
@@ -112,6 +120,7 @@ export class TasksPoller {
           at: String(c.attributes.created_at ?? ''),
           ...readMentions(htmlText(String(c.attributes.body ?? ''))),
         })),
+      me: personId,
     }
   }
 
@@ -194,6 +203,7 @@ export function taskMapper(included: JsonApiResource[], orgSlug: string): (t: Js
     const project = inc.get(`projects:${rel(t, 'project')?.id}`)
     const list = inc.get(`task_lists:${rel(t, 'task_list')?.id}`)
     const status = inc.get(`workflow_statuses:${rel(t, 'workflow_status')?.id}`)
+    const who = inc.get(`people:${rel(t, 'assignee')?.id}`)
     return {
       id: t.id,
       number: attr<number>(t, 'task_number') ?? null,
@@ -213,6 +223,7 @@ export function taskMapper(included: JsonApiResource[], orgSlug: string): (t: Js
       placement: attr<number>(t, 'placement') ?? 0,
       url: `https://app.productive.io/${orgSlug}/tasks/${t.id}`,
       context,
+      assignedTo: who ? { id: who.id, name: personName(who), avatarUrl: (who.attributes.avatar_url as string | null) ?? null } : null,
     }
   }
 }

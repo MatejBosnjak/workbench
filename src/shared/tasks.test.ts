@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupByStatus, groupTasks, mentionToken, readMentions, statusCounts, taskIdsFromName, taskIdsFromText, type Task } from './tasks'
+import { groupByStatus, groupTasks, mentionToken, readMentions, statusCounts, taskIdsFromName, taskIdsFromText, treeShapes, type Task } from './tasks'
 
 let n = 0
 const task = (p: Partial<Task>): Task => ({
@@ -105,5 +105,24 @@ describe('mentions', () => {
     const stored = '@[{"type":"person","id":"168022","label":"Tibor Rogulja","avatar_url":null,"attachment_url":null,"is_done":false}] pogledaj, i ti ' + mentionToken({ id: '1', name: 'Ana Ban', avatarUrl: null })
     expect(readMentions(stored)).toEqual({ body: '@Tibor Rogulja pogledaj, i ti @Ana Ban', mentions: ['Tibor Rogulja', 'Ana Ban'] })
     expect(readMentions('vidi @[{"type":"attachment","id":"5","label":"a.png","avatar_url":null,"attachment_url":"https://files.productive.io/a.png","is_done":false}]').body).toBe('vidi https://files.productive.io/a.png')
+  })
+})
+
+describe('treeShapes', () => {
+  it('draws joints, continuing branches and child counts', () => {
+    // A
+    // ├ B
+    // │ └ C
+    // └ D
+    // E
+    const s = treeShapes([{ depth: 0 }, { depth: 1 }, { depth: 2 }, { depth: 1 }, { depth: 0 }])
+    expect(s.map((x) => x.joint)).toEqual([null, 'mid', 'end', 'end', null])
+    expect(s[2]!.through).toEqual([true])
+    expect(s[3]!.through).toEqual([])
+    expect(s.map((x) => x.kids)).toEqual([2, 1, 0, 0, 0])
+  })
+  it('stops a branch line under the last child', () => {
+    const s = treeShapes([{ depth: 0 }, { depth: 1 }, { depth: 2 }, { depth: 0 }])
+    expect(s[2]!.through).toEqual([false])
   })
 })

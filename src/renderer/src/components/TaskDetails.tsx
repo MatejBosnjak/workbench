@@ -506,6 +506,8 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
   const open = detail?.todos.filter((t) => !t.closed).length ?? 0
   const { hideDone, setHideDone } = useStore(useShallow((s) => ({ hideDone: s.hideDoneTodos, setHideDone: s.setHideDoneTodos })))
   const done = (detail?.todos.length ?? 0) - open
+  // On someone else's task, my open to-dos are why it's in my list: they stand out.
+  const mineHere = (t: { assigneeId?: string | null; closed: boolean }) => !!detail && !t.closed && t.assigneeId === detail.me && !!detail.task.assignedTo && detail.task.assignedTo.id !== detail.me
   const [adding, setAdding] = useState(false)
   useEffect(() => setAdding(false), [taskId])
 
@@ -555,7 +557,7 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
           {detail.todos.length === 0 && !adding && <span className="faint">none</span>}
           {detail.todos.length > 0 && hideDone && open === 0 && <span className="faint">all done</span>}
           {detail.todos.filter((t) => !(hideDone && t.closed)).map((t) => (
-            <div key={t.id} className={`td-todo${t.closed ? ' done' : ''}${busy === `t:${t.id}` ? ' busy' : ''}`}>
+            <div key={t.id} className={`td-todo${t.closed ? ' done' : ''}${mineHere(t) ? ' mine' : ''}${busy === `t:${t.id}` ? ' busy' : ''}`}>
               <label>
                 <input type="checkbox" checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
                 <span>

@@ -27,7 +27,21 @@ export interface TermViewProps {
   hideWhenInactive?: boolean
   /** Take focus when shown. Panes leave focus alone; a click focuses them. */
   autoFocus?: boolean
+  /** Lines kept above the screen. */
+  scrollback?: number
 }
+
+/** Open terminals by id, for the bookmark rail, which reads their buffer. */
+const terms = new Map<string, XTerm>()
+const termListeners = new Set<() => void>()
+export function termFor(id: string): XTerm | undefined {
+  return terms.get(id)
+}
+export function onTerms(cb: () => void): () => void {
+  termListeners.add(cb)
+  return () => void termListeners.delete(cb)
+}
+const termsChanged = () => termListeners.forEach((cb) => cb())
 
 const URL_RE = /https?:\/\/[^\s"'<>()\[\]{}]+[^\s"'<>()\[\]{}.,;:!?]/g
 const PR_RE = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/
@@ -56,7 +70,7 @@ export function TermView(props: TermViewProps) {
       lineHeight: 1.25,
       cursorBlink: true,
       allowProposedApi: true,
-      scrollback: 5_000,
+      scrollback: props.scrollback ?? 5_000,
       theme: xtermTheme(),
     })
     const f = new FitAddon()
@@ -146,6 +160,8 @@ export function TermView(props: TermViewProps) {
       }
       f.fit()
       ro.observe(el.current)
+      terms.set(id, t)
+      termsChanged()
       // A revivable terminal spawns on open; treat it as alive so early typing isn't dropped.
       if (cb.current.revive) aliveRef.current = true
       cb.current.open(size())
@@ -154,6 +170,10 @@ export function TermView(props: TermViewProps) {
 
     return () => {
       disposed = true
+      if (terms.get(id) === t) {
+        terms.delete(id)
+        termsChanged()
+      }
       ro.disconnect()
       off()
       port?.close()

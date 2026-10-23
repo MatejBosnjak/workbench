@@ -78,6 +78,10 @@ const MIGRATIONS: string[] = [
     updated_at    INTEGER NOT NULL
   );
   `,
+  `
+  -- Set by a rename or a task start; claude's terminal title no longer replaces it.
+  ALTER TABLE sessions ADD COLUMN title_locked INTEGER NOT NULL DEFAULT 0;
+  `,
 ]
 
 export function openDb(file: string): Db {

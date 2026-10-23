@@ -17,6 +17,7 @@ import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScri
 import { loadConfig } from './local/config'
 import { Supervisor } from './local/supervisor'
 import { Linker } from './linker'
+import { MarksReader } from './marks'
 import { createWorktree, planWorktree, repoRoots } from './local/git'
 import { Notifier } from './notify'
 import { FocusTracker } from './focus-pr'
@@ -172,6 +173,8 @@ function buildMenu(): void {
           { type: 'separator' },
           { label: 'Next Tab', accelerator: 'CmdOrCtrl+Shift+]', click: () => send({ type: 'cycle-tab', delta: 1 }) },
           { label: 'Previous Tab', accelerator: 'CmdOrCtrl+Shift+[', click: () => send({ type: 'cycle-tab', delta: -1 }) },
+          { label: 'Next Bookmark', accelerator: 'CmdOrCtrl+]', click: () => send({ type: 'mark-step', delta: 1 }) },
+          { label: 'Previous Bookmark', accelerator: 'CmdOrCtrl+[', click: () => send({ type: 'mark-step', delta: -1 }) },
           { type: 'separator' },
           ...tabs,
         ],
@@ -358,7 +361,7 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('sessions:open', (e, id: string, size: { cols: number; rows: number }) => sessions.open(id, size, e.sender))
   ipcMain.handle('sessions:close', (_e, id: string) => sessions.close(id))
-  ipcMain.handle('sessions:title', (_e, id: string, title: string) => sessions.setTitle(id, title))
+  ipcMain.handle('sessions:title', (_e, id: string, title: string, auto?: boolean) => sessions.setTitle(id, title, auto))
   ipcMain.handle('sessions:reorder', (_e, ids: string[]) => sessions.reorder(ids))
   ipcMain.handle('sessions:write', (_e, id: string, data: string) => sessions.write(id, data))
   ipcMain.handle('sessions:configure', (_e, id: string, change: Partial<AgentSettings>) => sessions.configure(id, change))
@@ -411,6 +414,11 @@ void app.whenReady().then(() => {
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
   ipcMain.handle('tasks:summarize', (_e, taskId: string) => linker.summarize(taskId))
+  const marks = new MarksReader()
+  ipcMain.handle('sessions:marks', async (_e, id: string) => {
+    const file = linker.transcriptFor(id)
+    return file ? marks.read(file).catch(() => []) : []
+  })
   ipcMain.handle('tasks:detail', (_e, taskId: string) => tasks.detail(taskId))
   // Writes to Productive: each one shows exactly what changes and waits for a yes.
   const askProductive = async (message: string, detail: string) =>

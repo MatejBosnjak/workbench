@@ -16,6 +16,7 @@ export interface SessionRow {
   effort: string | null
   permissionMode: string | null
   forkFrom?: string | null
+  titleLocked?: boolean
 }
 
 type Patch = Partial<Omit<SessionRow, 'id' | 'startedAt'>>
@@ -32,6 +33,7 @@ const COLUMNS: Record<keyof Patch, string> = {
   effort: 'effort',
   permissionMode: 'permission_mode',
   forkFrom: 'fork_from',
+  titleLocked: 'title_locked',
 }
 
 interface RawSession {
@@ -48,6 +50,7 @@ interface RawSession {
   effort: string | null
   permission_mode: string | null
   fork_from: string | null
+  title_locked: number
   tab_order: number | null
 }
 
@@ -65,6 +68,7 @@ const fromRaw = (r: RawSession): SessionRow => ({
   effort: r.effort,
   permissionMode: r.permission_mode,
   forkFrom: r.fork_from,
+  titleLocked: r.title_locked === 1,
 })
 
 export class Repo {

@@ -10,6 +10,7 @@ import { Palette } from './components/Palette'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
+import { MarkRail, stepMarks } from './components/Marks'
 import { TopBar } from './components/TopBar'
 import { installKeys } from './keys'
 import { activeSessionId, navigate, useStore, type SessionSide } from './store'
@@ -48,6 +49,8 @@ function onMenu(cmd: MenuCommand): void {
       return useStore.getState().toggleSessionSide('task')
     case 'pr-side':
       return useStore.getState().toggleSessionSide('pr')
+    case 'mark-step':
+      return stepMarks(cmd.delta)
     case 'palette':
       return useStore.getState().setPalette(!useStore.getState().paletteOpen)
     case 'cycle-tab': {
@@ -141,6 +144,7 @@ export function App() {
           .map((s) => (
             <Terminal key={s.id} session={s} active={s.id === activeId} />
           ))}
+        {view.kind === 'session' && active && !active.external && <MarkRail key={active.id} session={active} />}
         {active?.external && <ExternalPanel session={active} />}
         {side === 'task' && <TaskSide session={active!} />}
         {side === 'pr' && <PrSide session={active!} />}

@@ -235,15 +235,26 @@ interface TabProps {
 
 function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onDragStart, onDragOver, onDrop }: TabProps) {
   const cls = ['seg-btn', 'tab', `st-${s.state}`, s.alive ? '' : 'dead', dropBefore ? 'drop-before' : ''].filter(Boolean).join(' ')
+  const [editing, setEditing] = useState(false)
+  const cancelled = useRef(false)
+  const rename = (title: string) => {
+    setEditing(false)
+    if (cancelled.current) return
+    if (title.trim() !== s.title) void window.workbench.setTitle(s.id, title)
+  }
   return (
     <div
       className={cls}
       role="tab"
       data-session={s.id}
       aria-selected={selected}
-      title={`${STATE_LABEL[s.state]} · ${s.title}\n${s.cwd}`}
-      draggable
+      title={editing ? undefined : `${STATE_LABEL[s.state]} · ${s.title}\n${s.cwd}\nDouble-click to rename`}
+      draggable={!editing}
       onClick={onSelect}
+      onDoubleClick={() => {
+        cancelled.current = false
+        setEditing(true)
+      }}
       onAuxClick={(e) => e.button === 1 && onClose()}
       onDragStart={onDragStart}
       onDragOver={(e) => {
@@ -253,10 +264,30 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onDr
       onDrop={onDrop}
     >
       <span className="sr-only">{STATE_LABEL[s.state]}: </span>
-      <span className="tab-title">
-        {n <= 9 ? `${n} ` : ''}
-        {s.title}
-      </span>
+      {editing ? (
+        <input
+          className="tab-rename"
+          aria-label="Session name"
+          defaultValue={s.title}
+          autoFocus
+          onFocus={(e) => e.currentTarget.select()}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => rename(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            e.stopPropagation()
+            if (e.key === 'Enter') e.currentTarget.blur()
+            else if (e.key === 'Escape') {
+              cancelled.current = true
+              setEditing(false)
+            }
+          }}
+        />
+      ) : (
+        <span className="tab-title">
+          {n <= 9 ? `${n} ` : ''}
+          {s.title}
+        </span>
+      )}
       {cup && (
         <span className="tab-cup">
           <Cup mode={cup} size={13} label={cup === 'lid' ? 'Kept awake with lid closed' : 'Kept awake'} />

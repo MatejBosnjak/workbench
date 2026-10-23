@@ -6,6 +6,7 @@ import type { MemorySnapshot } from './memory'
 import type { PaneState } from './pane'
 import type { LocalSnapshot, Worktree } from './local'
 import type { Person, TaskDetail, TasksSnapshot } from './tasks'
+import type { Mark } from './marks'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -112,6 +113,7 @@ export type MenuCommand =
   | { type: 'palette' }
   | { type: 'task-side' }
   | { type: 'pr-side' }
+  | { type: 'mark-step'; delta: 1 | -1 }
 
 /** Where a notification click (or an in-app PR link) takes you. */
 export type NavigateTarget = { kind: 'session'; id: string } | { kind: 'git' | 'reviews'; prId: string | null }
@@ -122,7 +124,8 @@ export interface WorkbenchApi {
   /** Spawns the pty if needed (resuming a stored session) and delivers its port. */
   openSession(id: string, size: { cols: number; rows: number }): Promise<void>
   closeSession(id: string): Promise<void>
-  setTitle(id: string, title: string): Promise<void>
+  /** auto: claude's terminal title, ignored once the session was renamed or titled after its task. */
+  setTitle(id: string, title: string, auto?: boolean): Promise<void>
   reorderSessions(ids: string[]): Promise<void>
   onSessionsChanged(cb: (sessions: Session[]) => void): () => void
   onMenuCommand(cb: (cmd: MenuCommand) => void): () => void
@@ -134,6 +137,8 @@ export interface WorkbenchApi {
   /** What a new session really runs with: Workbench defaults, else Claude's global settings, else what one last reported. */
   resolvedDefaults(): Promise<{ model: string | null; modelId: string | null; effort: string | null; permissionMode: string | null }>
   recentSessions(): Promise<RecentSession[]>
+  /** Bookmarks from the session's transcript, oldest first. */
+  sessionMarks(id: string): Promise<Mark[]>
   reopenSession(id: string): Promise<void>
   /** Resumes an external session inside Workbench once its terminal copy has exited. */
   takeOver(id: string): Promise<'now' | 'waiting'>

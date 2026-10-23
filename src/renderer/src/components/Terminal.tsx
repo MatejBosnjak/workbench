@@ -16,12 +16,13 @@ export const Terminal = memo(function Terminal({ session, active }: { session: S
       alive={session.alive}
       open={open}
       revive={open}
+      scrollback={10_000}
       exitMessage={`${session.state === 'failed' ? 'claude exited with an error' : 'claude exited'} · press Enter to resume`}
       onTitle={(raw) => {
         const title = cleanTitle(raw)
         if (title && title !== lastTitle.current && title !== session.title) {
           lastTitle.current = title
-          void window.workbench.setTitle(session.id, title)
+          void window.workbench.setTitle(session.id, title, true)
         }
       }}
     />

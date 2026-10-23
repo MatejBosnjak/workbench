@@ -80,7 +80,7 @@ export class Sessions {
     const src = this.repo.get(sourceId)
     if (!src) return null
     const s = this.create({ cwd: src.cwd, model: src.model, effort: src.effort, permissionMode: src.permissionMode, forkFrom: src.claudeId ?? src.id })
-    this.setTitle(s.id, `${src.title} (fork)`)
+    this.setTitle(s.id, `${src.title} (fork)`, !src.titleLocked)
     return this.get(s.id)
   }
 
@@ -271,8 +271,15 @@ export class Sessions {
     this.events.sessionsChanged()
   }
 
-  setTitle(id: string, title: string): void {
-    this.repo.update(id, { title })
+  /** A manual title sticks; an auto one (claude's terminal title) only applies until then. Clearing a manual title unlocks it. */
+  setTitle(id: string, title: string, auto = false): void {
+    title = title.trim()
+    if (auto) {
+      if (!title || this.repo.get(id)?.titleLocked) return
+      this.repo.update(id, { title })
+    } else {
+      this.repo.update(id, title ? { title, titleLocked: true } : { titleLocked: false })
+    }
     this.events.sessionsChanged()
   }
 
@@ -417,7 +424,7 @@ export class Sessions {
   }
 
   private toSession(r: SessionRow): Session {
-    const { claudeId: _c, transcriptPath: _t, ...rest } = r
+    const { claudeId: _c, transcriptPath: _t, titleLocked: _l, ...rest } = r
     return {
       ...rest,
       alive: r.external ? this.externalAlive.has(r.id) : this.pty.has(r.id),

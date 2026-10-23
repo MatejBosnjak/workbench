@@ -39,6 +39,14 @@ describe('Repo', () => {
     expect(repo.openTabs()[0]).toMatchObject({ state: 'failed', title: 'Fix CI', external: false })
   })
 
+  it('stores a locked title', () => {
+    const repo = new Repo(openDb(':memory:'))
+    repo.insertTab(row('a'))
+    expect(repo.get('a')?.titleLocked).toBe(false)
+    repo.update('a', { title: 'Task', titleLocked: true })
+    expect(repo.get('a')).toMatchObject({ title: 'Task', titleLocked: true })
+  })
+
   it('finds a session by its claude id and reopens closed tabs at the end', () => {
     const repo = new Repo(openDb(':memory:'))
     ;['a', 'b'].forEach((id) => repo.insertTab(row(id)))
@@ -61,7 +69,7 @@ describe('Repo', () => {
   it('migrations are idempotent', () => {
     const db = openDb(':memory:')
     migrate(db)
-    expect(db.pragma('user_version', { simple: true })).toBe(5)
+    expect(db.pragma('user_version', { simple: true })).toBe(6)
   })
 })
 

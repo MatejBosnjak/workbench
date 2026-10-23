@@ -58,7 +58,7 @@ button { font: inherit; color: inherit; }
 .tab-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tab-dot { flex-shrink: 0; font-size: 11px; }
 .dot-running { color: var(--info); }
-.dot-waiting { color: var(--accent); }
+.dot-waiting { color: var(--warn); }
 .dot-failed { color: var(--bad); }
 .dot-idle { color: var(--faint); }
 .tab-close {
@@ -72,7 +72,7 @@ button { font: inherit; color: inherit; }
 
 /* State fills (dots elsewhere in the app) */
 .state-running { background: var(--info); }
-.state-waiting { background: var(--accent); }
+.state-waiting { background: var(--warn); }
 .state-failed { background: var(--bad); }
 .state-idle { background: var(--faint); }
 
@@ -622,14 +622,21 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .draft .peek-parent { color: var(--faint); }
 
 /* Session tabs: state as an underline, overflow into +N */
-.tabs { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); padding-right: 40px; }
+.tabs { overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex-shrink: 0; max-width: 190px; }
-.tab.st-running { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--info) 45%, transparent); }
-.tab.st-waiting { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 45%, transparent); }
-.tab.st-failed { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--bad) 45%, transparent); }
-.tab.st-idle { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--faint) 45%, transparent); }
-.tab[aria-selected='true'] { border-color: var(--accent); color: var(--text); font-weight: 700; box-shadow: inset 0 -3px 0 var(--accent); }
+/* State bar along the bottom edge: quiet on other tabs, full strength on the current one. Purple only means focus. */
+.tab { --st: var(--faint); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--st) 45%, transparent); }
+.tab.st-running { --st: var(--info); }
+.tab.st-waiting { --st: var(--warn); }
+.tab.st-failed { --st: var(--bad); }
+.tab.st-idle { --st: var(--faint); }
+.tab[aria-selected='true'] { border-color: var(--accent); color: var(--text); font-weight: 700; box-shadow: inset 0 -3px 0 var(--st); }
+.tabs.fade-l.fade-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+.tabs.fade-l:not(.fade-r) { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px); mask-image: linear-gradient(to right, transparent, #000 40px); }
+.tabs.fade-r:not(.fade-l) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+.tabs.edge-l, .tabs.edge-l * { cursor: w-resize !important; }
+.tabs.edge-r, .tabs.edge-r * { cursor: e-resize !important; }
 .tab-more-wrap { position: relative; flex-shrink: 0; }
 .tab-more { padding: 0 10px; color: var(--text-3); gap: 6px; }
 .tab-menu { position: absolute; top: 38px; right: 0; z-index: 12; min-width: 260px; display: flex; flex-direction: column; padding: 4px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); }
@@ -637,7 +644,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tab-menu-item .faint { margin-left: auto; }
 .tab-menu-item:hover, .tab-menu-item.on { background: var(--raised); color: var(--text); }
 .tab-menu-item.st-running { box-shadow: inset 2px 0 0 var(--info); }
-.tab-menu-item.st-waiting { box-shadow: inset 2px 0 0 var(--accent); }
+.tab-menu-item.st-waiting { box-shadow: inset 2px 0 0 var(--warn); }
 .tab-menu-item.st-failed { box-shadow: inset 2px 0 0 var(--bad); }
 .tab-menu-n { color: var(--faint); width: 18px; }
 .pr-wrap.sel { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }

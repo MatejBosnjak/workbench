@@ -27,24 +27,68 @@ export function TopBar({ onNew }: { onNew: () => void }) {
   const [hidden, setHidden] = useState<string[]>([])
   const [moreOpen, setMoreOpen] = useState(false)
 
-  // Tabs that don't fit go into the +N menu; the strip itself scrolls and fades at the edge.
+  // Overflow: the strip scrolls sideways (edge hover, wheel); +N counts tabs fully or partly out of view.
+  const [fade, setFade] = useState({ l: false, r: false })
+  const [edge, setEdge] = useState<'l' | 'r' | null>(null)
+  const speed = useRef(0)
   useEffect(() => {
     const el = strip.current
     if (!el) return
     const measure = () => {
       const box = el.getBoundingClientRect()
-      const ids = [...el.querySelectorAll<HTMLElement>('[data-session]')].filter((t) => t.getBoundingClientRect().right > box.right - 30).map((t) => t.dataset.session!)
+      const ids = [...el.querySelectorAll<HTMLElement>('[data-session]')]
+        .filter((t) => {
+          const r = t.getBoundingClientRect()
+          return r.right > box.right + 0.5 || r.left < box.left - 0.5
+        })
+        .map((t) => t.dataset.session!)
       setHidden((cur) => (cur.join() === ids.join() ? cur : ids))
+      const next = { l: el.scrollLeft > 0, r: el.scrollLeft + el.clientWidth < el.scrollWidth - 1 }
+      setFade((cur) => (cur.l === next.l && cur.r === next.r ? cur : next))
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     el.addEventListener('scroll', measure)
+    // A vertical wheel scrolls the strip sideways.
+    const wheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+    el.addEventListener('wheel', wheel, { passive: false })
     return () => {
       ro.disconnect()
       el.removeEventListener('scroll', measure)
+      el.removeEventListener('wheel', wheel)
     }
   }, [sessions])
+
+  // Edge hover: within 56px of an edge with more tabs beyond it, scroll that way, faster nearer the edge.
+  useEffect(() => {
+    if (!edge) return
+    let frame = 0
+    const step = () => {
+      const el = strip.current
+      if (!el) return
+      el.scrollLeft += (edge === 'l' ? -1 : 1) * speed.current
+      frame = requestAnimationFrame(step)
+    }
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  }, [edge])
+  const EDGE = 56
+  const onStripMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const box = e.currentTarget.getBoundingClientRect()
+    const fromL = e.clientX - box.left
+    const fromR = box.right - e.clientX
+    const zone = fromL < EDGE && fade.l ? 'l' : fromR < EDGE && fade.r ? 'r' : null
+    speed.current = zone ? 2 + ((EDGE - (zone === 'l' ? fromL : fromR)) / EDGE) * 12 : 0
+    if (zone !== edge) setEdge(zone)
+  }
+  useEffect(() => {
+    if ((edge === 'l' && !fade.l) || (edge === 'r' && !fade.r)) setEdge(null)
+  }, [fade, edge])
 
   // The current tab scrolls into view when it changes.
   useEffect(() => {
@@ -92,7 +136,14 @@ export function TopBar({ onNew }: { onNew: () => void }) {
 
       <span className="divider" />
 
-      <div className="tabs" role="tablist" aria-label="Sessions" ref={strip}>
+      <div
+        className={`tabs${fade.l ? ' fade-l' : ''}${fade.r ? ' fade-r' : ''}${edge ? ` edge-${edge}` : ''}`}
+        role="tablist"
+        aria-label="Sessions"
+        ref={strip}
+        onMouseMove={onStripMove}
+        onMouseLeave={() => setEdge(null)}
+      >
         {sessions.map((s, i) => (
           <Tab
             key={s.id}

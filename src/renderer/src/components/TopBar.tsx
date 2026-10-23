@@ -61,7 +61,6 @@ export function TopBar({ onNew }: { onNew: () => void }) {
       <span className="divider" />
 
       <div className="tabs" role="tablist" aria-label="Sessions">
-        <span className="tabs-label">SESSIONS</span>
         {sessions.map((s) => (
           <Tab
             key={s.id}

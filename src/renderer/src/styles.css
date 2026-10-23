@@ -41,7 +41,6 @@ button { font: inherit; color: inherit; }
 .divider { width: 1px; height: 24px; background: var(--line-strong); margin: 0 14px; flex-shrink: 0; }
 
 .tabs { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 2px; overflow: hidden; }
-.tabs-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: var(--faint); margin-right: 8px; flex-shrink: 0; }
 .tab {
   position: relative; display: flex; align-items: center; gap: 6px;
   height: 100%; padding: 0 10px 0 14px; min-width: 0; max-width: 240px;

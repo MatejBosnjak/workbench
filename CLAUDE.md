@@ -15,6 +15,7 @@ Personal Electron desktop app for working with Claude Code. Read these first:
 | `Focus.dc.html` | session view and ⌘K |
 | `Task.dc.html` | Task workstream screen (v1.1) |
 | `CaffeinateLid.dc.html` | caffeinate icon options; variant 4h is chosen |
+| `RunPR.dc.html` | Run PR in app: chip states, ▶ Run app entry points, run panels, dirty guard |
 
 ## Working rules
 

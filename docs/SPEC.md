@@ -86,10 +86,21 @@ Keeps the Mac awake while sessions run.
   | Awake, lid closed | keeps running with the lid shut; needs power |
 
 - **Auto-off.** "Awake" turns itself off when the scoped session(s) stop.
-- **Lid closed.** This mode runs `caffeinate -s` while on AC power. If power is unplugged, it falls back to Awake and sends a notification.
+- **Lid closed.** `caffeinate` can't stop lid-close sleep on Apple Silicon, so this mode drives **Amphetamine** (installed) through its AppleScript dictionary (checked with `sdef /Applications/Amphetamine.app`), run via `osascript`:
+  - Start: `start new session with options {duration:0, interval:0, displaySleepAllowed:true}`, then `enable closed display mode`.
+  - Stop: `end session`, but only for a session Workbench started. Workbench records that it started it, and reads `session is active` to keep its state in sync.
+  - `start new session` ends any running Amphetamine session, Trigger sessions included. If one that Workbench didn't start is already running, Workbench asks before replacing it.
+  - **One-time setup:**
+    - Install Amphetamine's **Power Protect** helper (needed on Apple Silicon, otherwise every session asks for Touch ID or a password).
+    - Dismiss the closed-display warning once with "Do Not Show This Message Again" (Preferences → Sessions).
+
+    Workbench checks for Amphetamine, its scripting access and Power Protect. If any is missing, "Lid closed" shows as unavailable with a Set up link.
+  - **Power.** If power is unplugged, the mode falls back to Awake and sends a notification.
+  - **To verify by hand:** that `enable closed display mode` really keeps the Mac running with the lid shut. Its dictionary notes mention the "Allow system to sleep when display is closed" preference, so the meaning could be inverted.
+  - **Rejected:** `sudo pmset disablesleep 1`. It needs root, reports disagree on whether it works on Apple Silicon, and it disables sleep everywhere, battery included.
 - **Icon.** An espresso cup on a saucer (design variant 4h). Off is an outline cup. Awake is a filled cup with animated steam; the steam stops if Reduce Motion is on. Lid closed adds a small shut-laptop badge in the info colour.
 - **Tabs.** Caffeinated session tabs show the icon at 13px after the title.
-- **Lid closed availability.** Phase 1 enables the option only on AC power with an external display connected (clamshell mode), and falls back to Awake when either goes away. Still to check by hand: whether `caffeinate -s` alone, without a display, keeps a closed MacBook working; if it does, the display requirement can go.
+- **Lid closed availability.** The option is enabled on AC power when the Amphetamine setup check passes; no external display is needed. Without Amphetamine, it is enabled only in Apple's clamshell mode (AC power plus an external display).
 
 ### Today › My tasks
 
@@ -166,6 +177,43 @@ Keeps the Mac awake while sessions run.
   - Switching restarts `app` in the new worktree.
   - "Run alongside" starts a second app instance on the next free port.
 
+### Run PR in app
+
+One click runs the frontend PR you're working on or reviewing in the `app` service. No more going back to a terminal to find the worktree or switch branches. Design: `docs/design/RunPR.dc.html`.
+
+- **Focus PR.** Each session gets a focus PR from these signals, strongest first:
+  1. its cwd is a frontend worktree whose branch belongs to an open PR
+  2. a frontend PR URL or `#n` in its prompts (UserPromptSubmit) or terminal output (link provider)
+  3. a frontend PR linked to the session's task
+  4. a `gh pr view/checkout/diff <n>` it ran
+
+  The newest strong signal wins.
+- **Mismatch chip.** Local knows which branch `app` runs. When the active session's focus PR differs, the StatusBar shows "App · <branch> → Session · fe #<n> [▶ Run]". When they match it shows "✓ App on fe #<n> · localhost:4200".
+- **Entry points.** ▶ Run app appears on:
+  - frontend rows in My git and My reviews, with a hint under the button: "worktree · <name>" or "base checkout · fetch first". The PR already in the app gets an "In app" badge instead.
+  - linked PRs in the task preview
+  - the PR hover card in terminals
+  - the mismatch chip
+- **Resolve the PR to a worktree.** Use `git worktree list --porcelain`, only inside the `worktreesDir` folders from `~/.wtrc.json`. Match the PR on, in order:
+  1. branch name equals `headRefName`
+  2. the branch's upstream equals `origin/<headRefName>`
+  3. the worktree HEAD contains `headRefOid`
+
+  Branches get renamed, as with fe #30227 (`21071355-…`) and the worktree on `20360127-…`, so name matching alone isn't enough.
+- **Worktree found:**
+  1. stop `app`
+  2. run the per-repo command from `~/.wtrc.json` (`pnpm i && pnpm start`) in that worktree
+- **No worktree** (typically a review): use the base checkout `~/Productive/repos/frontend`. Never touch `~/Productive/work/repos/frontend`, which is the read-only reference clone.
+  1. **Dirty check.** If the tree has uncommitted changes, ask: Stash and continue (stash named `workbench: before fe #<n>`) / Run alongside / Cancel.
+  2. `git fetch origin <headRefName>`. For a fork PR, `git fetch origin pull/<n>/head:pr-<n>`.
+  3. `git checkout` that branch, after saving the previous branch or detached HEAD and any stash, for ↩ Back.
+  4. `pnpm i`, skipped when `pnpm-lock.yaml` is unchanged since the last install in that checkout.
+  5. Build the workspace packages (lib, ui, form, prosemirror) when their sources changed. A fresh checkout doesn't compile without them.
+  6. Restart `app`.
+- **Run alongside.** Runs the same steps but starts a second `app` on the next free port instead of replacing the running one.
+- **Run panel.** The run shows as a job in Local and in a popover from the chip: each step with done, running, skipped or pending; a live log tail; Cancel; and Run alongside instead.
+- **Back.** After a base-checkout run, the chip offers "↩ Back to <previous>". It restores the branch, pops the stash and restarts `app`.
+
 ### Shell chrome
 
 - **TopBar.** Today and Local are fixed places in their own group, followed by the session tabs and ⌘K.
@@ -210,6 +258,7 @@ Each phase must be usable daily before the next one starts.
 3. **My tasks.** Productive poller, grouping, preview, linking, Summarize.
 4. **My git / My reviews.** gh poller, needs-reply detection, notifications, drafts with confirm.
 5. **v1.1.** Task workstream screen: milestone timeline, structure tree, Start work.
+6. **Run PR + lid closed.** Focus-PR detection, mismatch chip, ▶ Run app entry points, worktree / base-checkout run jobs with dirty guard and ↩ Back, Run alongside; Amphetamine-backed lid-closed caffeinate with its setup check.
 
 ## Packaging
 

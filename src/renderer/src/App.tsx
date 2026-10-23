@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import type { MenuCommand } from '@shared/types'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
-import { PrSide, TaskSide } from './components/TaskSide'
+import { PrSide, SessionBar, TaskSide } from './components/TaskSide'
 import { TodayView } from './components/TodayView'
 import { WorkstreamView } from './components/WorkstreamView'
 import { DirtyGuardModal } from './components/RunPr'
@@ -134,6 +134,7 @@ export function App() {
   return (
     <div className="app">
       <TopBar onNew={() => void newSession()} />
+      {view.kind === 'session' && active && !active.external && <SessionBar session={active} />}
       <main className={`main${side ? ` with-side side-${side}${side === 'pr' && paneFull ? ' side-full' : ''}` : ''}`}>
         {sessions
           .filter((s) => mounted.has(s.id) && !s.external)

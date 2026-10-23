@@ -77,7 +77,7 @@ export class TasksPoller {
   async detail(taskId: string): Promise<TaskDetail> {
     const { api, orgSlug } = await this.client()
     const [{ data, included }, comments] = await Promise.all([
-      api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status.workflow,parent_task,todos']),
+      api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status.workflow,parent_task,todos,todos.assignee']),
       api.getAll('/comments', [`filter%5Btask_id%5D=${taskId}`, 'sort=created_at', 'include=creator']),
     ])
     const names = new Map(comments.included.filter((i) => i.type === 'people').map((p) => [p.id, personName(p)]))
@@ -100,7 +100,10 @@ export class TasksPoller {
       todos: included
         .filter((i) => i.type === 'todos')
         .sort((a, b) => Number(a.attributes.position ?? 0) - Number(b.attributes.position ?? 0))
-        .map((t) => ({ id: t.id, text: readMentions(String(t.attributes.description ?? '')).body, closed: !!t.attributes.closed })),
+        .map((t) => {
+          const who = included.find((i) => i.type === 'people' && i.id === t.relationships?.assignee?.data?.id)
+          return { id: t.id, text: readMentions(String(t.attributes.description ?? '')).body, closed: !!t.attributes.closed, assignee: who ? personName(who) : null }
+        }),
       comments: comments.data
         .filter((c) => String(c.attributes.body ?? '').trim())
         .map((c) => ({
@@ -135,6 +138,14 @@ export class TasksPoller {
     const { api } = await this.client()
     await api.patch(`/tasks/${taskId}`, { data: { type: 'tasks', id: taskId, relationships: { workflow_status: { data: { type: 'workflow_statuses', id: statusId } } } } })
     void this.refresh()
+  }
+
+  /** Adds a to-do at the end of the task's list, optionally assigned. */
+  async addTodo(taskId: string, text: string, assigneeId: string | null): Promise<void> {
+    const { api } = await this.client()
+    const relationships: Record<string, unknown> = { task: { data: { type: 'tasks', id: taskId } } }
+    if (assigneeId) relationships.assignee = { data: { type: 'people', id: assigneeId } }
+    await api.post('/todos', { data: { type: 'todos', attributes: { description: text }, relationships } })
   }
 
   async setTodo(todoId: string, closed: boolean): Promise<void> {

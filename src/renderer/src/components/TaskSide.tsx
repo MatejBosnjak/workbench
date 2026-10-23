@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { prRef, type GitSnapshot } from '@shared/git'
+import { useEffect, useState, type CSSProperties } from 'react'
+import { prRef, type Ci, type GitSnapshot } from '@shared/git'
 import type { RunPrSnapshot } from '@shared/runpr'
-import type { TasksSnapshot } from '@shared/tasks'
+import { statusVivid, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
@@ -19,30 +19,81 @@ export function sessionTasks(snapshot: TasksSnapshot | null, sessionId: string):
 }
 
 /** The session's PRs: those linked to its tasks, and the frontend PR its branch belongs to. */
-export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: GitSnapshot | null, runpr: RunPrSnapshot | null): { url: string; label: string; title: string }[] {
+export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: GitSnapshot | null, runpr: RunPrSnapshot | null): SessionPr[] {
   const ids = new Set(sessionTasks(tasks, sessionId))
-  const out = new Map<string, { url: string; label: string; title: string }>()
+  const all = [...(git?.mine ?? []), ...(git?.reviews ?? [])]
+  const out = new Map<string, SessionPr>()
   const focus = runpr?.focus[sessionId]
-  if (focus) out.set(focus.url, { url: focus.url, label: `fe #${focus.number}`, title: focus.title })
-  for (const p of [...(git?.mine ?? []), ...(git?.reviews ?? [])]) if (p.taskRefs.some((t) => ids.has(t)) && !out.has(p.url)) out.set(p.url, { url: p.url, label: prRef(p), title: p.title })
+  if (focus) {
+    const p = all.find((x) => x.url === focus.url)
+    out.set(focus.url, { url: focus.url, label: `fe #${focus.number}`, title: focus.title, branch: focus.branch, ci: p?.ci ?? null })
+  }
+  for (const p of all) if (p.taskRefs.some((t) => ids.has(t)) && !out.has(p.url)) out.set(p.url, { url: p.url, label: prRef(p), title: p.title, branch: p.branch, ci: p.ci })
   return [...out.values()]
 }
 
-/** Task and Pr at the right of the tab strip on a session: each opens its sidebar, the open one is lit. */
-export function SessionSideButtons({ session }: { session: Session }) {
+export interface SessionPr {
+  url: string
+  label: string
+  title: string
+  branch: string
+  ci: Ci | null
+}
+
+const CI_LABEL: Record<Ci, [string, string]> = {
+  pass: ['CI passing', 'var(--ok)'],
+  fail: ['CI failing', 'var(--bad)'],
+  pending: ['CI running', 'var(--info)'],
+  none: ['no CI', 'var(--faint)'],
+}
+
+/**
+ * The session bar under the taskbar, belonging to the open session: its task (status rail, title, status) and its
+ * PR (CI state), each opening its sidebar, and the branch at the right.
+ */
+export function SessionBar({ session }: { session: Session }) {
   const { tasks, git, runpr, side, toggle } = useStore(useShallow((s) => ({ tasks: s.tasks, git: s.git, runpr: s.runpr, side: s.sessionSide, toggle: s.toggleSessionSide })))
-  const hasPr = sessionPrs(session.id, tasks, git, runpr).length > 0
+  const taskId = sessionTasks(tasks, session.id)[0]
+  const task = taskId ? tasks?.tasks.find((t) => t.id === taskId) : undefined
+  const prs = sessionPrs(session.id, tasks, git, runpr)
+  const pr = prs[0]
+  const ci = pr?.ci ? CI_LABEL[pr.ci] : null
   return (
-    <span className="side-btns">
-      <button className={`seg-btn${side === 'task' ? ' on' : ''}`} aria-pressed={side === 'task'} title="Task sidebar (⌘I)" onClick={() => toggle('task')}>
-        Task
+    <div className="session-bar">
+      <span className="faint">session</span>
+      <button
+        className={`sbar-btn${side === 'task' ? ' on' : ''}`}
+        aria-pressed={side === 'task'}
+        title={task ? `${task.title} · ${task.statusName} (⌘I)` : 'Link a task (⌘I)'}
+        style={task ? ({ '--st': statusVivid({ colorId: task.statusColorId }) } as CSSProperties) : undefined}
+        onClick={() => toggle('task')}
+      >
+        {task ? (
+          <>
+            <span className="sbar-rail" />
+            <span className="muted">Task</span>
+            <span className="sbar-title">{task.title}</span>
+            <span className="sbar-status">{(task.statusName || 'no status').toLowerCase()}</span>
+          </>
+        ) : (
+          <span className="muted">{taskId ? 'Task' : 'link task…'}</span>
+        )}
+        <span className="faint">⌘I</span>
       </button>
-      {hasPr && (
-        <button className={`seg-btn${side === 'pr' ? ' on' : ''}`} aria-pressed={side === 'pr'} title="PR sidebar (⌘⇧I)" onClick={() => toggle('pr')}>
-          Pr
+      {pr && (
+        <button className={`sbar-btn pad${side === 'pr' ? ' on' : ''}`} aria-pressed={side === 'pr'} title={`${pr.title} (⌘⇧I)`} onClick={() => toggle('pr')}>
+          <span className="muted">PR</span>
+          {ci && <span style={{ color: ci[1] }}>● {ci[0]}</span>}
+          {prs.length > 1 && <span className="faint">+{prs.length - 1}</span>}
+          <span className="faint">⌘⇧I</span>
         </button>
       )}
-    </span>
+      {pr?.branch && (
+        <span className="sbar-branch faint">
+          ⎇ <span className="muted">{pr.branch}</span>
+        </span>
+      )}
+    </div>
   )
 }
 

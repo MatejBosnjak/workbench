@@ -431,6 +431,12 @@ void app.whenReady().then(() => {
     await tasks.comment(taskId, text.trim(), tagged)
     return tasks.detail(taskId)
   })
+  ipcMain.handle('tasks:addTodo', async (_e, taskId: string, text: string, assignee: Person | null) => {
+    const d = await tasks.detail(taskId)
+    if (!text.trim() || !(await askProductive('Add this to-do?', `${text.trim()}${assignee ? `\n\nAssigned to ${assignee.name}` : ''}\n\non ${d.task.title}`))) return null
+    await tasks.addTodo(taskId, text.trim(), assignee?.id ?? null)
+    return tasks.detail(taskId)
+  })
   ipcMain.handle('tasks:setTodo', async (_e, taskId: string, todoId: string, closed: boolean) => {
     const d = await tasks.detail(taskId)
     const todo = d.todos.find((t) => t.id === todoId)

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { CaffeinateButton } from './CaffeinateControl'
-import { SessionSideButtons } from './TaskSide'
 import { Cup } from './Cup'
 import { MemoryButton } from './Memory'
 import { useShallow } from 'zustand/react/shallow'
@@ -212,7 +211,6 @@ export function TopBar({ onNew }: { onNew: () => void }) {
       </button>
 
       <span className="tb-right">
-        {activeSession && !activeSession.external && <SessionSideButtons session={activeSession} />}
         <CaffeinateButton />
         <button className="seg-btn kbar" title="Switch or run (⌘K)" onClick={() => useStore.getState().setPalette(true)}>
           ⌘K

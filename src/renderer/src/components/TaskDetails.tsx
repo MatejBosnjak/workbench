@@ -203,7 +203,10 @@ function Composer({ detail }: { detail: TaskDetail }) {
   const [pick, setPick] = useState(0)
   const [state, setState] = useState<'idle' | 'posting' | 'drafting'>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [focused, setFocused] = useState(false)
   const box = useRef<HTMLTextAreaElement>(null)
+  // One line until it's in use: focused, holding text, or posting/drafting.
+  const expanded = focused || !!text || state !== 'idle'
 
   useEffect(() => {
     setText('')
@@ -269,10 +272,16 @@ function Composer({ detail }: { detail: TaskDetail }) {
   }
 
   return (
-    <div className="td-compose">
+    <div
+      className={`td-compose${expanded ? '' : ' collapsed'}`}
+      // Clicking the bar's buttons blurs the box; keep focus state until the click lands.
+      onMouseDown={(e) => (e.target as HTMLElement).closest('button') && e.preventDefault()}
+    >
       <textarea
         ref={box}
-        rows={3}
+        rows={expanded ? 3 : 1}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         aria-label="New comment"
         placeholder="Write a comment… @ to tag"
         value={text}
@@ -311,6 +320,7 @@ function Composer({ detail }: { detail: TaskDetail }) {
           ))}
         </div>
       )}
+      {expanded && (
       <div className="td-compose-bar">
         <button className="key-btn primary-key" disabled={!text.trim() || state !== 'idle'} onClick={() => void post()}>
           {state === 'posting' ? 'posting…' : '⌘⏎ post'}
@@ -320,6 +330,67 @@ function Composer({ detail }: { detail: TaskDetail }) {
         </button>
         <span className="faint">@ tags · asks before posting</span>
       </div>
+      )}
+      {error && <span className="bad-text">{error}</span>}
+    </div>
+  )
+}
+
+/** A new to-do: its text and, optionally, who it's for. ⏎ adds after the confirm, esc cancels. */
+function AddTodo({ detail, done }: { detail: TaskDetail; done(): void }) {
+  const [text, setText] = useState('')
+  const [all, setAll] = useState<Person[]>([])
+  const [assignee, setAssignee] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    people ??= window.workbench.tasks.people()
+    void people.then(setAll, () => (people = null))
+  }, [])
+
+  const add = async () => {
+    if (!text.trim() || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const d = await window.workbench.tasks.addTodo(detail.task.id, text, all.find((p) => p.id === assignee) ?? null)
+      if (d) {
+        put(detail.task.id, d)
+        done()
+      }
+    } catch (e) {
+      setError(clean(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="td-new-todo">
+      <input
+        autoFocus
+        aria-label="New to-do"
+        placeholder="New to-do"
+        value={text}
+        disabled={busy}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void add()
+          if (e.key === 'Escape') done()
+        }}
+      />
+      <select aria-label="Assign to" value={assignee} disabled={busy} onChange={(e) => setAssignee(e.target.value)}>
+        <option value="">unassigned</option>
+        {all.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+      <button className="key-btn primary-key" disabled={!text.trim() || busy} onClick={() => void add()}>
+        {busy ? 'adding…' : '⏎ add'}
+      </button>
       {error && <span className="bad-text">{error}</span>}
     </div>
   )
@@ -332,6 +403,8 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
   const open = detail?.todos.filter((t) => !t.closed).length ?? 0
   const { hideDone, setHideDone } = useStore(useShallow((s) => ({ hideDone: s.hideDoneTodos, setHideDone: s.setHideDoneTodos })))
   const done = (detail?.todos.length ?? 0) - open
+  const [adding, setAdding] = useState(false)
+  useEffect(() => setAdding(false), [taskId])
 
   return (
     <Box title="Productive" className="peek task-details">
@@ -366,19 +439,24 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
                 {detail.todos.length - open}/{detail.todos.length}
               </span>
             )}
+            <button className="td-add" aria-label="Add a to-do" title="Add a to-do" aria-expanded={adding} onClick={() => setAdding(!adding)}>
+              +
+            </button>
             {done > 0 && (
               <button className="td-toggle" aria-pressed={!hideDone} title={hideDone ? 'Show completed to-dos' : 'Hide completed to-dos'} onClick={() => setHideDone(!hideDone)}>
                 {hideDone ? `show ${done} done` : 'hide done'}
               </button>
             )}
           </div>
-          {detail.todos.length === 0 && <span className="faint">none</span>}
+          {adding && <AddTodo detail={detail} done={() => setAdding(false)} />}
+          {detail.todos.length === 0 && !adding && <span className="faint">none</span>}
           {detail.todos.length > 0 && hideDone && open === 0 && <span className="faint">all done</span>}
           {detail.todos.filter((t) => !(hideDone && t.closed)).map((t) => (
             <label key={t.id} className={`td-todo${t.closed ? ' done' : ''}${busy === `t:${t.id}` ? ' busy' : ''}`}>
               <input type="checkbox" checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
               <span>
                 <Linked text={t.text} />
+                {t.assignee && <span className="faint">{` · ${t.assignee}`}</span>}
               </span>
             </label>
           ))}
@@ -386,7 +464,8 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
           <div className="peek-sub">
             comments {detail.comments.length > 0 && <span className="faint">{detail.comments.length}</span>}
           </div>
-          {detail.comments.map((c) => (
+          <Composer detail={detail} />
+          {[...detail.comments].reverse().map((c) => (
             <div key={c.id} className="td-comment">
               <div>
                 <span className="td-author">{c.author}</span> <span className="faint">· {when(c.at)}</span>
@@ -396,7 +475,6 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
               </div>
             </div>
           ))}
-          <Composer detail={detail} />
         </>
       )}
     </Box>

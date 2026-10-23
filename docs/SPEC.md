@@ -318,6 +318,13 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
     - A vertical mouse wheel over the strip scrolls it sideways.
     - An edge fades out while there are tabs beyond it.
     - A `+N ▾` chip after the strip counts the tabs fully or partly out of view, and is hidden when none are.
+- **Session bar** (design: the "Workbench — Session bar" canvas). A 38px raised bar directly under the TopBar while a Workbench session is on screen; it belongs to that session, so the session's task and PR buttons live here, not in the TopBar.
+  - **Task button:** the linked task's status rail (in its status colour), its title and its status name, then `⌘I`. It opens the task sidebar. With no linked task it reads "link task…" and opens the sidebar's link picker.
+  - **PR button:** "PR" with the PR's CI state (● passing / failing / running), then `⌘⇧I`. It opens the PR sidebar (the GitHub pane), and is hidden when the session has no PR. More than one PR shows `+N`; the sidebar picks between them.
+  - The open sidebar's button is lit (accent outline and tint). The PR's branch sits at the right in faint text.
+  - **Task sidebar:**
+    - Comments: the comment box sits above the comments, which run newest first. While not in use it's a single quiet line; focusing it or typing grows it to three lines with its post / "draft with Claude" bar.
+    - To-dos: a `+` beside the to-dos heading opens an inline form with the text, an assignee (my Productive colleagues, or unassigned) and "⏎ add". Adding asks first, like every Productive write. Each to-do shows its assignee after its text.
 - **⌘K.** Searches sessions, workstreams, PRs and Productive tasks, and runs a slash command in the current session (`/model` and `/effort` are refused there because they rewrite the global defaults; the picker covers them).
 - **StatusBar.** Always visible, 38px, with a chrome background and a 2px top border. Every cell has a fixed width, so a value or state change never moves anything.
   - **Left:** the ⌨ shortcuts button, then the active session's name and duration.

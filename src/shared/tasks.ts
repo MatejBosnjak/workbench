@@ -168,6 +168,8 @@ export interface Todo {
   id: string
   text: string
   closed: boolean
+  /** Assignee's name; null when unassigned. Missing in details cached before it was read. */
+  assignee?: string | null
 }
 
 export interface Person {

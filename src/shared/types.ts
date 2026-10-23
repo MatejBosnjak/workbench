@@ -158,6 +158,8 @@ export interface WorkbenchApi {
     setStatus(taskId: string, statusId: string): Promise<TaskDetail | null>
     /** Ticks or unticks a to-do after a native confirm. Null when cancelled. */
     setTodo(taskId: string, todoId: string, closed: boolean): Promise<TaskDetail | null>
+    /** Adds a to-do (asks first); null when cancelled. */
+    addTodo(taskId: string, text: string, assignee: Person | null): Promise<TaskDetail | null>
     /** Active users, for tagging. */
     people(): Promise<Person[]>
     /** Posts a comment after a native confirm that shows the text and who gets tagged. Null when cancelled. */

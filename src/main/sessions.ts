@@ -36,6 +36,8 @@ export class Sessions {
   private pending = new Set<string>()
   // Text to type into claude's prompt once it's ready (sessions started from a task).
   private prefill = new Map<string, { text: string; seen: string; timer?: NodeJS.Timeout; until: number; tries: number }>()
+  /** For a session started from a task: its first prompt and title, so a fresh start can set them up again. */
+  taskStart: ((id: string) => { prompt: string; title: string } | null) | null = null
 
   constructor(
     private repo: Repo,
@@ -207,6 +209,12 @@ export class Sessions {
         : row.forkFrom
           ? ['--resume', row.forkFrom, '--fork-session', '--session-id', row.id]
           : ['--session-id', row.id]
+      // A task's session that never got a prompt starts over each time it opens: type the task prompt in again.
+      const fresh = args[0] === '--session-id' && !this.prefill.has(id) ? this.taskStart?.(id) : null
+      if (fresh) {
+        this.prefillPrompt(id, fresh.prompt)
+        if (!row.titleLocked) this.setTitle(id, fresh.title)
+      }
       if (row.model) args.push('--model', row.model)
       if (row.effort) args.push('--effort', row.effort)
       if (row.permissionMode) args.push('--permission-mode', row.permissionMode)

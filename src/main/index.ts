@@ -339,10 +339,15 @@ void app.whenReady().then(() => {
     const s = sessions.create({ cwd })
     if (task ?? title) sessions.setTitle(s.id, task?.title ?? title!)
     linker.link(s.id, taskId, 'started from this task', 'manual')
-    // The prompt starts with the task, ready to send or extend.
-    const url = task?.url ?? workstreams.url(taskId)
-    if (url) sessions.prefillPrompt(s.id, `lets look at this task ${url} `)
+    // The prompt starts with the task, ready to send or extend; open() types it once claude is up.
     return sessions.get(s.id)
+  }
+  sessions.taskStart = (id) => {
+    const taskId = repo.links().find((l) => l.sessionId === id && l.via === 'started from this task')?.taskId
+    if (!taskId) return null
+    const task = tasks.tasks.find((t) => t.id === taskId)
+    const url = task?.url ?? workstreams.url(taskId)
+    return url ? { prompt: `lets look at this task ${url} `, title: task?.title ?? workstreams.title(taskId) ?? 'Task' } : null
   }
 
   const signals = startSignalServer(socketPath(), (sig) => sessions.handleSignal(sig))

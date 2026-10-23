@@ -28,10 +28,16 @@ function useNow(everyMs: number): number {
   return Date.now()
 }
 
-function Meter({ pct, width, color }: { pct: number; width: number; color: string }) {
+/**
+ * A bar whose fill is a gradient in `color`, brightening toward its leading edge. `strength` [from, to] ranks the meter:
+ * ctx is strongest, then 5h, then wk. `loading` shimmers the empty track until the first value arrives.
+ */
+function Meter({ pct, width, color, strength, loading }: { pct: number; width: number; color: string; strength: [number, number]; loading?: boolean }) {
+  const [from, to] = strength
+  const background = `linear-gradient(90deg, color-mix(in srgb, ${color} ${from}%, transparent), color-mix(in srgb, ${color} ${to}%, transparent))`
   return (
-    <span className="meter" style={{ width }}>
-      <span style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: color }} />
+    <span className={`meter${loading ? ' loading' : ''}`} style={{ width }}>
+      <span style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background }} />
     </span>
   )
 }
@@ -90,6 +96,8 @@ export function StatusBar({ children }: { children?: ReactNode }) {
   const five = fresh(usage?.fiveHour)
   const week = fresh(usage?.sevenDay)
   const pct = (n?: number | null) => (n == null ? '—' : `${Math.round(n)}%`)
+  // Limits arrive through the statusline wrapper; without it there's nothing to wait for.
+  const limitsExpected = !!hooks?.statusline
 
   return (
     <footer className="statusbar">
@@ -119,7 +127,7 @@ export function StatusBar({ children }: { children?: ReactNode }) {
       <span className="sb-meters">
         <span className="sb-meter" title={ctx != null ? `Context ${Math.round(ctx)}%${live?.contextSize ? ` of ${sizeLabel(live.contextSize)}` : ''}${ctx >= 60 ? ' · /compact suggested' : ''}` : 'Context of the active session'}>
           <span className="sb-k">ctx</span>
-          <Meter pct={ctx ?? 0} width={48} color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'} />
+          <Meter pct={ctx ?? 0} width={48} color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'} strength={[35, 100]} loading={ctx == null && !!session?.alive} />
           <span className="sb-v" style={{ color: ctx != null && ctx >= 75 ? 'var(--bad)' : undefined }}>
             {pct(ctx)}
           </span>
@@ -131,13 +139,13 @@ export function StatusBar({ children }: { children?: ReactNode }) {
         </span>
         <span className="sb-meter" title={five ? `5h limit ${Math.round(five.pct)}%${five.resetsAt ? ` · resets ${clock(five.resetsAt)}` : ''}` : '5h limit'}>
           <span className="sb-k">5h</span>
-          <Meter pct={five?.pct ?? 0} width={48} color="var(--accent)" />
+          <Meter pct={five?.pct ?? 0} width={48} color="var(--accent)" strength={[30, 80]} loading={!five && limitsExpected} />
           <span className="sb-v">{pct(five?.pct)}</span>
           <span className="faint sb-reset">{five?.resetsAt ? `↻${clock(five.resetsAt)}` : ''}</span>
         </span>
         <span className="sb-meter" title={week ? `Week ${Math.round(week.pct)}%${week.resetsAt ? ` · resets ${day(week.resetsAt)}` : ''}` : 'Week limit'}>
           <span className="sb-k">wk</span>
-          <Meter pct={week?.pct ?? 0} width={48} color="var(--info)" />
+          <Meter pct={week?.pct ?? 0} width={48} color="var(--info)" strength={[25, 60]} loading={!week && limitsExpected} />
           <span className="sb-v">{pct(week?.pct)}</span>
         </span>
       </span>

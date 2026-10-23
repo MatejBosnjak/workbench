@@ -126,6 +126,11 @@ button { font: inherit; color: inherit; }
 .sb-v { color: var(--text); width: 34px; text-align: right; }
 .sb-reset { width: 44px; }
 .meter { height: 8px; background: var(--line-heavy); overflow: hidden; display: flex; flex-shrink: 0; }
+.meter > span { transition: width 0.6s ease; }
+/* No value yet: a faint highlight sweeps the empty track. */
+.meter.loading > span { width: 100% !important; background: linear-gradient(90deg, transparent 0, rgba(236, 232, 242, 0.09) 50%, transparent 100%) !important; background-size: 200% 100% !important; animation: meter-shimmer 1.8s ease-in-out infinite; }
+@keyframes meter-shimmer { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { .meter.loading > span { animation: none; } }
 .sb-compact {
   position: absolute; bottom: 44px; right: 0; height: 24px; padding: 0 8px; border: 1px solid var(--accent-line);
   background: var(--accent-bg); color: var(--warn); font-size: 11px; cursor: pointer;
@@ -335,14 +340,24 @@ button:disabled { cursor: default; opacity: 0.6; }
 .today { position: absolute; inset: 0; display: flex; flex-direction: column; }
 .today[hidden] { display: none; }
 .counters { display: flex; gap: 14px; padding: 24px 16px 0; flex-shrink: 0; }
-.counter { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 16px 12px 10px; border: 1px solid var(--line-heavy); background: transparent; text-align: left; cursor: pointer; color: var(--text); }
+.counter { position: relative; flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 16px 12px 10px; border: 1px solid var(--line-heavy); background: transparent; text-align: left; cursor: pointer; color: var(--text); transition: border-color 0.25s ease; }
 .counter:disabled { cursor: default; opacity: 1; }
 .counter:not(:disabled):hover { border-color: var(--text-3); }
-.counter.on { border-color: var(--accent); }
-.counter.on .box-title { color: var(--accent); }
-.counter-value { font-size: 38px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+.counter.on { border-color: var(--text-2); }
+.counter .box-title { transition: color 0.25s ease; }
+.counter.on .box-title { color: var(--text); }
+/* The active counter's number grows and glows; a fixed 48px line keeps the box height. --glow is the number's colour. */
+.counter-value {
+  --glow: var(--text); display: flex; align-items: baseline; flex-shrink: 0;
+  font-size: 38px; font-weight: 700; line-height: 48px; letter-spacing: -0.02em;
+  text-shadow: 0 0 18px transparent; transition: font-size 0.25s ease, text-shadow 0.25s ease;
+}
+.counter.on .counter-value { font-size: 44px; text-shadow: 0 0 18px color-mix(in srgb, var(--glow) 45%, transparent); }
+@media (prefers-reduced-motion: reduce) { .counter, .counter .box-title, .counter-value { transition: none; } }
 .counter-unit { font-size: 16px; color: var(--text-3); margin-left: 6px; font-weight: 400; letter-spacing: 0; }
-.counter-note { color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* Breakdown: one part per line, against the right edge, top-aligned with the number. */
+.counter-note { margin-left: auto; margin-top: 4px; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-size: 11.5px; line-height: 1.25; color: var(--faint); }
+.counter-note > span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .today-body { flex: 1; min-height: 0; display: flex; gap: 18px; padding: 22px 16px 12px; }
 .today-main { flex: 1; min-width: 0; overflow-y: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 22px; }
 .today-side { width: 420px; flex-shrink: 0; overflow-y: auto; padding-top: 10px; }
@@ -625,13 +640,14 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tabs { overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex-shrink: 0; max-width: 190px; }
-/* State bar along the bottom edge: quiet on other tabs, full strength on the current one. Purple only means focus. */
+/* State bar along the bottom edge: quiet on other tabs, full strength on the current one. The current tab is a raised box
+   outlined in the muted accent on three sides, so a waiting (purple) tab never looks current. */
 .tab { --st: var(--faint); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--st) 45%, transparent); }
 .tab.st-running { --st: var(--info); }
-.tab.st-waiting { --st: var(--warn); }
+.tab.st-waiting { --st: var(--accent); }
 .tab.st-failed { --st: var(--bad); }
 .tab.st-idle { --st: var(--faint); }
-.tab[aria-selected='true'] { border-color: var(--accent); color: var(--text); font-weight: 700; box-shadow: inset 0 -3px 0 var(--st); }
+.tab[aria-selected='true'] { border-color: var(--accent-line); border-bottom-color: transparent; background: var(--raised); color: var(--text); font-weight: 700; box-shadow: inset 0 -3px 0 var(--st); }
 .tabs.fade-l.fade-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
 .tabs.fade-l:not(.fade-r) { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px); mask-image: linear-gradient(to right, transparent, #000 40px); }
 .tabs.fade-r:not(.fade-l) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
@@ -644,7 +660,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tab-menu-item .faint { margin-left: auto; }
 .tab-menu-item:hover, .tab-menu-item.on { background: var(--raised); color: var(--text); }
 .tab-menu-item.st-running { box-shadow: inset 2px 0 0 var(--info); }
-.tab-menu-item.st-waiting { box-shadow: inset 2px 0 0 var(--warn); }
+.tab-menu-item.st-waiting { box-shadow: inset 2px 0 0 var(--accent); }
 .tab-menu-item.st-failed { box-shadow: inset 2px 0 0 var(--bad); }
 .tab-menu-n { color: var(--faint); width: 18px; }
 .pr-wrap.sel { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }

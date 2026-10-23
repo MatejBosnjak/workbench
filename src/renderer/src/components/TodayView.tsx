@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { FE_REPO } from '@shared/runpr'
 import { groupTasks, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
@@ -120,13 +120,18 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
       {!(tab !== 'tasks' && paneFull) && (
         <div className="counters">
           {counters.map((c) => (
-            <button key={c.id} className={`counter${c.to && c.to !== 'tasks' && tab === c.to ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
+            // Active = the counter whose list is shown; on the tasks tab that's Needs you.
+            <button key={c.id} className={`counter${c.to === tab && (tab !== 'tasks' || c.id === 'needs') ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
               <span className="box-title">{c.title}</span>
-              <span className="counter-value" style={{ color: c.tone }}>
+              <span className="counter-value" style={c.tone ? ({ color: c.tone, '--glow': c.tone } as CSSProperties) : undefined}>
                 {c.value}
                 {c.unit && <span className="counter-unit">{c.unit}</span>}
               </span>
-              <span className="counter-note">{c.note}</span>
+              <span className="counter-note">
+                {c.note.split(' · ').map((part) => (
+                  <span key={part}>{part}</span>
+                ))}
+              </span>
             </button>
           ))}
         </div>

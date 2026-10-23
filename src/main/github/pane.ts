@@ -95,8 +95,14 @@ export class GitHubPane {
       l = this.create(key)
       this.live.push(l)
       void l.view.webContents.loadURL(url)
-    } else if (l.view.webContents.getURL() !== url && url !== key) {
-      void l.view.webContents.loadURL(url)
+    } else if (url !== key) {
+      const wc = l.view.webContents
+      const here = wc.getURL().split('#')[0]
+      const [there, hash] = url.split('#')
+      // Same page (GitHub drops the anchor once loaded): only jump, never reload, so typed text survives.
+      if (here === there) {
+        if (hash) void wc.executeJavaScript(`(() => { const el = document.getElementById(${JSON.stringify(hash)}); if (el) el.scrollIntoView({ block: 'center' }); history.replaceState(null, '', '#' + ${JSON.stringify(hash)}) })()`).catch(() => {})
+      } else void wc.loadURL(url)
     }
     this.activate(l)
   }
@@ -143,14 +149,16 @@ export class GitHubPane {
   async fill(messageUrl: string, text: string): Promise<boolean> {
     await this.open(messageUrl)
     const wc = this.active!.view.webContents
-    if (wc.getURL() !== messageUrl) {
-      if (wc.getURL().split('#')[0] === messageUrl.split('#')[0]) await wc.executeJavaScript(`location.hash = ${JSON.stringify(new URL(messageUrl).hash)}`)
+    if (wc.isLoading()) {
       await new Promise<void>((resolve) => {
         const done = () => resolve()
         wc.once('did-stop-loading', done)
         setTimeout(done, 15_000)
       })
     }
+    // The fill script reads the anchor from location.hash; GitHub may have dropped it.
+    const hash = messageUrl.includes('#') ? `#${messageUrl.split('#')[1]}` : ''
+    if (hash) await wc.executeJavaScript(`history.replaceState(null, '', ${JSON.stringify(hash)})`).catch(() => {})
     const r = (await wc.executeJavaScript(fillScript(text)).catch(() => ({ filled: false }))) as { filled: boolean }
     if (!r.filled && text) clipboard.writeText(text)
     wc.focus()

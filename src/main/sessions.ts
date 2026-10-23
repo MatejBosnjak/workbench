@@ -34,6 +34,8 @@ export class Sessions {
   private takeOvers = new Set<string>()
   // Sessions with picker changes made mid-turn; they restart when the turn ends.
   private pending = new Set<string>()
+  // Text to type into claude's prompt once it's ready (sessions started from a task).
+  private prefill = new Map<string, { text: string; seen: string; timer?: NodeJS.Timeout; until: number }>()
 
   constructor(
     private repo: Repo,
@@ -53,7 +55,10 @@ export class Sessions {
         this.repo.update(id, { state })
         this.events.sessionsChanged()
       },
-      (id, data) => this.events.output?.(id, data),
+      (id, data) => {
+        this.events.output?.(id, data)
+        this.prefillOnOutput(id, data)
+      },
     )
   }
 
@@ -101,6 +106,32 @@ export class Sessions {
     this.repo.insertTab(row)
     this.events.sessionsChanged()
     return this.toSession(row)
+  }
+
+  /**
+   * Types `text` into the session's prompt (without Enter) once claude has drawn its input box: after its output
+   * has been quiet for a moment. While claude shows the "trust this folder?" question it waits for your answer.
+   */
+  prefillPrompt(id: string, text: string): void {
+    this.prefill.set(id, { text, seen: '', until: Date.now() + 5 * 60_000 })
+  }
+
+  private prefillOnOutput(id: string, data: string): void {
+    const p = this.prefill.get(id)
+    if (!p) return
+    if (Date.now() > p.until) return void this.prefill.delete(id)
+    p.seen = (p.seen + data).slice(-4000)
+    if (p.timer) clearTimeout(p.timer)
+    p.timer = setTimeout(() => {
+      // eslint-disable-next-line no-control-regex
+      const screen = p.seen.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')
+      if (/trust this folder|Do you trust|safety check/i.test(screen)) {
+        p.seen = ''
+        return
+      }
+      this.prefill.delete(id)
+      this.pty.write(id, p.text)
+    }, 900)
   }
 
   defaults(): AgentSettings {

@@ -26,6 +26,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropBefore, setDropBefore] = useState<string | null>(null)
   const strip = useRef<HTMLDivElement>(null)
+  const strip_ = () => strip.current
   const [hidden, setHidden] = useState<string[]>([])
   const [moreOpen, setMoreOpen] = useState(false)
   useOverlay(moreOpen)
@@ -95,10 +96,19 @@ export function TopBar({ onNew }: { onNew: () => void }) {
     if ((edge === 'l' && !fade.l) || (edge === 'r' && !fade.r)) setEdge(null)
   }, [fade, edge])
 
-  // The current tab scrolls into view when it changes.
+  // The current tab scrolls fully into view, clear of the edge fades, whenever it changes or first appears
+  // (a reopened session's tab arrives a moment after the switch).
   useEffect(() => {
-    strip.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [activeId])
+    const strip = strip_()
+    const tab = strip?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!strip || !tab) return
+    const margin = 48
+    const left = tab.offsetLeft - strip.offsetLeft
+    const right = left + tab.offsetWidth
+    if (left - margin < strip.scrollLeft) strip.scrollLeft = Math.max(0, left - margin)
+    else if (right + margin > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = right + margin - strip.clientWidth
+    // Titles change right after a tab opens (the task's name, then claude's), which changes its width.
+  }, [activeId, sessions.map((x) => x.title).join('\n')])
 
   useEffect(() => {
     if (!moreOpen) return

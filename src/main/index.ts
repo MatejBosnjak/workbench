@@ -333,6 +333,9 @@ void app.whenReady().then(() => {
     const s = sessions.create({ cwd })
     if (task ?? title) sessions.setTitle(s.id, task?.title ?? title!)
     linker.link(s.id, taskId, 'started from this task', 'manual')
+    // The prompt starts with the task, ready to send or extend.
+    const url = task?.url ?? workstreams.url(taskId)
+    if (url) sessions.prefillPrompt(s.id, `lets look at this task ${url} `)
     return sessions.get(s.id)
   }
 

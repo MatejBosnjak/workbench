@@ -748,3 +748,5 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .need-sleeping { align-self: flex-start; margin-top: 6px; color: var(--faint); }
 .need-row.asleep { opacity: 0.55; cursor: default; }
 .need-row.asleep:hover { background: transparent; }
+/* Room after the last tab, so it can scroll clear of the right-edge fade. */
+.tabs::after { content: ''; flex: 0 0 40px; height: 1px; }

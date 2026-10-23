@@ -56,6 +56,15 @@ export class Workstreams {
     }
   }
 
+  /** A task's Productive URL from any loaded workstream. */
+  url(taskId: string): string | undefined {
+    for (const ws of this.cache.values()) {
+      const t = ws.tasks.find((x) => x.id === taskId)
+      if (t) return t.url
+    }
+    return undefined
+  }
+
   /** A task's title from any loaded workstream. */
   title(taskId: string): string | undefined {
     for (const ws of this.cache.values()) {

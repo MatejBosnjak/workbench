@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session, SessionState } from '@shared/types'
-import { activeSessionId, useStore } from '../store'
+import { activeSessionId, useOverlay, useStore } from '../store'
 import { CaffeinateButton } from './CaffeinateControl'
 import { Cup } from './Cup'
 
@@ -26,6 +26,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
   const strip = useRef<HTMLDivElement>(null)
   const [hidden, setHidden] = useState<string[]>([])
   const [moreOpen, setMoreOpen] = useState(false)
+  useOverlay(moreOpen)
 
   // Overflow: the strip scrolls sideways (edge hover, wheel); +N counts tabs fully or partly out of view.
   const [fade, setFade] = useState({ l: false, r: false })

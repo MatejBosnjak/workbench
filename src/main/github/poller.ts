@@ -220,6 +220,17 @@ export class GitPoller {
     }
   }
 
+  private soon: NodeJS.Timeout | null = null
+
+  /** A refresh a few seconds from now, coalescing bursts (pane navigation, a posted comment). */
+  refreshSoon(): void {
+    if (this.soon) clearTimeout(this.soon)
+    this.soon = setTimeout(() => {
+      this.soon = null
+      void this.refresh()
+    }, 4000)
+  }
+
   find(id: string): Pr | undefined {
     return this.mine.find((p) => p.id === id) ?? this.reviews.find((p) => p.id === id)
   }

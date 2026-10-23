@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RunJob, RunStep } from '@shared/runpr'
-import { activeSessionId, useStore } from '../store'
+import { activeSessionId, useOverlay, useStore } from '../store'
 
 const errText = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
@@ -165,6 +165,7 @@ function ms(n: number | null): string {
 
 /** Steps, log tail, Cancel. Opens from the chip; also shown in Local. */
 export function RunPanel({ inline = false }: { inline?: boolean }) {
+  useOverlay(!inline)
   const { runpr, setRunPanel, runError, setRunError } = useStore()
   const root = useRef<HTMLDivElement>(null)
   const log = useRef<HTMLPreElement>(null)
@@ -263,6 +264,7 @@ export function RunPanel({ inline = false }: { inline?: boolean }) {
 /** Never checks out over uncommitted work. */
 export function DirtyGuardModal() {
   const { runGuard, setRunGuard } = useStore()
+  useOverlay(!!runGuard)
   const [busy, setBusy] = useState(false)
   if (!runGuard) return null
   const { n, guard } = runGuard

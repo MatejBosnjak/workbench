@@ -9,6 +9,7 @@ import { Caffeinate } from './caffeinate'
 import { Drafts } from './drafts'
 import { prInfo } from './github'
 import { GitPoller } from './github/poller'
+import { GitHubPane } from './github/pane'
 import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
 import { loadConfig } from './local/config'
 import { Supervisor } from './local/supervisor'
@@ -115,6 +116,21 @@ async function confirmUninstall(): Promise<HooksStatus> {
   return currentStatus(p)
 }
 
+let paneRef: GitHubPane | null = null
+
+async function confirmGithubSignOut(): Promise<void> {
+  if (!win || !paneRef) return
+  const res = await dialog.showMessageBox(win, {
+    type: 'question',
+    buttons: ['Sign Out', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    message: 'Sign out of GitHub in Workbench?',
+    detail: 'Clears the GitHub pane\'s login and cookies. Your browser and the gh CLI are not affected.',
+  })
+  if (res.response === 0) await paneRef.signOut()
+}
+
 function buildMenu(): void {
   const tabs: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
     label: i === 0 ? 'Today' : i === 1 ? 'Local' : i === 8 ? 'Last Session' : `Tab ${i + 1}`,
@@ -131,6 +147,8 @@ function buildMenu(): void {
           { type: 'separator' },
           { label: 'Install Hooks…', click: () => void confirmInstall().then(hooksChanged) },
           { label: 'Uninstall Hooks…', click: () => void confirmUninstall().then(hooksChanged) },
+          { type: 'separator' },
+          { label: 'Sign Out of GitHub…', click: () => void confirmGithubSignOut() },
           { type: 'separator' },
           { role: 'hide' },
           { role: 'hideOthers' },
@@ -265,6 +283,20 @@ void app.whenReady().then(() => {
   }
   const focus = new FocusTracker(repo, sessions, git, runprChanged)
   const runpr = new RunPr(repo, local, git, focus, runprChanged)
+  // GitHub inside Workbench (phase 8).
+  const pane = new GitHubPane(() => win, {
+    changed: (st) => win?.webContents.send('pane:changed', st),
+    key: (k) => {
+      if (typeof k === 'object') send({ type: 'select-tab', index: k.tab })
+      else if (k === 'palette') send({ type: 'palette' })
+      else if (k === 'list') {
+        win?.webContents.focus()
+        win?.webContents.send('pane:key', 'list')
+      }
+    },
+    activity: () => git.refreshSoon(),
+  })
+  paneRef = pane
   const workstreams = new Workstreams(repo, tasks, git, linker, (ws) => win?.webContents.send('ws:changed', ws))
   tasks.start()
   git.start()
@@ -346,6 +378,18 @@ void app.whenReady().then(() => {
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
   ipcMain.handle('tasks:summarize', (_e, taskId: string) => linker.summarize(taskId))
+  ipcMain.handle('pane:open', (_e, url: string) => pane.open(url))
+  ipcMain.handle('pane:bounds', (_e, b: { x: number; y: number; width: number; height: number }) => pane.setBounds(b))
+  ipcMain.handle('pane:visible', (_e, v: boolean) => pane.setVisible(v))
+  ipcMain.handle('pane:close', () => pane.close())
+  ipcMain.handle('pane:nav', (_e, cmd: 'back' | 'forward' | 'reload' | 'copy-url' | 'external' | 'focus') => pane.nav(cmd))
+  ipcMain.handle('pane:capture', () => pane.capture())
+  ipcMain.handle('pane:state', () => pane.state())
+  ipcMain.handle('pane:fill', (_e, url: string, text: string) => pane.fill(url, text))
+  ipcMain.handle('drafts:compose', (_e, target: DraftTarget, instruction: string) => {
+    if (target.kind === 'productive') throw new Error('Productive comments use the draft panel')
+    return drafts.compose(target, instruction)
+  })
   ipcMain.handle('git:snapshot', () => gitSnapshot())
   ipcMain.handle('git:refresh', () => git.refresh())
   ipcMain.handle('git:seen', (_e, key: string, messageId: string) => {
@@ -432,6 +476,7 @@ void app.whenReady().then(() => {
     tasks.stop()
     git.stop()
     focus.stop()
+    pane.dispose()
     sessions.shutdown()
     local.dispose()
     stopSignalServer(signals, socketPath())

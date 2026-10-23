@@ -10,6 +10,8 @@ export interface KeyTarget {
   newSession?(): boolean
   nextPane?(): void
   filter?(): void
+  /** Screen-specific keys (e.g. m in My PRs); true when handled. */
+  key?(k: string): boolean
 }
 
 let target: KeyTarget | null = null
@@ -27,6 +29,7 @@ export function useKeyTarget(t: KeyTarget, active: boolean): void {
       newSession: () => ref.current.newSession?.() ?? false,
       nextPane: () => ref.current.nextPane?.(),
       filter: () => ref.current.filter?.(),
+      key: (k) => ref.current.key?.(k) ?? false,
     }
     target = proxy
     return () => {
@@ -84,6 +87,7 @@ export function installKeys(newSession: () => void): () => void {
       st.setKeysOpen(!st.keysOpen)
       return done()
     }
+    if (target?.key?.(k)) return done()
     if (/^[1-9]$/.test(k)) {
       const n = Number(k)
       if (n === 1) st.show({ kind: 'today' })

@@ -655,3 +655,41 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .sb-middle .run-chip > * { flex-shrink: 0; }
 .sb-middle .run-chip > .run-branch { flex-shrink: 1; min-width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 .sb-middle .run-panel { overflow: visible; }
+
+/* GitHub pane (phase 8): the native view is laid over .gp-area */
+.today-body.split, .today-body.full { padding-top: 18px; }
+.today-body.split > [data-group] { flex: 1; min-width: 0; }
+.today-body.split .today-main { height: 100%; padding-right: 6px; }
+.gp { height: 100%; display: flex; flex-direction: column; border: 1px solid var(--line-heavy); min-width: 0; }
+.gp-strip { display: flex; align-items: center; gap: 12px; height: 34px; flex-shrink: 0; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line-heavy); background: var(--chrome); white-space: nowrap; overflow: hidden; }
+.gp-ref { color: var(--text); font-weight: 700; }
+.gp-state { color: var(--text-3); }
+.gp-state.st-changes-requested { color: var(--bad); }
+.gp-state.st-approved { color: var(--ok); }
+.gp-state.st-draft { color: var(--faint); }
+.gp-reply { color: var(--warn); }
+.gp-tools { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.gp-tools .key-btn { height: 24px; }
+.gp-tools .key-btn:disabled { opacity: 0.35; }
+.gp-note { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--accent-line); background: var(--accent-bg); color: var(--text-2); }
+.gp-note .link-btn { margin-left: auto; }
+.gp-area { position: relative; flex: 1; min-height: 0; background: var(--bg); }
+.gp-still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.gp-empty { height: 100%; display: grid; place-items: center; border: 1px dashed var(--line-heavy); }
+.today-body.full > .gp, .today-body.full > .gp-empty { flex: 1; min-width: 0; }
+/* PR rows adapt to the list's width (narrow next to the GitHub pane). */
+.today-main { container-type: inline-size; }
+@container (max-width: 980px) {
+  .pr-row { grid-template-columns: minmax(0, 1fr) 12px 104px 86px; }
+  .pr-row .pr-task, .pr-row .pr-state, .pr-row .pr-age { display: none; }
+  .pr-row.rev { grid-template-columns: minmax(0, 1fr) 12px 104px 44px; }
+  .pr-row.rev .pr-note { display: none; }
+  .pr-row.rev .pr-age { display: block; }
+  .pr-quote { margin-left: 24px; }
+  .pr-main { grid-template-columns: 70px minmax(0, 1fr); }
+}
+@container (max-width: 640px) {
+  .pr-row { grid-template-columns: minmax(0, 1fr) 12px 86px; }
+  .pr-row .pr-run { display: none; }
+  .pr-row.rev { grid-template-columns: minmax(0, 1fr) 12px 44px; }
+}

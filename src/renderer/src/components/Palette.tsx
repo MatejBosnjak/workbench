@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { RecentSession, Session, SessionState } from '@shared/types'
 import { prRef } from '@shared/git'
 import { rootOf } from '@shared/workstream'
-import { navigate, openWorkstream, useStore } from '../store'
+import { navigate, openWorkstream, useOverlay, useStore } from '../store'
 
 interface Item {
   key: string
@@ -34,6 +34,7 @@ const PER_GROUP = 8
 const matches = (q: string, text: string) => q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => text.toLowerCase().includes(w))
 
 export function Palette({ onNew }: { onNew(pick: boolean): void }) {
+  useOverlay(true)
   const { sessions, show, setPalette, view, tasks, git, setTodayTab, setPeekTask } = useStore()
   const [query, setQuery] = useState('')
   const [recent, setRecent] = useState<RecentSession[]>([])

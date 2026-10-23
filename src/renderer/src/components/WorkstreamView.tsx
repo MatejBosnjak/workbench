@@ -4,7 +4,7 @@ import type { Session } from '@shared/types'
 import type { TimelineItem, Workstream, WsLink, WsPr, WsTask } from '@shared/workstream'
 import { subtree, timeline } from '@shared/workstream'
 import { shortRepo } from '@shared/git'
-import { useStore } from '../store'
+import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
 import { DraftPanel } from './DraftPanel'
 import { Diamond, StatusGlyph, ago } from './TodayView'
@@ -143,7 +143,7 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
       ) : it.kind === 'pr' ? (
         <div className="ws-event">
           <span className="ws-chip">PR</span>
-          <button className="link-btn" onClick={() => void window.workbench.openExternal(it.pr.url)}>
+          <button className="link-btn" title="⌘-click opens the browser" onClick={(e) => openPrLink(it.pr.url, e.metaKey)}>
             {prLabel(it.pr)}
           </button>
           <span>
@@ -256,7 +256,7 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
             <div className="group ws-prs">
               {(ws?.prs ?? []).length === 0 && <div className="today-empty muted">No PRs mention these tasks.</div>}
               {[...(ws?.prs ?? [])].reverse().map((p) => (
-                <button key={p.url} className="ws-pr" onClick={() => void window.workbench.openExternal(p.url)}>
+                <button key={p.url} className="ws-pr" title="⌘-click opens the browser" onClick={(e) => openPrLink(p.url, e.metaKey)}>
                   <span className="pr-ref mono">{prLabel(p)}</span>
                   <span className="pr-title-wrap">
                     <span className="pr-title">{p.title}</span>

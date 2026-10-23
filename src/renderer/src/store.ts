@@ -3,6 +3,9 @@ import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { TasksSnapshot } from '@shared/tasks'
 import type { DirtyGuard, RunPrSnapshot } from '@shared/runpr'
+import type { PaneState } from '@shared/pane'
+import { prKey } from '@shared/pane'
+import { useEffect } from 'react'
 import { rootOf } from '@shared/workstream'
 import type { CaffeinateState, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
 
@@ -52,6 +55,20 @@ interface State {
   setLocal(l: LocalSnapshot): void
   setGit(g: GitSnapshot): void
   runpr: RunPrSnapshot | null
+  pane: PaneState | null
+  /** The GitHub pane takes the whole body (⤢). */
+  paneFull: boolean
+  /** A line under the pane's strip, e.g. what happened to a Claude draft. */
+  paneNote: string | null
+  /** Open overlays (palette, popovers, modals); the native pane hides behind a still while any is open. */
+  overlays: number
+  /** PRs opened from a link that aren't in My git or My reviews: a temporary "Opened" group. */
+  openedPrs: { url: string; title: string }[]
+  setPane(p: PaneState): void
+  setPaneFull(v: boolean): void
+  setPaneNote(n: string | null): void
+  addOverlay(d: 1 | -1): void
+  addOpened(p: { url: string; title: string }): void
   runPanel: boolean
   runGuard: { n: number; guard: DirtyGuard } | null
   runError: string | null
@@ -99,6 +116,16 @@ export const useStore = create<State>((set, get) => ({
   setLocal: (local) => set({ local }),
   setGit: (git) => set({ git }),
   runpr: null,
+  pane: null,
+  paneFull: false,
+  paneNote: null,
+  overlays: 0,
+  openedPrs: [],
+  setPane: (pane) => set({ pane }),
+  setPaneFull: (paneFull) => set({ paneFull }),
+  setPaneNote: (paneNote) => set({ paneNote }),
+  addOverlay: (d) => set({ overlays: Math.max(0, get().overlays + d) }),
+  addOpened: (p) => set({ openedPrs: [p, ...get().openedPrs.filter((x) => x.url !== p.url)].slice(0, 8) }),
   runPanel: false,
   runGuard: null,
   runError: null,
@@ -201,11 +228,38 @@ export function navigate(t: NavigateTarget): void {
   st.setFocusPr(t.prId)
 }
 
-/** A PR link click: its row in My git / My reviews when it's there, else GitHub. ⌘-click always opens GitHub. */
+/** A PR link click: the GitHub pane for productiveio PRs, the browser for anything else. ⌘-click always opens the browser. */
 export function openPrLink(url: string, external: boolean): void {
-  const git = useStore.getState().git
-  const mine = git?.mine.find((p) => p.url === url)
-  const review = git?.reviews.find((p) => p.url === url)
-  if (external || (!mine && !review)) return void window.workbench.openExternal(url)
-  navigate({ kind: mine ? 'git' : 'reviews', prId: (mine ?? review)!.id })
+  if (external || !/^https:\/\/github\.com\/productiveio\//.test(url)) return void window.workbench.openExternal(url)
+  openInPane(url)
+}
+
+/** Counts an overlay while `open`, so the GitHub pane (a native view drawn above the page) steps aside. */
+export function useOverlay(open: boolean): void {
+  useEffect(() => {
+    if (!open) return
+    useStore.getState().addOverlay(1)
+    return () => useStore.getState().addOverlay(-1)
+  }, [open])
+}
+
+/**
+ * Opens a GitHub URL in the pane: Today › My git (or My reviews for a review request) with the PR selected.
+ * PRs in neither list go to a temporary "Opened" group.
+ */
+export function openInPane(url: string): void {
+  const st = useStore.getState()
+  const key = prKey(url)
+  const mine = key ? st.git?.mine.find((p) => p.url === key) : undefined
+  const review = key ? st.git?.reviews.find((p) => p.url === key) : undefined
+  st.show({ kind: 'today' })
+  st.setTodayTab(review && !mine ? 'reviews' : 'git')
+  st.setDraft(null)
+  st.setPaneNote(null)
+  if (mine ?? review) st.setSelPr((mine ?? review)!.id)
+  else if (key) {
+    st.addOpened({ url: key, title: url })
+    st.setSelPr(key)
+  }
+  void window.workbench.pane.open(url)
 }

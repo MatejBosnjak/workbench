@@ -168,7 +168,9 @@ GitHub opens inside Workbench instead of the system browser. It uses an Electron
 - **Views.** The 3 most recently opened PRs stay live, evicting the oldest first (about 150–200 MB each), so switching between them is instant and keeps scroll position and unsent comment text.
   - Before evicting a page with text in a comment box, Workbench asks first.
 - **Login.** The pane uses its own persistent session (`partition: 'persist:github'`), separate from the app, so you log in once.
-  - Login is GitHub username and password plus an authenticator-app code. `productiveio` has no SAML SSO (`/orgs/productiveio/sso` returns 404), so there's no Google sign-in step.
+  - Login is GitHub's own login page inside the pane. The account signs in with Google (personal Google account), then GitHub's authenticator-app code. `productiveio` has no SAML SSO (`/orgs/productiveio/sso` returns 404).
+  - Passkeys don't work in an embedded Electron view (no macOS passkey prompt), so on Google's passkey step choose "Try another way" (password plus the phone prompt). Verified in the spike, 2026-10-23.
+  - Google's sign-in pages are allowed in the pane only as part of that login flow.
   - Settings has "Sign out of GitHub", which clears that partition.
   - The pane runs with no Node integration and context isolation on.
 - **Reply state.** Opening a PR never clears "reply needed". It clears when your reply is the last message, or when you press `m`.
@@ -187,7 +189,7 @@ GitHub opens inside Workbench instead of the system browser. It uses an Electron
   | `⌘↩` | open in browser |
   | `⌘K`, `⌘1–9` | as everywhere else |
 
-- **Spike first (about 10 minutes):** check that password + authenticator login works in the embedded view, and that the reply-box fill works on a real PR thread.
+- **Spike (done 2026-10-23):** login works in the embedded view (Google sign-in without the passkey, then the GitHub authenticator code). The reply-box fill works on a real PR thread: open the thread's URL (`#discussion_r…`), click its "Reply…" button, then set the visible `comment[body]` textarea through the native value setter and fire an `input` event; GitHub enables its Comment button.
 
 ### Session ↔ task linking
 

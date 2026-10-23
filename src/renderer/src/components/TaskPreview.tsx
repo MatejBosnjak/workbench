@@ -3,7 +3,7 @@ import { prRef } from '@shared/git'
 import { FE_REPO } from '@shared/runpr'
 import type { Task, TaskLink, TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
-import { openWorkstream, useStore, type View } from '../store'
+import { openPrLink, openWorkstream, useStore, type View } from '../store'
 import { Box } from './Box'
 import { RunAppButton, runPr } from './RunPr'
 import { ago, dueLabel, statusColor } from './TodayView'
@@ -50,7 +50,7 @@ const when = (ms: number) => {
 }
 
 export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
-  const { sessions, show, git, setDraft, setTodayTab, setFocusPr } = useStore()
+  const { sessions, show, git, setDraft } = useStore()
   const prs = [...(git?.mine ?? []), ...(git?.reviews ?? [])].filter((p) => p.taskRefs.includes(task.id))
   const fePr = prs.find((p) => p.repo === FE_REPO)
   const [busy, setBusy] = useState(false)
@@ -111,10 +111,7 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
               <button
                 className="link-btn"
                 title={p.title}
-                onClick={() => {
-                  setTodayTab(git?.mine.includes(p) ? 'git' : 'reviews')
-                  setFocusPr(p.id)
-                }}
+                onClick={(e) => openPrLink(p.url, e.metaKey)}
               >
                 {prRef(p)}
               </button>

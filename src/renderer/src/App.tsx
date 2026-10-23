@@ -65,10 +65,13 @@ export function App() {
     const { setRunpr } = useStore.getState()
     void window.workbench.runpr.snapshot().then(setRunpr)
     const offRun = window.workbench.runpr.onChanged(setRunpr)
+    // ⌘J inside the GitHub pane: back to the list, out of full width.
+    const offList = window.workbench.pane.onList(() => useStore.getState().setPaneFull(false))
     return () => {
       offGit()
       offNav()
       offRun()
+      offList()
     }
   }, [])
   useEffect(() => window.workbench.reportView(activeSessionId(view)), [view])

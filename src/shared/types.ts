@@ -2,6 +2,7 @@ import type { AgentSettings, ApplyResult } from './agent'
 import type { DraftTarget, GitSnapshot } from './git'
 import type { Workstream } from './workstream'
 import type { DirtyGuard, RunPrSnapshot } from './runpr'
+import type { PaneState } from './pane'
 import type { LocalSnapshot, Worktree } from './local'
 import type { TasksSnapshot } from './tasks'
 
@@ -154,6 +155,8 @@ export interface WorkbenchApi {
     markSeen(key: string, messageId: string): Promise<void>
     /** The draft for a target, created empty if there is none. */
     openDraft(target: DraftTarget): Promise<number>
+    /** Claude's reply text for a GitHub conversation, to fill into GitHub's reply box. */
+    compose(target: DraftTarget, instruction: string): Promise<string>
     /** Has Claude write the target's draft; the result arrives through onChanged. */
     generate(target: DraftTarget, instruction: string): Promise<void>
     saveDraft(id: number, body: string): Promise<void>
@@ -174,6 +177,22 @@ export interface WorkbenchApi {
      * after a confirm that shows the exact git commands. Null when cancelled.
      */
     start(taskId: string, repo: string | null): Promise<Session | null>
+  }
+  /** GitHub inside Workbench: a native view laid over the rectangle the renderer reports. */
+  pane: {
+    open(url: string): Promise<void>
+    bounds(b: { x: number; y: number; width: number; height: number }): Promise<void>
+    visible(v: boolean): Promise<void>
+    close(): Promise<void>
+    nav(cmd: 'back' | 'forward' | 'reload' | 'copy-url' | 'external' | 'focus'): Promise<void>
+    /** A still of the page, shown while an overlay covers the pane. */
+    capture(): Promise<string | null>
+    state(): Promise<PaneState>
+    /** Opens the conversation and fills its reply box; false when the box wasn't found (text copied instead). */
+    fill(url: string, text: string): Promise<boolean>
+    onChanged(cb: (s: PaneState) => void): () => void
+    /** ⌘J pressed inside the pane. */
+    onList(cb: () => void): () => void
   }
   runpr: {
     snapshot(): Promise<RunPrSnapshot>

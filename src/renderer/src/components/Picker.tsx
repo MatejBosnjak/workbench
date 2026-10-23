@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { EFFORTS, MODELS, MODES, modelFromId, type AgentSettings, type ApplyResult } from '@shared/agent'
-import { activeSessionId, useStore } from '../store'
+import { activeSessionId, useStore, useOverlay } from '../store'
 
 const RESULT: Record<ApplyResult, string> = {
   restarted: 'Restarted the session with --resume and the new flags',
@@ -13,6 +13,7 @@ const MODE_ALIASES: Record<string, string> = { default: 'manual' }
 export function Picker() {
   const { sessions, view, status } = useStore()
   const [open, setOpen] = useState(false)
+  useOverlay(open)
   const [defaults, setDefaults] = useState<AgentSettings | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)

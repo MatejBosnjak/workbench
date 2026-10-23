@@ -1,9 +1,8 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Conversation, Draft, DraftTarget, Pr } from '@shared/git'
+import type { Conversation, DraftTarget, Pr } from '@shared/git'
 import { runHeadless } from './claude'
 import type { GitPoller } from './github/poller'
-import { gh, graphql } from './github/poller'
 import type { Linker } from './linker'
 import { listWorktrees, readWtrc } from './local/git'
 import { commentHtml, htmlText, type JsonApiResource } from './productive/client'
@@ -16,8 +15,9 @@ const READ_ONLY = ['Read', 'Grep', 'Glob']
 export type Confirm = (message: string, detail: string) => Promise<boolean>
 
 /**
- * Replies drafted in-app. Claude only ever writes the text; posting happens in `send`, after a
- * native confirm that shows the exact text and target.
+ * Replies drafted in-app. Claude only ever writes the text. GitHub replies are filled into GitHub's own reply
+ * box in the pane and posted with GitHub's button; Workbench never posts them. Productive comments are posted
+ * by `send`, after a native confirm that shows the exact text and target.
  */
 export class Drafts {
   constructor(
@@ -54,6 +54,12 @@ export class Drafts {
     this.changed()
   }
 
+  /** Claude's text for a GitHub conversation, for the pane to fill into its reply box. */
+  async compose(target: Extract<DraftTarget, { kind: 'gh-thread' | 'gh-pr' }>, instruction: string): Promise<string> {
+    const { prompt, cwd } = await this.githubPrompt(target, instruction)
+    return runHeadless(prompt, { model: DRAFT_MODEL, cwd, tools: READ_ONLY })
+  }
+
   save(id: number, body: string): void {
     this.repo.updateDraft(id, { body })
   }
@@ -67,14 +73,15 @@ export class Drafts {
   async send(id: number, body: string): Promise<boolean> {
     const d = this.repo.draft(id)
     if (!d || !body.trim()) return false
+    // GitHub replies go through GitHub's own Comment button in the pane.
+    if (d.target.kind !== 'productive') throw new Error('GitHub replies are posted from the GitHub pane')
     this.repo.updateDraft(id, { body })
-    if (!(await this.confirm(`Post this ${d.target.kind === 'productive' ? 'Productive comment' : 'GitHub reply'}?`, `To: ${describe(d.target)}\n\n${body.trim()}`))) return false
+    if (!(await this.confirm('Post this Productive comment?', `To: ${describe(d.target)}\n\n${body.trim()}`))) return false
     this.repo.updateDraft(id, { status: 'sending', error: null })
     this.changed()
     try {
-      await post(d, body.trim(), this.tasks)
+      await postComment(d.target, body.trim(), this.tasks)
       this.repo.updateDraft(id, { status: 'sent' })
-      if (d.target.kind !== 'productive') void this.git.refresh()
     } catch (e) {
       this.repo.updateDraft(id, { status: 'failed', error: (e as Error).message })
     }
@@ -146,19 +153,9 @@ async function checkoutFor(pr: Pr): Promise<{ path: string | null; onBranch: boo
   return { path: root ?? null, onBranch: false }
 }
 
-async function post(d: Draft, body: string, tasks: TasksPoller): Promise<void> {
-  const t = d.target
-  if (t.kind === 'gh-thread') {
-    await graphql('mutation($id: ID!, $body: String!) { addPullRequestReviewThreadReply(input: { pullRequestReviewThreadId: $id, body: $body }) { comment { id } } }', {
-      id: t.threadId,
-      body,
-    })
-  } else if (t.kind === 'gh-pr') {
-    await gh(['pr', 'comment', String(t.number), '--repo', t.repo, '--body-file', '-'], body)
-  } else {
-    const { api } = await tasks.client()
-    await api.post('/comments', {
-      data: { type: 'comments', attributes: { body: commentHtml(body) }, relationships: { task: { data: { type: 'tasks', id: t.taskId } } } },
-    })
-  }
+async function postComment(t: Extract<DraftTarget, { kind: 'productive' }>, body: string, tasks: TasksPoller): Promise<void> {
+  const { api } = await tasks.client()
+  await api.post('/comments', {
+    data: { type: 'comments', attributes: { body: commentHtml(body) }, relationships: { task: { data: { type: 'tasks', id: t.taskId } } } },
+  })
 }

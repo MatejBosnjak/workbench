@@ -7,7 +7,9 @@ import { useKeyTarget } from '../keys'
 import { needsBreakdown, needsYou, type NeedItem } from '../needs'
 import { navigate, openWorkstream, useStore } from '../store'
 import { Box } from './Box'
+import { Group, Panel, Separator } from 'react-resizable-panels'
 import { DraftPanel } from './DraftPanel'
+import { GitPane } from './GitPane'
 import { GitView, ReviewsView } from './GitView'
 import { runPr } from './RunPr'
 import { TaskPreview, taskPrimary } from './TaskPreview'
@@ -56,7 +58,7 @@ export function taskFePr(task: Pick<Task, 'id'>, git: GitSnapshot | null): numbe
 }
 
 export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot | null; git: GitSnapshot | null; active: boolean }) {
-  const { todayTab: tab, setTodayTab, draft, status } = useStore()
+  const { todayTab: tab, setTodayTab, draft, status, paneFull } = useStore()
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 60_000)
@@ -94,36 +96,75 @@ export function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot |
     },
   ]
 
+  const splitKey = 'workbench.gitSplit'
+  const splitLayout = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(splitKey) ?? 'null') as Record<string, number> | null
+    } catch {
+      return null
+    }
+  })()
+  const list =
+    tab === 'git' && git ? (
+      <Box title={`My PRs (${git.mine.length})`} active aside={<Sync src={git} onRefresh={() => void window.workbench.git.refresh()} />}>
+        <GitView git={git} tasks={snapshot} />
+      </Box>
+    ) : tab === 'reviews' && git ? (
+      <Box title="Reviews" active aside={<Sync src={git} onRefresh={() => void window.workbench.git.refresh()} />}>
+        <ReviewsView git={git} tasks={snapshot} />
+      </Box>
+    ) : null
+
   return (
     <div className="today" hidden={!active}>
-      <div className="counters">
-        {counters.map((c) => (
-          <button key={c.id} className={`counter${c.to && c.to !== 'tasks' && tab === c.to ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
-            <span className="box-title">{c.title}</span>
-            <span className="counter-value" style={{ color: c.tone }}>
-              {c.value}
-              {c.unit && <span className="counter-unit">{c.unit}</span>}
-            </span>
-            <span className="counter-note">{c.note}</span>
-          </button>
-        ))}
-      </div>
-      <div className="today-body">
-        <main className="today-main">
-          {tab === 'tasks' && <Home snapshot={snapshot} git={git} needs={needs} active={active} />}
-          {tab === 'git' && git && (
-            <Box title={`My PRs (${git.mine.length})`} active aside={<Sync src={git} onRefresh={() => void window.workbench.git.refresh()} />}>
-              <GitView git={git} tasks={snapshot} />
-            </Box>
-          )}
-          {tab === 'reviews' && git && (
-            <Box title="Reviews" active aside={<Sync src={git} onRefresh={() => void window.workbench.git.refresh()} />}>
-              <ReviewsView git={git} tasks={snapshot} />
-            </Box>
-          )}
-        </main>
-        <aside className="today-side">{draft && git ? <DraftPanel target={draft} git={git} /> : snapshot && <Peek snapshot={snapshot} />}</aside>
-      </div>
+      {!(tab !== 'tasks' && paneFull) && (
+        <div className="counters">
+          {counters.map((c) => (
+            <button key={c.id} className={`counter${c.to && c.to !== 'tasks' && tab === c.to ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
+              <span className="box-title">{c.title}</span>
+              <span className="counter-value" style={{ color: c.tone }}>
+                {c.value}
+                {c.unit && <span className="counter-unit">{c.unit}</span>}
+              </span>
+              <span className="counter-note">{c.note}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {tab === 'tasks' ? (
+        <div className="today-body">
+          <main className="today-main">
+            <Home snapshot={snapshot} git={git} needs={needs} active={active} />
+          </main>
+          <aside className="today-side">{draft && git ? <DraftPanel target={draft} git={git} /> : snapshot && <Peek snapshot={snapshot} />}</aside>
+        </div>
+      ) : paneFull ? (
+        <div className="today-body full">
+          <GitPane active={active} />
+        </div>
+      ) : (
+        <div className="today-body split">
+          <Group
+            orientation="horizontal"
+            defaultLayout={splitLayout ?? { list: 45, pane: 55 }}
+            onLayoutChanged={(sizes) => {
+              try {
+                localStorage.setItem(splitKey, JSON.stringify(sizes))
+              } catch {
+                // not important
+              }
+            }}
+          >
+            <Panel id="list" minSize="25">
+              <main className="today-main">{list}</main>
+            </Panel>
+            <Separator className="pane-sep row" />
+            <Panel id="pane" minSize="30">
+              <GitPane active={active} />
+            </Panel>
+          </Group>
+        </div>
+      )}
     </div>
   )
 }

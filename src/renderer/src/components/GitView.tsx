@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@shared/git'
-import { ageDays, groupMine, groupReviews, lastMessage, needsReply, prRef, verb } from '@shared/git'
+import { ageDays, groupMine, groupReviews, lastMessage, needsReply, prRef, shortRepo, verb } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
-import { useStore } from '../store'
+import { openInPane, useStore } from '../store'
 import { RunAppButton, runPr } from './RunPr'
 
 const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', faint: 'var(--faint)' }
@@ -68,9 +68,16 @@ function useFocus(): string | null {
   return focusPr
 }
 
-/** j / k through the rows on screen, ⏎ opens the PR on GitHub, r runs a frontend PR in the app. */
+/** A row click: the PR in the pane, selected; ⌘-click opens the browser. */
+function openRow(p: Pick<Pr, 'id' | 'url'>, external: boolean): void {
+  if (external) return void window.workbench.openExternal(p.url)
+  useStore.getState().setSelPr(p.id)
+  openInPane(p.url)
+}
+
+/** j / k through the rows on screen, ⏎ opens the PR in the pane, r runs a frontend PR in the app, m marks its threads seen. */
 function useRowKeys(prs: Pr[]) {
-  const { selPr, setSelPr } = useStore()
+  const { selPr, setSelPr, git } = useStore()
   useKeyTarget(
     {
       move: (d) => {
@@ -82,7 +89,16 @@ function useRowKeys(prs: Pr[]) {
       },
       open: () => {
         const p = prs.find((x) => x.id === selPr)
-        if (p) void window.workbench.openExternal(p.url)
+        if (p) openRow(p, false)
+      },
+      key: (k) => {
+        if (k !== 'm') return false
+        const p = prs.find((x) => x.id === selPr)
+        for (const c of p?.conversations ?? []) {
+          const last = lastMessage(c)
+          if (last && git && needsReply(c, git.viewer, git.seen)) void window.workbench.git.markSeen(c.key, last.id)
+        }
+        return true
       },
       run: () => {
         const p = prs.find((x) => x.id === selPr)
@@ -133,7 +149,7 @@ function GroupHead({ title, tone, count }: { title: string; tone: GroupTone; cou
 function TaskRef({ p, tasks }: { p: Pr; tasks: TasksSnapshot | null }) {
   const { setTodayTab, setPeekTask } = useStore()
   const t = tasksOf(p, tasks)[0]
-  if (!t) return <span />
+  if (!t) return <span className="pr-task" />
   return (
     <button
       className="pr-task mono"
@@ -177,6 +193,7 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
       {git.fetchedAt === null && git.loading && <div className="today-empty muted">Loading your PRs from GitHub…</div>}
       {git.fetchedAt !== null && groups.length === 0 && <div className="today-empty muted">Nothing here.</div>}
       <div className="groups">
+        <OpenedGroup git={git} />
         {groups.map((g) => (
           <section key={g.title} className="group">
             <GroupHead title={g.title} tone={g.tone} count={g.prs.length} />
@@ -190,6 +207,42 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
   )
 }
 
+/** PRs opened from a link that are in neither list; they stay until the app restarts. */
+function OpenedGroup({ git }: { git: GitSnapshot }) {
+  const { openedPrs, selPr } = useStore()
+  const known = new Set([...git.mine, ...git.reviews].map((p) => p.url))
+  const extra = openedPrs.filter((o) => !known.has(o.url))
+  const [info, setInfo] = useState<Record<string, { title: string; state: string }>>({})
+  useEffect(() => {
+    for (const o of extra) {
+      if (info[o.url]) continue
+      void window.workbench.prInfo(o.url).then((pr) => pr && setInfo((cur) => ({ ...cur, [o.url]: { title: pr.title, state: pr.isDraft ? 'Draft' : pr.state.toLowerCase() } })))
+    }
+  }, [extra.map((o) => o.url).join()])
+  if (!extra.length) return null
+  return (
+    <section className="group">
+      <GroupHead title="Opened" tone="faint" count={extra.length} />
+      {extra.map((o) => {
+        const m = /github\.com\/[\w.-]+\/([\w.-]+)\/pull\/(\d+)/.exec(o.url)
+        return (
+          <div key={o.url} id={`pr-${o.url}`} className={`pr-wrap${selPr === o.url ? ' sel' : ''}`}>
+            <div className="pr-row rev">
+              <button className="pr-main" onClick={(e) => openRow({ id: o.url, url: o.url }, e.metaKey)}>
+                <span className="pr-ref mono">{m ? `${shortRepo(m[1]!)} #${m[2]}` : 'PR'}</span>
+                <span className="pr-title-wrap">
+                  <span className="pr-title">{info[o.url]?.title ?? '…'}</span>
+                  <span className="pr-branch">{info[o.url]?.state ?? ''}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
 function PrRow({ p, git, tasks, focused, selected }: { p: Pr; git: GitSnapshot; tasks: TasksSnapshot | null; focused: boolean; selected: boolean }) {
   const setDraft = useStore((s) => s.setDraft)
   const [state, stateColor] = stateOf(p)
@@ -197,16 +250,32 @@ function PrRow({ p, git, tasks, focused, selected }: { p: Pr; git: GitSnapshot; 
   const latest = [...p.conversations].sort((a, b) => (lastMessage(b)?.at ?? '').localeCompare(lastMessage(a)?.at ?? ''))[0]
   const talk = open.length ? 'reply needed' : latest ? (lastMessage(latest)?.author === git.viewer ? 'replied' : 'seen') : ''
 
-  const startDraft = (c: Conversation, withClaude: boolean) => {
-    const target = draftTarget(p, c)
-    setDraft(target)
-    void (withClaude ? window.workbench.git.generate(target, '') : window.workbench.git.openDraft(target))
+  const [drafting, setDrafting] = useState<string | null>(null)
+  /** Claude's text (or nothing, for writing by hand) goes into GitHub's own reply box in the pane; GitHub's Comment button posts it. */
+  const reply = async (c: Conversation, withClaude: boolean) => {
+    const last = lastMessage(c)!
+    const url = last.url || p.url
+    const st = useStore.getState()
+    st.setSelPr(p.id)
+    openInPane(url)
+    if (!withClaude) return void window.workbench.pane.fill(url, '')
+    setDrafting(c.key)
+    st.setPaneNote('Claude is drafting a reply…')
+    try {
+      const text = await window.workbench.git.compose(draftTarget(p, c), '')
+      const filled = await window.workbench.pane.fill(url, text)
+      st.setPaneNote(filled ? "Claude's draft is in GitHub's reply box. Edit it and press Comment to post." : "Couldn't find the reply box; the draft is on the clipboard. Paste it into the thread's reply box.")
+    } catch (e) {
+      st.setPaneNote(`Drafting failed: ${(e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`)
+    } finally {
+      setDrafting(null)
+    }
   }
 
   return (
     <div id={`pr-${p.id}`} className={`pr-wrap${open.length ? ' needs' : ''}${focused ? ' focus' : ''}${selected ? ' sel' : ''}`}>
       <div className="pr-row">
-        <button className="pr-main" title="Open on GitHub" onClick={() => void window.workbench.openExternal(p.url)}>
+        <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
           <span className="pr-ref mono">{prRef(p)}</span>
           <span className="pr-title-wrap">
             <span className="pr-title">{p.title}</span>
@@ -231,14 +300,14 @@ function PrRow({ p, git, tasks, focused, selected }: { p: Pr; git: GitSnapshot; 
             </span>
             {last.body.trim() && <span className="pr-quote-text">{last.body.trim()}</span>}
             <span className="pr-quote-actions">
-              <button className="link-btn accent" onClick={() => startDraft(c, true)}>
-                Draft reply with Claude
+              <button className="link-btn accent" disabled={drafting === c.key} onClick={() => void reply(c, true)}>
+                {drafting === c.key ? 'Drafting…' : 'Draft reply with Claude'}
               </button>
-              <button className="link-btn" onClick={() => startDraft(c, false)}>
+              <button className="link-btn" onClick={() => void reply(c, false)}>
                 Write reply
               </button>
-              <button className="link-btn" onClick={() => void window.workbench.openExternal(last.url || p.url)}>
-                Open on GitHub
+              <button className="link-btn" title="⌘-click opens the browser" onClick={(e) => (e.metaKey ? void window.workbench.openExternal(last.url || p.url) : openInPane(last.url || p.url))}>
+                Open thread
               </button>
               <button className="link-btn muted-btn" onClick={() => void window.workbench.git.markSeen(c.key, last.id)}>
                 Mark as seen
@@ -278,7 +347,7 @@ export function ReviewsView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnap
               return (
                 <div key={p.id} id={`pr-${p.id}`} className={`pr-wrap${focus === p.id ? ' focus' : ''}${sel === p.id ? ' sel' : ''}`}>
                   <div className="pr-row rev">
-                    <button className="pr-main" title="Open on GitHub" onClick={() => void window.workbench.openExternal(p.url)}>
+                    <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
                       <span className="pr-ref mono">{prRef(p)}</span>
                       <span className="pr-title-wrap">
                         <span className="pr-title">{p.title}</span>

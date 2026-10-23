@@ -41,7 +41,7 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
   - a click or ⏎ on a row opens the PR in the pane; PR links elsewhere jump to My git with the PR open; ⌘-click goes to the browser
   - all of `github.com/productiveio` stays in-app
   - the 3 most recent PRs stay live; unsent comments are guarded
-  - one persistent login partition (password + authenticator code; no SAML SSO in the org)
+  - one persistent login partition (Google sign-in without passkeys, then the authenticator code; no SAML SSO in the org)
   - "reply needed" clears only when you reply or press `m`
   - Claude drafts go into GitHub's reply box and you post with GitHub's own button
   - only ⌘ shortcuts are kept while the pane has focus

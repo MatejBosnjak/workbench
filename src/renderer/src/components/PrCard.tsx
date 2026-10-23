@@ -53,7 +53,7 @@ export function PrCard({ anchor, onEnter, onLeave }: { anchor: CardAnchor; onEnt
             {pr.checks && <span style={{ color: CHECKS[pr.checks][1] }}>{CHECKS[pr.checks][0]}</span>}
           </span>
           {pr.repo === 'productiveio/frontend' && pr.state === 'OPEN' && <RunAppButton n={pr.number} />}
-          <span className="pop-note">Click opens its row in Workbench · ⌘-click opens GitHub</span>
+          <span className="pop-note">Click opens it in Workbench · ⌘-click opens the browser</span>
         </>
       )}
     </div>

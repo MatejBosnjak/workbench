@@ -3,6 +3,7 @@ import type { GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { Workstream } from '@shared/workstream'
 import type { RunPrSnapshot } from '@shared/runpr'
+import type { PaneState } from '@shared/pane'
 import type { TasksSnapshot } from '@shared/tasks'
 import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type NavigateTarget, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
@@ -49,6 +50,7 @@ const api: WorkbenchApi = {
     refresh: () => ipcRenderer.invoke('git:refresh'),
     markSeen: (key, messageId) => ipcRenderer.invoke('git:seen', key, messageId),
     openDraft: (target) => ipcRenderer.invoke('drafts:open', target),
+    compose: (target, instruction) => ipcRenderer.invoke('drafts:compose', target, instruction),
     generate: (target, instruction) => ipcRenderer.invoke('drafts:generate', target, instruction),
     saveDraft: (id, body) => ipcRenderer.invoke('drafts:save', id, body),
     discardDraft: (id) => ipcRenderer.invoke('drafts:discard', id),
@@ -61,6 +63,18 @@ const api: WorkbenchApi = {
     setNote: (rootId, body) => ipcRenderer.invoke('ws:note', rootId, body),
     repos: () => ipcRenderer.invoke('ws:repos'),
     start: (taskId, repo) => ipcRenderer.invoke('ws:start', taskId, repo),
+  },
+  pane: {
+    open: (url) => ipcRenderer.invoke('pane:open', url),
+    bounds: (b) => ipcRenderer.invoke('pane:bounds', b),
+    visible: (v) => ipcRenderer.invoke('pane:visible', v),
+    close: () => ipcRenderer.invoke('pane:close'),
+    nav: (cmd) => ipcRenderer.invoke('pane:nav', cmd),
+    capture: () => ipcRenderer.invoke('pane:capture'),
+    state: () => ipcRenderer.invoke('pane:state'),
+    fill: (url, text) => ipcRenderer.invoke('pane:fill', url, text),
+    onChanged: (cb) => on('pane:changed', (_e, s: PaneState) => cb(s)),
+    onList: (cb) => on('pane:key', (_e, k: string) => k === 'list' && cb()),
   },
   runpr: {
     snapshot: () => ipcRenderer.invoke('runpr:snapshot'),

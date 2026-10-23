@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Limit } from '@shared/types'
-import { activeSessionId, useStore } from '../store'
+import { activeSessionId, useOverlay, useStore } from '../store'
 import { RunPrChip } from './RunPr'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -54,6 +54,7 @@ export const SHORTCUTS: [string, string][] = [
 /** The ⌨ cell: all shortcuts in a popover on hover or focus (`?` toggles it). */
 function Shortcuts() {
   const open = useStore((s) => s.keysOpen)
+  useOverlay(open)
   return (
     <span className={`sb-keys${open ? ' open' : ''}`} tabIndex={0} aria-label="Keyboard shortcuts">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">

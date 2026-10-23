@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { CaffeinateState } from '@shared/types'
-import { activeSessionId, useStore } from '../store'
+import { activeSessionId, useOverlay, useStore } from '../store'
 import { Cup } from './Cup'
 
 const OPTIONS: { mode: CaffeinateState['mode']; label: string; key: string; note: string }[] = [
@@ -13,6 +13,7 @@ const OPTIONS: { mode: CaffeinateState['mode']; label: string; key: string; note
 export function CaffeinateButton() {
   const { caf, setCaf, view, cafOpen: open, setCafOpen: setOpen } = useStore()
   const root = useRef<HTMLSpanElement>(null)
+  useOverlay(open)
 
   useEffect(() => {
     void window.workbench.getCaffeinate().then(setCaf)

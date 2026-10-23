@@ -35,7 +35,7 @@ export class Sessions {
   // Sessions with picker changes made mid-turn; they restart when the turn ends.
   private pending = new Set<string>()
   // Text to type into claude's prompt once it's ready (sessions started from a task).
-  private prefill = new Map<string, { text: string; seen: string; timer?: NodeJS.Timeout; until: number }>()
+  private prefill = new Map<string, { text: string; seen: string; timer?: NodeJS.Timeout; until: number; tries: number }>()
 
   constructor(
     private repo: Repo,
@@ -109,29 +109,41 @@ export class Sessions {
   }
 
   /**
-   * Types `text` into the session's prompt (without Enter) once claude has drawn its input box: after its output
-   * has been quiet for a moment. While claude shows the "trust this folder?" question it waits for your answer.
+   * Types `text` into the session's prompt (without Enter) once claude has drawn its input box, then checks the
+   * text showed up and types it once more if it didn't: early keystrokes can be dropped while claude starts.
+   * While claude shows the "trust this folder?" question it waits for your answer.
    */
   prefillPrompt(id: string, text: string): void {
-    this.prefill.set(id, { text, seen: '', until: Date.now() + 5 * 60_000 })
+    this.prefill.set(id, { text, seen: '', until: Date.now() + 5 * 60_000, tries: 0 })
   }
 
   private prefillOnOutput(id: string, data: string): void {
     const p = this.prefill.get(id)
     if (!p) return
     if (Date.now() > p.until) return void this.prefill.delete(id)
-    p.seen = (p.seen + data).slice(-4000)
+    p.seen = (p.seen + data).slice(-8000)
     if (p.timer) clearTimeout(p.timer)
-    p.timer = setTimeout(() => {
-      // eslint-disable-next-line no-control-regex
-      const screen = p.seen.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')
-      if (/trust this folder|Do you trust|safety check/i.test(screen)) {
-        p.seen = ''
-        return
-      }
-      this.prefill.delete(id)
-      this.pty.write(id, p.text)
-    }, 900)
+    p.timer = setTimeout(() => this.prefillStep(id), 400)
+  }
+
+  private prefillStep(id: string): void {
+    const p = this.prefill.get(id)
+    if (!p) return
+    // eslint-disable-next-line no-control-regex
+    const screen = p.seen.replace(/\x1b\[[0-9;?<>=]*[a-zA-Z~]/g, '').replace(/\x1b[()][A-Z0-9]/g, '')
+    if (/trust this folder|Do you trust|safety check/i.test(screen)) {
+      p.seen = ''
+      return
+    }
+    if (p.tries > 0 && screen.replace(/\s+/g, ' ').includes(p.text.trim().slice(0, 24))) return void this.prefill.delete(id)
+    // Claude's input box: its prompt arrow, the "Try …" placeholder, or the mode line under it.
+    if (!/❯|Try "|for shortcuts|shift\+tab to cycle|bypass permissions/i.test(screen)) return
+    if (p.tries >= 2) return void this.prefill.delete(id)
+    p.tries++
+    p.seen = ''
+    this.pty.write(id, p.tries === 1 ? p.text : `\x15${p.text}`)
+    // No echo within a few seconds means it was dropped; the next output (or this timer) tries again.
+    p.timer = setTimeout(() => this.prefillStep(id), 2500)
   }
 
   defaults(): AgentSettings {

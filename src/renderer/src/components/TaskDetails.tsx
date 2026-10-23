@@ -60,32 +60,82 @@ function useWrite(taskId: string) {
 export function StatusSelect({ task }: { task: Task }) {
   const { detail } = useTaskDetail(task.id)
   const { busy, error, write } = useWrite(task.id)
-  const current = detail?.statuses.find((s) => s.id === detail.statusId)
-  const color = current ? statusColors(current)[1] : statusColors({ colorId: task.statusColorId })[1]
-  const closed = (current?.categoryId ?? task.statusCategory) === 3
+  const [open, setOpen] = useState(false)
+  const [at, setAt] = useState(0)
+  const root = useRef<HTMLSpanElement>(null)
+  const statuses = detail?.statuses ?? []
+  const current = statuses.find((s) => s.id === detail?.statusId)
+  const [bg, fg] = current ? statusColors(current) : statusColors({ colorId: task.statusColorId })
+
+  // Closes on a click anywhere else.
+  useEffect(() => {
+    if (!open) return
+    const away = (e: MouseEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
+    document.addEventListener('mousedown', away)
+    return () => document.removeEventListener('mousedown', away)
+  }, [open])
+
+  const choose = (id: string) => {
+    setOpen(false)
+    if (id !== detail?.statusId) void write('status', () => window.workbench.tasks.setStatus(task.id, id))
+  }
+  const toggle = () => {
+    if (!statuses.length || busy) return
+    setAt(Math.max(0, statuses.findIndex((s) => s.id === detail?.statusId)))
+    setOpen(!open)
+  }
+
   return (
-    <span className="status-select" style={{ color }}>
-      <span aria-hidden="true">{(current?.categoryId ?? task.statusCategory) === 1 ? '○' : '●'}</span>
-      {detail?.statuses.length ? (
-        <span className="ss-field">
-          <select
-            aria-label="Status"
-            value={detail.statusId}
-            disabled={!!busy}
-            className={closed ? 'closed' : ''}
-            onChange={(e) => void write('status', () => window.workbench.tasks.setStatus(task.id, e.target.value))}
-          >
-            {detail.statuses.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+    <span className="status-select" ref={root}>
+      <button
+        className="ss-button"
+        style={{ background: bg, color: fg }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Status: ${current?.name ?? task.statusName}`}
+        disabled={!!busy}
+        onClick={toggle}
+        onKeyDown={(e) => {
+          // The button's own keys; ⏎ here must not also reach the screen's ⏎ (open the task).
+          if (!open) {
+            if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') (e.preventDefault(), toggle())
+            return
+          }
+          e.stopPropagation()
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            setAt((i) => (i + (e.key === 'ArrowDown' ? 1 : statuses.length - 1)) % statuses.length)
+          } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            choose(statuses[at]!.id)
+          } else if (e.key === 'Escape' || e.key === 'Tab') setOpen(false)
+        }}
+      >
+        {busy ? 'saving…' : (current?.name ?? task.statusName)}
+        {statuses.length > 0 && <span aria-hidden="true"> ▾</span>}
+      </button>
+      {open && (
+        <span className="ss-menu" role="listbox" aria-label="Status">
+          {statuses.map((s, i) => {
+            const [b, f] = statusColors(s)
+            return (
+              <button
+                key={s.id}
+                role="option"
+                aria-selected={s.id === detail?.statusId}
+                className={`ss-option${i === at ? ' at' : ''}`}
+                tabIndex={-1}
+                onMouseEnter={() => setAt(i)}
+                onClick={() => choose(s.id)}
+              >
+                <span style={{ background: b, color: f }}>{s.name}</span>
+                {s.id === detail?.statusId && <span className="faint">✓</span>}
+              </button>
+            )
+          })}
         </span>
-      ) : (
-        <span>{task.statusName}</span>
       )}
-      {busy && <span className="faint">saving…</span>}
       {error && <span className="bad-text">{error}</span>}
     </span>
   )

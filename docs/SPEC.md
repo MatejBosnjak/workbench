@@ -253,13 +253,14 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
   - The current session is outlined in the accent colour with an underline, so it never looks like a second selection.
   - Every tab keeps its state colour dot.
 - **⌘K.** Searches sessions, workstreams, PRs and Productive tasks, and runs a slash command in the current session (`/model` and `/effort` are refused there because they rewrite the global defaults; the picker covers them).
-- **StatusBar.** Always visible, 38px, with a chrome background and a 2px top border. Every cell has a fixed width, so a value or state change never moves anything. From left to right:
-  - the ⌨ shortcuts button
-  - the active session's name and duration
-  - **ctx**: a 48px bar plus the percentage. `/compact` is suggested at 60% or more, and the bar turns red at 75% or more.
-  - **5h**: a 48px bar, the percentage and `↻16:00`
-  - **wk**: a 48px bar and the percentage
-  - the model · effort · permissions picker, pushed to the right edge
+- **StatusBar.** Always visible, 38px, with a chrome background and a 2px top border. Every cell has a fixed width, so a value or state change never moves anything.
+  - **Left:** the ⌨ shortcuts button, then the active session's name and duration.
+  - **Right**, grouped next to the picker:
+    - **ctx**: a 48px bar plus the percentage. `/compact` is suggested at 60% or more, and the bar turns red at 75% or more.
+    - **5h**: a 48px bar, the percentage and `↻16:00`
+    - **wk**: a 48px bar and the percentage
+    - the model · effort · permissions picker at the right edge
+  - **Bar tracks** use the lighter `--line-heavy` token, so an empty bar is still visible.
 
   Hovering a meter shows its full text.
 - **Theme.** v1 ships **Dusk** only: muted synthwave on a graphite base, with a purple accent. Colours are CSS variable tokens, so more themes can be added later; the design also explores Graphite, Midnight, Forest and Synthwave.

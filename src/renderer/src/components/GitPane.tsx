@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { prRef, type Pr } from '@shared/git'
 import { FE_REPO } from '@shared/runpr'
 import { useStore } from '../store'
+import { PrLinks } from './PrLinks'
 import { RunAppButton } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -104,6 +105,7 @@ export function GitPane({ active, onClose }: { active: boolean; /** Replaces clo
         {pr && <span style={{ color: ciColor }}>● {ciText}</span>}
         {replies > 0 && <span className="gp-reply">{replies} reply needed</span>}
         {pane?.loading && <span className="faint">loading…</span>}
+        {key && <PrLinks pr={pr} prUrl={key} />}
         <span className="gp-tools">
           {pr?.repo === FE_REPO && <RunAppButton n={pr.number} compact />}
           <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>

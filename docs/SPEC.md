@@ -187,6 +187,11 @@ GitHub opens inside Workbench instead of the system browser. It uses an Electron
 - **Draft reply with Claude.** Claude drafts the reply; Workbench scrolls the pane to the thread, opens its reply box and fills in the text. You edit it and post with GitHub's Comment button, which is the confirm.
   - Filling the box is done by a small script injected into the page, which depends on GitHub's page structure.
   - If the script can't find the reply box, Workbench copies the draft to the clipboard and scrolls to the thread instead.
+- **Task and session links** (design: the "1b · GitHub pane C" board). The strip has **Task ▾** and **Session N ▾** at the right, before the navigation buttons:
+  - **Task ▾** lists the PR's tasks: task ids in its branch and Productive task URLs in its description, matched against my tasks. Each shows its status rail, title and status. A click shows it in Today › My tasks; ↗ opens Productive.
+  - **Session ▾** lists the sessions linked to those tasks, plus any session working on this frontend PR. Running and waiting ones come first. A click switches to the session, reopening its tab if it's closed. "+ new session for this task" starts one on the first task.
+  - The button's dot shows the best session's state. Both buttons are hidden when the PR has neither a task nor a session.
+  - While a menu is open, the GitHub page is replaced by its still image so the menu isn't hidden behind the native view.
 - **Keyboard.** While the pane has focus, plain keys and Esc go to GitHub. Workbench keeps only ⌘ shortcuts:
 
   | Shortcut | Action |

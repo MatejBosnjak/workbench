@@ -116,6 +116,7 @@ Keeps the Mac awake while sessions run.
   - a bar showing the mix of statuses among my tasks;
   - one chip per status with its count, in the status's Productive colour. Clicking chips filters the list (several can be picked; "clear" resets). The bar dims the statuses filtered out.
   - a **group by: project / status** switch, remembered per machine.
+  - **Status colours** (design: the "1b · Task status colours" board, option C) map each of Productive's 17 status colours to a bright stand-in tuned for the dark theme, so a status keeps its Productive identity but reads clearly. They're used for rails, status labels, the strip, chips and status glyphs; Productive's own pastel pairs stay for tag-style badges (the task card's status button).
   - Statuses are the real Productive status names, ordered nearest-done first: started before not started, then later in the workflow (the status's `position`) first. Statuses from different workflows that share a name count as one.
 - **Shape.** By default tasks are grouped by project, with Bugs pinned first, then Product: CRM, then the rest alphabetically. Inside a project they're ordered by placement and nested under their parent or milestone.
   - **Grouped by status:** one box per status in strip order, titled in the status colour; rows are flat, in their project order.
@@ -124,7 +125,7 @@ Keeps the Mac awake while sessions run.
   - A parent hidden by a filter shows as "filtered out".
   - Subtasks don't repeat the parent's task list.
 - **Row.** Each row shows:
-  - a 3px rail on the left and a faint background tint in the status's Productive colour (no tint for not-started statuses)
+  - a 3px rail on the left and a faint background tint in the status colour (no tint for not-started statuses)
   - the status name at the right, in its colour, in a fixed-width column so it lines up across rows
   - a background tint for bug priority (not shown yet: none of the current bug tasks carry a priority field)
   - the title, with a milestone or bug icon

@@ -55,7 +55,7 @@ export interface TaskLine {
 /** A status in the My tasks strip and its status grouping. */
 export interface StatusCount {
   name: string
-  /** Text colour as Productive draws the status. */
+  /** The status's bright colour (VIVID_COLORS). */
   color: string
   category: number
   count: number
@@ -72,7 +72,7 @@ export function statusCounts(tasks: Task[]): StatusCount[] {
     const name = t.statusName || 'No status'
     const e = by.get(name)
     if (e) e.count++
-    else by.set(name, { name, color: statusColors({ colorId: t.statusColorId })[1], category: t.statusCategory, count: 1, position: t.statusPosition ?? 0 })
+    else by.set(name, { name, color: statusVivid({ colorId: t.statusColorId }), category: t.statusCategory, count: 1, position: t.statusPosition ?? 0 })
   }
   return [...by.values()]
     .sort((a, b) => b.category - a.category || b.position - a.position || a.name.localeCompare(b.name))
@@ -245,9 +245,42 @@ export const PRODUCTIVE_COLORS: [string, string][] = [
   ['#e6e6e6', '#1f1f1f'], // white
 ]
 
-/** A status's colours the way Productive picks them: its color_id, else its id. */
-export function statusColors(s: { id?: string; colorId: string | null }): [string, string] {
+/**
+ * Bright stand-ins for PRODUCTIVE_COLORS, same order, for status rails, labels and chips on the dark theme
+ * (design: the "1b · Task status colours" board, option C). Productive's own pairs stay for tag-style badges.
+ */
+export const VIVID_COLORS = [
+  '#E8D44D', // canary
+  '#FF9A5C', // orange
+  '#FF6FB5', // fuchsia
+  '#8FE36B', // lime-green
+  '#4FC3F7', // blue
+  '#B18CFF', // electric
+  '#E8628F', // burgundy
+  '#6C8CFF', // celtic-blue
+  '#3FD8C8', // turquoise
+  '#9E9AAE', // concrete
+  '#9BA3E8', // logan
+  '#F5C04A', // yellow
+  '#5AA8FF', // azure
+  '#FF5C72', // red
+  '#4FD69C', // green
+  '#38D9E8', // cyan
+  '#ECE8F2', // white
+]
+
+/** Index into the colour tables the way Productive picks a status colour: its color_id, else its id. */
+function colorIndex(s: { id?: string; colorId: string | null }): number {
   const ok = s.colorId != null && Number(s.colorId) >= 0 && Number(s.colorId) < PRODUCTIVE_COLORS.length
-  const i = ok ? Number(s.colorId) : (parseInt(s.id ?? '0') || 0) % PRODUCTIVE_COLORS.length
-  return PRODUCTIVE_COLORS[i]!
+  return ok ? Number(s.colorId) : (parseInt(s.id ?? '0') || 0) % PRODUCTIVE_COLORS.length
+}
+
+/** A status's [background, text] colours as Productive draws its tag. */
+export function statusColors(s: { id?: string; colorId: string | null }): [string, string] {
+  return PRODUCTIVE_COLORS[colorIndex(s)]!
+}
+
+/** A status's bright colour for rails, labels and chips. */
+export function statusVivid(s: { id?: string; colorId: string | null }): string {
+  return VIVID_COLORS[colorIndex(s)]!
 }

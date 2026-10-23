@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { FE_REPO } from '@shared/runpr'
-import { groupByStatus, groupTasks, statusColors, statusCounts, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
+import { groupByStatus, groupTasks, statusCounts, statusVivid, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
@@ -18,8 +18,8 @@ import { TaskPreview, taskPrimary } from './TaskPreview'
 import { useShallow } from 'zustand/react/shallow'
 
 // Productive workflow status colours, approximated with theme tokens.
-/** The status's text colour as Productive draws it. */
-export const statusColor = (t: Pick<Task, 'statusColorId'>) => statusColors({ colorId: t.statusColorId })[1]
+/** The status's bright colour, as task rails, labels and glyphs draw it. */
+export const statusColor = (t: Pick<Task, 'statusColorId'>) => statusVivid({ colorId: t.statusColorId })
 
 const isBugProject = (name: string) => /bug/i.test(name)
 const GROUP_KEY = 'workbench.taskGroup'

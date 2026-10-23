@@ -63,8 +63,8 @@
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
 const SESSIONS = [
   { n: 3, title: 'CI flakiness', state: 'info', label: 'Running' },
-  { n: 4, title: 'Service discount e2e', state: 'warn', label: 'Waiting for you' },
-  { n: 5, title: 'Markup fixed amount', state: 'warn', label: 'Waiting for you' },
+  { n: 4, title: 'Service discount e2e', state: 'accent', label: 'Waiting for you' },
+  { n: 5, title: 'Markup fixed amount', state: 'accent', label: 'Waiting for you' },
   { n: 6, title: 'Contact form', state: 'faint', label: 'Idle' },
   { n: 7, title: 'Invoice PDF totals', state: 'bad', label: 'Last run failed' },
   { n: 8, title: 'Timesheet export', state: 'info', label: 'Running' },
@@ -120,7 +120,7 @@ class Component extends DCLogic {
       tabs: SESSIONS.map((t) => {
         const on = t.n === s.active;
         const look = on
-          ? `border:1px solid var(--accent);color:var(--text);font-weight:700;box-shadow:inset 0 -3px 0 var(--${t.state})`
+          ? `border:1px solid var(--accent-line);border-bottom-color:transparent;background:var(--raised);color:var(--text);font-weight:700;box-shadow:inset 0 -3px 0 var(--${t.state})`
           : `border:1px solid var(--line-heavy);color:var(--text-2);font-weight:400;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--${t.state}) 45%,transparent)`;
         return { ...t, text: `${t.n} ${t.title}`, on: on ? 'true' : 'false', style: BASE + look, pick: () => this.setState({ active: t.n }) };
       }),

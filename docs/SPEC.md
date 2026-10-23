@@ -144,10 +144,11 @@ Keeps the Mac awake while sessions run.
 
 - **Source.** `gh api graphql` every 2 minutes. It fetches my open PRs (review decision, CI rollup, mergeable state, draft flag, head branch), review requests made to me directly (`user-review-requested:@me`; requests to a team I'm in, like platform, don't count), review threads and comments.
 - **Needs reply.** A thread or review needs a reply when its last message isn't mine and I haven't marked it seen. Seen state is stored locally. A conversation is an unresolved review thread, or the PR's own conversation (comments plus review bodies). Bots and bare approvals don't count as messages.
-  - Those rows get an orange edge and a quoted excerpt.
-  - Each has "Draft reply with Claude", "Open on GitHub" and "Mark as seen".
+  - They show in Needs you with a quoted excerpt and "Draft reply with Claude", "Open on GitHub" and "Mark as seen"; My git only marks the PR with `↩ N`.
 - **Groups:**
-  - My git: Needs you, Ready to merge, Waiting on reviewers, Drafts. Filter by repo or "Reply needed", with a Hide drafts toggle.
+  - My git (design: the "1b · My PRs — merge readiness, grouped by stage" board): grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. Filter by repo, with a Hide drafts toggle.
+    - Each row has a rail in its stage's colour and, under the title, four merge checks: CI (a repo without CI counts as passing), reviews, conflicts, open review threads. Each is ✓ / ✕ / · (pending), with an n/4 score at the right. A 4/4 row gets a faint green tint. Within a stage, the highest score comes first, then the most recently updated.
+    - Replies waiting on me aren't repeated here (they're in Needs you): a row shows `↩ N`, which opens the first of them in Needs you.
   - My reviews: Changes requested, New this week, Waiting longer. Filter by repo; bots are hidden by default. PRs where my latest review asked for changes stay listed under Changes requested.
 - **Drafts.** "Draft reply with Claude" runs a headless `claude -p --model sonnet` with the thread as context (read-only tools, in my checkout of the PR's branch when there is one) and puts the result in an editable draft. Sending goes through a native confirm that shows the exact text and target. The same flow covers Productive comments ("Comment…" in the task preview). Productive status changes are not built yet.
   - **GitHub replies change in phase 8.** The draft goes into GitHub's own reply box in the GitHub pane, and you post it with GitHub's Comment button. Workbench never posts GitHub replies itself. The native-confirm flow stays for Productive comments.

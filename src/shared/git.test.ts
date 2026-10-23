@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { gitEvents, groupMine, groupReviews, needsReply, type Conversation, type Pr } from './git'
+import { gitEvents, groupByStage, groupReviews, mergeChecks, mergeScore, needsReply, type Conversation, type Pr } from './git'
 
 let n = 0
 const pr = (p: Partial<Pr>): Pr => ({
@@ -48,23 +48,34 @@ describe('needsReply', () => {
   })
 })
 
-describe('groupMine', () => {
-  it('sorts PRs into the four groups', () => {
-    const red = pr({ ci: 'fail' })
-    const talking = pr({ conversations: [talk('a', 'rev')] })
+describe('groupByStage', () => {
+  it('sorts PRs by stage, nearest to merge first', () => {
     const approved = pr({ reviewDecision: 'APPROVED' })
-    const waiting = pr({})
-    const draft = pr({ draft: true, ci: 'fail' })
-    const groups = groupMine([red, talking, approved, waiting, draft], 'me', {})
-    expect(groups.map((g) => [g.title, g.prs.map((p) => p.id).sort()])).toEqual([
-      ['Needs you', [red.id, talking.id].sort()],
+    const review = pr({})
+    const changes = pr({ reviewDecision: 'CHANGES_REQUESTED' })
+    const addressed = pr({ reviewDecision: 'CHANGES_REQUESTED', changesAddressed: true })
+    const draft = pr({ draft: true, reviewDecision: 'APPROVED' })
+    expect(groupByStage([draft, changes, review, approved, addressed]).map((g) => [g.title, g.prs.map((p) => p.id).sort()])).toEqual([
       ['Ready to merge', [approved.id]],
-      ['Waiting on reviewers', [waiting.id]],
-      ['Drafts', [draft.id]],
+      ['In review', [review.id, addressed.id].sort()],
+      ['Changes requested', [changes.id]],
+      ['Draft', [draft.id]],
     ])
-    expect(groupMine([talking], 'me', { a: 'a-0' })[0]!.title).toBe('Waiting on reviewers')
-    // Changes requested, but I pushed or re-requested since: the reviewer's move.
-    expect(groupMine([pr({ reviewDecision: 'CHANGES_REQUESTED', changesAddressed: true })], 'me', {})[0]!.title).toBe('Waiting on reviewers')
+  })
+
+  it('puts the PR closest to merging first within a stage', () => {
+    const red = pr({ ci: 'fail', updatedAt: '2026-10-22T00:00:00Z' })
+    const green = pr({ ci: 'pass', updatedAt: '2026-10-21T00:00:00Z' })
+    expect(groupByStage([red, green])[0]!.prs.map((p) => p.id)).toEqual([green.id, red.id])
+  })
+})
+
+describe('mergeChecks', () => {
+  it('reads CI, reviews, conflicts and open threads', () => {
+    const p = pr({ ci: 'fail', reviewDecision: 'CHANGES_REQUESTED', conflict: true, conversations: [talk('a', 'rev'), talk('b', 'rev')] })
+    expect(mergeChecks(p).map((c) => `${c.state} ${c.label}`)).toEqual(['bad CI', 'bad changes requested', 'bad conflict', 'wait 2 open threads'])
+    expect(mergeScore(pr({ reviewDecision: 'APPROVED' }))).toBe(4)
+    expect(mergeScore(pr({ reviewDecision: 'APPROVED', ci: 'none' }))).toBe(4)
   })
 })
 

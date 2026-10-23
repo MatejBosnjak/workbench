@@ -110,11 +110,7 @@ export function verb(c: Conversation): string {
 /** Changes requested and not yet answered with a push or a re-review request. */
 export const changesPending = (p: Pick<Pr, 'reviewDecision' | 'changesAddressed'>) => p.reviewDecision === 'CHANGES_REQUESTED' && !p.changesAddressed
 
-export function prNeedsYou(p: Pr, viewer: string | null, seen: Record<string, string>): boolean {
-  return !p.draft && (changesPending(p) || p.ci === 'fail' || p.conflict || p.conversations.some((c) => needsReply(c, viewer, seen)))
-}
-
-export type GroupTone = 'bad' | 'ok' | 'accent' | 'faint'
+export type GroupTone = 'bad' | 'ok' | 'accent' | 'info' | 'faint'
 export interface PrGroup {
   title: string
   tone: GroupTone
@@ -123,16 +119,48 @@ export interface PrGroup {
 
 const byUpdated = (a: Pr, b: Pr) => b.updatedAt.localeCompare(a.updatedAt)
 
-/** My git: Needs you, Ready to merge, Waiting on reviewers, Drafts. */
-export function groupMine(prs: Pr[], viewer: string | null, seen: Record<string, string>): PrGroup[] {
-  const needs = (p: Pr) => prNeedsYou(p, viewer, seen)
+
+/** One of the four things between a PR and merging. */
+export interface MergeCheck {
+  key: 'ci' | 'reviews' | 'conflicts' | 'threads'
+  state: 'ok' | 'bad' | 'wait'
+  label: string
+}
+
+/** CI, reviews, conflicts and unresolved review threads, each ok / blocking / still pending. */
+export function mergeChecks(p: Pr): MergeCheck[] {
+  const threads = p.conversations.filter((c) => c.kind === 'thread').length
+  const changes = p.reviewDecision === 'CHANGES_REQUESTED'
   return [
-    { title: 'Needs you', tone: 'bad' as const, prs: prs.filter(needs) },
-    { title: 'Ready to merge', tone: 'ok' as const, prs: prs.filter((p) => !needs(p) && !p.draft && p.reviewDecision === 'APPROVED') },
-    { title: 'Waiting on reviewers', tone: 'accent' as const, prs: prs.filter((p) => !needs(p) && !p.draft && p.reviewDecision !== 'APPROVED') },
-    { title: 'Drafts', tone: 'faint' as const, prs: prs.filter((p) => p.draft) },
+    // A repo without CI has nothing to wait for.
+    { key: 'ci', state: p.ci === 'pass' || p.ci === 'none' ? 'ok' : p.ci === 'fail' ? 'bad' : 'wait', label: p.ci === 'none' ? 'no CI' : p.ci === 'pending' ? 'CI running' : 'CI' },
+    {
+      key: 'reviews',
+      state: p.reviewDecision === 'APPROVED' || p.reviewDecision === null ? 'ok' : changesPending(p) ? 'bad' : 'wait',
+      label: p.reviewDecision === 'APPROVED' ? 'approved' : changes ? (p.changesAddressed ? 'changes addressed' : 'changes requested') : p.reviewDecision === null ? 'no review needed' : 'review required',
+    },
+    { key: 'conflicts', state: p.conflict ? 'bad' : 'ok', label: p.conflict ? 'conflict' : 'no conflicts' },
+    { key: 'threads', state: threads ? 'wait' : 'ok', label: threads ? `${threads} open thread${threads > 1 ? 's' : ''}` : 'threads resolved' },
   ]
-    .map((g) => ({ ...g, prs: [...g.prs].sort(byUpdated) }))
+}
+
+export const mergeScore = (p: Pr) => mergeChecks(p).filter((c) => c.state === 'ok').length
+
+/**
+ * My PRs by stage, nearest to merge first: Ready to merge, In review, Changes requested, Draft. Inside a stage the
+ * PRs with the most checks passing come first, then the most recently updated.
+ */
+export function groupByStage(prs: Pr[]): PrGroup[] {
+  const stage = (p: Pr) =>
+    p.draft ? 'draft' : changesPending(p) ? 'changes' : p.reviewDecision === 'APPROVED' ? 'ready' : 'review'
+  const order = (a: Pr, b: Pr) => mergeScore(b) - mergeScore(a) || byUpdated(a, b)
+  return [
+    { title: 'Ready to merge', tone: 'ok' as const, prs: prs.filter((p) => stage(p) === 'ready') },
+    { title: 'In review', tone: 'info' as const, prs: prs.filter((p) => stage(p) === 'review') },
+    { title: 'Changes requested', tone: 'bad' as const, prs: prs.filter((p) => stage(p) === 'changes') },
+    { title: 'Draft', tone: 'faint' as const, prs: prs.filter((p) => stage(p) === 'draft') },
+  ]
+    .map((g) => ({ ...g, prs: [...g.prs].sort(order) }))
     .filter((g) => g.prs.length)
 }
 

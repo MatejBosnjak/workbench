@@ -1,33 +1,19 @@
 import { useEffect, useState } from 'react'
 import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@shared/git'
-import { ageDays, groupMine, groupReviews, lastMessage, needsReply, prRef, shortRepo, verb } from '@shared/git'
+import { ageDays, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, shortRepo } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
 import { openInPane, useStore } from '../store'
 import { RunAppButton, runPr } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
 
-const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', faint: 'var(--faint)' }
+const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', info: 'var(--info)', faint: 'var(--faint)' }
 const CI_LABEL = { pass: 'CI passing', fail: 'CI failing', pending: 'CI running', none: 'No CI' }
 
 function age(iso: string): string {
   const d = ageDays(iso)
   if (d <= 0) return 'today'
   return d < 60 ? `${d}d` : `${Math.round(d / 30)}mo`
-}
-
-function when(iso: string): string {
-  const d = new Date(iso)
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-  return ageDays(iso) <= 0 && d.getDate() === new Date().getDate() ? `today ${time}` : `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${time}`
-}
-
-function stateOf(p: Pr): [string, string] {
-  if (p.draft) return ['Draft', 'var(--muted)']
-  if (p.reviewDecision === 'CHANGES_REQUESTED') return p.changesAddressed ? ['Re-review asked', 'var(--warn)'] : ['Changes requested', 'var(--bad)']
-  if (p.conflict) return ['Conflicts', 'var(--bad)']
-  if (p.reviewDecision === 'APPROVED') return ['Approved', 'var(--ok)']
-  return ['Review required', 'var(--text-3)']
 }
 
 function usePref(key: string, initial: boolean): [boolean, (v: boolean) => void] {
@@ -195,26 +181,15 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
   const [repo, setRepo] = useState('All')
   const [hideDrafts, setHideDrafts] = usePref('workbench.hideDrafts', false)
   const focus = useFocus()
-  const open = (p: Pr) => p.conversations.some((c) => needsReply(c, git.viewer, git.seen))
   const shown = git.mine.filter((p) => !(hideDrafts && p.draft) || p.id === focus)
-  const items = shown.filter((p) => (repo === 'All' ? true : repo === 'Reply needed' ? open(p) : p.repoName === repo))
-  const groups = groupMine(items, git.viewer, git.seen)
-  const replyCount = shown.filter(open).length
+  // Stages nearest to merge first; replies waiting on me live in Needs you, so here they're only a ↩ badge.
+  const groups = groupByStage(shown.filter((p) => repo === 'All' || p.repoName === repo))
   const sel = useRowKeys(groups.flatMap((g) => g.prs))
 
   return (
     <>
       <div className="chips">
-        <RepoChips
-          prs={shown}
-          repo={repo}
-          setRepo={setRepo}
-          extra={
-            <button className={`fchip${repo === 'Reply needed' ? ' on' : ''}`} onClick={() => setRepo('Reply needed')}>
-              <span className="tone-dot" style={{ background: 'var(--accent)' }} /> Reply needed <span className="mono">{replyCount}</span>
-            </button>
-          }
-        />
+        <RepoChips prs={shown} repo={repo} setRepo={setRepo} />
         <Toggle on={hideDrafts} label="Hide drafts" set={setHideDrafts} />
       </div>
       {git.fetchedAt === null && git.loading && <div className="today-empty muted">Loading your PRs from GitHub…</div>}
@@ -225,7 +200,7 @@ export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot
           <section key={g.title} className="group">
             <GroupHead title={g.title} tone={g.tone} count={g.prs.length} />
             {g.prs.map((p) => (
-              <PrRow key={p.id} p={p} git={git} tasks={tasks} focused={focus === p.id} selected={sel === p.id} />
+              <PrRow key={p.id} p={p} git={git} tasks={tasks} focused={focus === p.id} selected={sel === p.id} tone={g.tone} />
             ))}
           </section>
         ))}
@@ -270,67 +245,48 @@ function OpenedGroup({ git }: { git: GitSnapshot }) {
   )
 }
 
-function PrRow({ p, git, tasks, focused, selected }: { p: Pr; git: GitSnapshot; tasks: TasksSnapshot | null; focused: boolean; selected: boolean }) {
-  const setDraft = useStore((s) => s.setDraft)
-  const [state, stateColor] = stateOf(p)
+/** A PR of mine: what's left before it can merge, as four checks and a score; ↩ opens replies waiting on me in Needs you. */
+function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnapshot; tasks: TasksSnapshot | null; focused: boolean; selected: boolean; tone: GroupTone }) {
+  const { setTodayTab, setPeekNeed } = useStore(useShallow((s) => ({ setTodayTab: s.setTodayTab, setPeekNeed: s.setPeekNeed })))
   const open = p.conversations.filter((c) => needsReply(c, git.viewer, git.seen))
-  const latest = [...p.conversations].sort((a, b) => (lastMessage(b)?.at ?? '').localeCompare(lastMessage(a)?.at ?? ''))[0]
-  const talk = open.length ? 'reply needed' : latest ? (lastMessage(latest)?.author === git.viewer ? 'replied' : 'seen') : ''
-
-  const [drafting, setDrafting] = useState<string | null>(null)
-  const reply = async (c: Conversation, withClaude: boolean) => {
-    setDrafting(c.key)
-    try {
-      await replyInPane(p, c, withClaude)
-    } finally {
-      setDrafting(null)
-    }
+  const checks = mergeChecks(p)
+  const score = checks.filter((c) => c.state === 'ok').length
+  const toNeeds = () => {
+    const c = open[0]!
+    setTodayTab('needs')
+    setPeekNeed(`re:${c.key}:${lastMessage(c)!.id}`)
   }
 
   return (
-    <div id={`pr-${p.id}`} className={`pr-wrap${open.length ? ' needs' : ''}${focused ? ' focus' : ''}${selected ? ' sel' : ''}`}>
+    <div id={`pr-${p.id}`} className={`pr-wrap merge${score === 4 ? ' ready' : ''}${focused ? ' focus' : ''}${selected ? ' sel' : ''}`} style={{ '--rail': TONE[tone] } as React.CSSProperties}>
       <div className="pr-row">
         <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
           <span className="pr-ref mono">{prRef(p)}</span>
           <span className="pr-title-wrap">
             <span className="pr-title">{p.title}</span>
-            <span className="pr-branch mono">{p.branch}</span>
           </span>
         </button>
         <TaskRef p={p} tasks={tasks} />
-        <span className="pr-state" style={{ color: stateColor }}>
-          {state}
-        </span>
-        <span className={`ci-dot ci-${p.ci}`} role="img" aria-label={CI_LABEL[p.ci]} title={CI_LABEL[p.ci]} />
         <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
-        <span className={`pr-talk-label${open.length ? ' open' : ''}`}>{talk}</span>
+        <span className="pr-replies-slot">
+          {open.length > 0 && (
+            <button className="pr-replies" title={`${open.length} repl${open.length > 1 ? 'ies' : 'y'} waiting on you · open in Needs you`} onClick={toNeeds}>
+              ↩ {open.length}
+            </button>
+          )}
+        </span>
         <span className="pr-age mono">{age(p.updatedAt)}</span>
+        <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
+          {score}/4
+        </span>
       </div>
-      {open.map((c) => {
-        const last = lastMessage(c)!
-        return (
-          <div key={c.key} className="pr-quote">
-            <span className="pr-quote-who">
-              <b>{last.author}</b> {verb(c)} {c.path ? <span className="mono">{c.path}</span> : null} · {when(last.at)}
-            </span>
-            {last.body.trim() && <span className="pr-quote-text">{last.body.trim()}</span>}
-            <span className="pr-quote-actions">
-              <button className="link-btn accent" disabled={drafting === c.key} onClick={() => void reply(c, true)}>
-                {drafting === c.key ? 'Drafting…' : 'Draft reply with Claude'}
-              </button>
-              <button className="link-btn" onClick={() => void reply(c, false)}>
-                Write reply
-              </button>
-              <button className="link-btn" title="⌘-click opens the browser" onClick={(e) => (e.metaKey ? void window.workbench.openExternal(last.url || p.url) : openInPane(last.url || p.url))}>
-                Open thread
-              </button>
-              <button className="link-btn muted-btn" onClick={() => void window.workbench.git.markSeen(c.key, last.id)}>
-                Mark as seen
-              </button>
-            </span>
-          </div>
-        )
-      })}
+      <div className="pr-checks">
+        {checks.map((c) => (
+          <span key={c.key} className={`pr-check ${c.state}`}>
+            {c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'} {c.label}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

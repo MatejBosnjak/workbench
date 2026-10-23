@@ -507,6 +507,19 @@ button:disabled { cursor: default; opacity: 0.6; }
 .pr-wrap.focus { background: var(--accent-bg); }
 .pr-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 128px 12px 118px 92px 44px; align-items: center; gap: 12px; min-height: 46px; padding-right: 14px; }
 .pr-row.rev { grid-template-columns: minmax(0, 1fr) 120px 12px 118px 44px; }
+/* My PRs: a rail in the stage's colour (--rail), four merge checks under the title, a n/4 score; all-green rows tinted. */
+.pr-wrap.merge { border-left: 3px solid var(--rail); padding-bottom: 6px; }
+.pr-wrap.merge.ready { background: color-mix(in srgb, var(--ok) 7%, transparent); }
+.pr-wrap.merge.focus { background: var(--accent-bg); }
+.pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 64px 118px 44px 44px 36px; min-height: 34px; }
+.pr-checks { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-left: 98px; font-size: 12px; }
+.pr-check { white-space: nowrap; color: var(--faint); }
+.pr-check.ok { color: var(--ok); }
+.pr-check.bad { color: var(--bad); }
+.pr-replies { border: 0; background: transparent; padding: 0; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.pr-replies:hover { text-decoration: underline; }
+.pr-score { font-size: 12px; text-align: right; color: var(--text-3); }
+.pr-score.full { color: var(--ok); font-weight: 700; }
 .pr-main { min-width: 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 0 6px 12px; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .pr-main:hover .pr-title { color: var(--text); }
 .pr-ref { font-size: 12px; color: var(--text-3); white-space: nowrap; }
@@ -790,11 +803,15 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
   .pr-row.rev .pr-age { display: block; }
   .pr-quote { margin-left: 24px; }
   .pr-main { grid-template-columns: 70px minmax(0, 1fr); }
+  .pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 104px 40px 36px; }
+  .pr-checks { padding-left: 92px; }
 }
 @container (max-width: 640px) {
   .pr-row { grid-template-columns: minmax(0, 1fr) 12px 86px; }
   .pr-row .pr-run { display: none; }
   .pr-row.rev { grid-template-columns: minmax(0, 1fr) 12px 44px; }
+  .pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 40px 36px; }
+  .pr-checks { padding-left: 12px; }
 }
 
 /* Sleep (snooze) on Needs you rows */

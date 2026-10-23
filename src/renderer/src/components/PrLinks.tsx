@@ -1,4 +1,5 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useShallow } from 'zustand/react/shallow'
 import type { Pr } from '@shared/git'
 import { statusVivid, type Task, type TasksSnapshot } from '@shared/tasks'
@@ -59,13 +60,22 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
   const { tasks, sessions, runpr, show, setTodayTab, setPeekTask } = useStore(
     useShallow((s) => ({ tasks: s.tasks, sessions: s.sessions, runpr: s.runpr, show: s.show, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })),
   )
-  const [menu, setMenu] = useState<'task' | 'session' | null>(null)
+  const [menu, setMenuState] = useState<'task' | 'session' | null>(null)
+  // Where the open menu hangs: under its button's right edge, in window coordinates.
+  const [at, setAt] = useState<{ top: number; right: number } | null>(null)
+  const setMenu = (m: 'task' | 'session' | null, el?: HTMLElement) => {
+    if (m && el) {
+      const r = el.getBoundingClientRect()
+      setAt({ top: r.bottom + 4, right: window.innerWidth - r.right })
+    }
+    setMenuState(m)
+  }
   useOverlay(menu !== null)
 
   useEffect(() => {
     if (!menu) return
     const key = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(null)
-    const click = (e: MouseEvent) => !(e.target as HTMLElement).closest('.prl') && setMenu(null)
+    const click = (e: MouseEvent) => !(e.target as HTMLElement).closest('.prl, .prl-menu') && setMenu(null)
     window.addEventListener('keydown', key)
     window.addEventListener('mousedown', click)
     return () => {
@@ -105,13 +115,13 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
             aria-expanded={menu === 'task'}
             title={prTasks.map((t) => `${t.title} · ${t.statusName}`).join('\n')}
             style={{ '--st': statusVivid({ colorId: first.statusColorId }) } as CSSProperties}
-            onClick={() => setMenu(menu === 'task' ? null : 'task')}
+            onClick={(e) => setMenu(menu === 'task' ? null : 'task', e.currentTarget)}
           >
             <span className="prl-rail" />
             Task{prTasks.length > 1 ? ` ${prTasks.length}` : ''} <span className="faint">▾</span>
           </button>
           {menu === 'task' && (
-            <div className="prl-menu" role="menu">
+            <Menu at={at}>
               <span className="prl-head">{prTasks.length > 1 ? 'tasks on this PR' : 'task on this PR'}</span>
               {prTasks.map((t) => (
                 <span key={t.id} className="prl-item-row" style={{ '--st': statusVivid({ colorId: t.statusColorId }) } as CSSProperties}>
@@ -125,7 +135,7 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
                   </button>
                 </span>
               ))}
-            </div>
+            </Menu>
           )}
         </span>
       )}
@@ -134,13 +144,13 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
           className={`prl-btn${menu === 'session' ? ' on' : ''}`}
           aria-expanded={menu === 'session'}
           title={best ? `${best.title}${live(best) ? ` · ${best.state}` : ''}` : 'No session yet'}
-          onClick={() => setMenu(menu === 'session' ? null : 'session')}
+          onClick={(e) => setMenu(menu === 'session' ? null : 'session', e.currentTarget)}
         >
           <span style={{ color: best && live(best) ? STATE_COLOR[best.state] : 'var(--faint)' }}>{best && live(best) ? '●' : '○'}</span>
           Session {linked.length > 0 && <span className="muted">{linked.length}</span>} <span className="faint">▾</span>
         </button>
         {menu === 'session' && (
-          <div className="prl-menu" role="menu">
+          <Menu at={at}>
             <span className="prl-head">{linked.length ? 'sessions on this PR’s task' : 'no session yet'}</span>
             {linked.map((s) => (
               <button key={s.id} role="menuitem" className="prl-item" onClick={() => void openSession(s)}>
@@ -157,9 +167,23 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
                 </button>
               </>
             )}
-          </div>
+          </Menu>
         )}
       </span>
     </span>
+  )
+}
+
+/**
+ * A menu drawn at the top of the document, not inside the strip: the strip clips its overflow, which hid the menus.
+ * A click inside it (.prl-menu) doesn't count as clicking outside.
+ */
+function Menu({ at, children }: { at: { top: number; right: number } | null; children: ReactNode }) {
+  if (!at) return null
+  return createPortal(
+    <div className="prl-menu" role="menu" style={{ top: at.top, right: at.right }}>
+      {children}
+    </div>,
+    document.body,
   )
 }

@@ -166,6 +166,7 @@ function buildMenu(): void {
           { label: 'New Session in Folder…', accelerator: 'CmdOrCtrl+Shift+T', click: () => send({ type: 'new-session-in' }) },
           { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send({ type: 'close-tab' }) },
           { label: 'Switch or Run…', accelerator: 'CmdOrCtrl+K', click: () => send({ type: 'palette' }) },
+          { label: 'Task Sidebar', accelerator: 'CmdOrCtrl+I', click: () => send({ type: 'task-side' }) },
           { type: 'separator' },
           { label: 'Next Tab', accelerator: 'CmdOrCtrl+Shift+]', click: () => send({ type: 'cycle-tab', delta: 1 }) },
           { label: 'Previous Tab', accelerator: 'CmdOrCtrl+Shift+[', click: () => send({ type: 'cycle-tab', delta: -1 }) },
@@ -408,6 +409,25 @@ void app.whenReady().then(() => {
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
   ipcMain.handle('tasks:summarize', (_e, taskId: string) => linker.summarize(taskId))
+  ipcMain.handle('tasks:detail', (_e, taskId: string) => tasks.detail(taskId))
+  // Writes to Productive: each one shows exactly what changes and waits for a yes.
+  const askProductive = async (message: string, detail: string) =>
+    (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Update Productive', 'Cancel'], defaultId: 0, cancelId: 1, message, detail })).response === 0
+  ipcMain.handle('tasks:setStatus', async (_e, taskId: string, statusId: string) => {
+    const d = await tasks.detail(taskId)
+    const to = d.statuses.find((s) => s.id === statusId)
+    const from = d.statuses.find((s) => s.id === d.statusId)
+    if (!to || !(await askProductive(`Move the task to “${to.name}”?`, `${d.task.title}\n\n${from?.name ?? '?'} → ${to.name}`))) return null
+    await tasks.setStatus(taskId, statusId)
+    return tasks.detail(taskId)
+  })
+  ipcMain.handle('tasks:setTodo', async (_e, taskId: string, todoId: string, closed: boolean) => {
+    const d = await tasks.detail(taskId)
+    const todo = d.todos.find((t) => t.id === todoId)
+    if (!todo || !(await askProductive(closed ? 'Mark this to-do done?' : 'Reopen this to-do?', `${todo.text}\n\non ${d.task.title}`))) return null
+    await tasks.setTodo(todoId, closed)
+    return tasks.detail(taskId)
+  })
   ipcMain.handle('pane:open', (_e, url: string) => pane.open(url))
   ipcMain.handle('pane:bounds', (_e, b: { x: number; y: number; width: number; height: number }) => pane.setBounds(b))
   ipcMain.handle('pane:visible', (_e, v: boolean) => pane.setVisible(v))

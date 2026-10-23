@@ -50,16 +50,20 @@ export class Productive {
     return { data: doc.data, included: doc.included ?? [] }
   }
 
-  /** The only write. Callers go through the drafts confirm step first. */
+  /** Writes. Every caller asks for a native confirm first (drafts, task status, to-dos). */
   async post(path: string, body: unknown): Promise<JsonApiResource> {
     return (await this.request<{ data: JsonApiResource }>('POST', path, body)).data
+  }
+
+  async patch(path: string, body: unknown): Promise<JsonApiResource> {
+    return (await this.request<{ data: JsonApiResource }>('PATCH', path, body)).data
   }
 
   private get(path: string, query: string[]): Promise<JsonApiDoc> {
     return this.request<JsonApiDoc>('GET', `${path}?${query.join('&')}`)
   }
 
-  private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  private async request<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> {
     const env = await shellEnv()
     const token = env.PRODUCTIVE_AUTH_TOKEN
     if (!token) throw new Error('PRODUCTIVE_AUTH_TOKEN is not set in the login shell')

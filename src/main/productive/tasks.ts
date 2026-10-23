@@ -1,6 +1,6 @@
-import type { Task } from '@shared/tasks'
+import type { Task, TaskDetail, WorkflowStatus } from '@shared/tasks'
 import type { Repo } from '../store/repo'
-import { encodeParams, Productive, type JsonApiResource } from './client'
+import { encodeParams, htmlText, Productive, type JsonApiResource } from './client'
 
 interface Account {
   orgId: string
@@ -69,6 +69,46 @@ export class TasksPoller {
     const account = await this.account()
     this.api.setOrg(account.orgId)
     return { api: this.api, personId: account.personId, orgSlug: account.orgSlug }
+  }
+
+  /** By workflow id; statuses rarely change, so once per run is enough. */
+  private statuses = new Map<string, WorkflowStatus[]>()
+
+  async detail(taskId: string): Promise<TaskDetail> {
+    const { api, orgSlug } = await this.client()
+    const { data, included } = await api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status.workflow,parent_task,todos'])
+    const status = included.find((i) => i.type === 'workflow_statuses')
+    const workflowId = status?.relationships?.workflow?.data?.id
+    if (workflowId && !this.statuses.has(workflowId)) {
+      const all = await api.getAll('/workflow_statuses', encodeParams('filter', { workflow_id: workflowId }))
+      this.statuses.set(
+        workflowId,
+        all.data
+          .map((w) => ({ id: w.id, name: String(w.attributes.name ?? ''), categoryId: Number(w.attributes.category_id ?? 1), colorId: (w.attributes.color_id as string | null) ?? null, position: Number(w.attributes.position ?? 0) }))
+          .sort((a, b) => a.position - b.position),
+      )
+    }
+    return {
+      task: taskMapper(included, orgSlug)(data, false),
+      description: htmlText(String(data.attributes.description ?? '')),
+      statusId: status?.id ?? '',
+      statuses: (workflowId && this.statuses.get(workflowId)) || [],
+      todos: included
+        .filter((i) => i.type === 'todos')
+        .sort((a, b) => Number(a.attributes.position ?? 0) - Number(b.attributes.position ?? 0))
+        .map((t) => ({ id: t.id, text: String(t.attributes.description ?? ''), closed: !!t.attributes.closed })),
+    }
+  }
+
+  async setStatus(taskId: string, statusId: string): Promise<void> {
+    const { api } = await this.client()
+    await api.patch(`/tasks/${taskId}`, { data: { type: 'tasks', id: taskId, relationships: { workflow_status: { data: { type: 'workflow_statuses', id: statusId } } } } })
+    void this.refresh()
+  }
+
+  async setTodo(todoId: string, closed: boolean): Promise<void> {
+    const { api } = await this.client()
+    await api.patch(`/todos/${todoId}`, { data: { type: 'todos', id: todoId, attributes: { closed } } })
   }
 
   /** Org, person and filter: discovered on first use and stored in settings. */

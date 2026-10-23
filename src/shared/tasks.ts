@@ -110,3 +110,61 @@ export function taskIdsFromText(text: string): string[] {
 export function taskIdsFromName(name: string, known: Set<string>): string[] {
   return [...new Set([...name.matchAll(/(?:^|[^\d])(\d{7,9})(?=[^\d]|$)/g)].map((m) => m[1]!))].filter((id) => known.has(id))
 }
+
+// --- task detail (the Productive section of the task sidebar) ---
+
+export interface WorkflowStatus {
+  id: string
+  name: string
+  /** 1 not started, 2 started, 3 closed. */
+  categoryId: number
+  colorId: string | null
+  position: number
+}
+
+export interface Todo {
+  id: string
+  text: string
+  closed: boolean
+}
+
+export interface TaskDetail {
+  task: Task
+  /** Plain text; Productive stores HTML. */
+  description: string
+  statusId: string
+  /** The task's workflow, in board order. */
+  statuses: WorkflowStatus[]
+  todos: Todo[]
+}
+
+/**
+ * Productive's tag colours in dark mode, [background, text], indexed like its colorIndexToNameMap
+ * (frontend: utils/custom-colors.ts, ui/components/tag.module.scss, ui/sass/colors).
+ */
+export const PRODUCTIVE_COLORS: [string, string][] = [
+  ['#403a05', '#c6be75'], // canary
+  ['#531c0a', '#d9b0a2'], // orange
+  ['#66112d', '#d9a2b4'], // fuchsia
+  ['#244005', '#a0c675'], // lime-green
+  ['#0a3d53', '#a2c8d9'], // blue
+  ['#3e1979', '#b7a2d9'], // electric
+  ['#66113a', '#d9a2bd'], // burgundy
+  ['#192979', '#a2abd9'], // celtic-blue
+  ['#05403c', '#75c6c0'], // turquoise
+  ['#363636', '#b3b3b3'], // concrete
+  ['#2c3266', '#b4b7d9'], // logan
+  ['#403505', '#c6b375'], // yellow
+  ['#113466', '#a2b9d9'], // azure
+  ['#530a0a', '#eaa8a8'], // red
+  ['#0a5338', '#a2d9c5'], // green
+  ['#0a4853', '#a2d1d9'], // cyan
+  ['#e6e6e6', '#1f1f1f'], // white
+]
+
+/** A status's colours the way Productive picks them: its color_id, else its id. */
+export function statusColors(s: { id?: string; colorId: string | null }): [string, string] {
+  const ok = s.colorId != null && Number(s.colorId) >= 0 && Number(s.colorId) < PRODUCTIVE_COLORS.length
+  const i = ok ? Number(s.colorId) : (parseInt(s.id ?? '0') || 0) % PRODUCTIVE_COLORS.length
+  return PRODUCTIVE_COLORS[i]!
+}

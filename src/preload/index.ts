@@ -45,6 +45,9 @@ const api: WorkbenchApi = {
     link: (sessionId, taskId) => ipcRenderer.invoke('tasks:link', sessionId, taskId),
     unlink: (sessionId, taskId) => ipcRenderer.invoke('tasks:unlink', sessionId, taskId),
     summarize: (taskId) => ipcRenderer.invoke('tasks:summarize', taskId),
+    detail: (taskId) => ipcRenderer.invoke('tasks:detail', taskId),
+    setStatus: (taskId, statusId) => ipcRenderer.invoke('tasks:setStatus', taskId, statusId),
+    setTodo: (taskId, todoId, closed) => ipcRenderer.invoke('tasks:setTodo', taskId, todoId, closed),
   },
   git: {
     snapshot: () => ipcRenderer.invoke('git:snapshot'),

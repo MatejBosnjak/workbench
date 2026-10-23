@@ -5,7 +5,7 @@ import type { DirtyGuard, RunPrSnapshot } from './runpr'
 import type { MemorySnapshot } from './memory'
 import type { PaneState } from './pane'
 import type { LocalSnapshot, Worktree } from './local'
-import type { TasksSnapshot } from './tasks'
+import type { TaskDetail, TasksSnapshot } from './tasks'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -110,6 +110,7 @@ export type MenuCommand =
   | { type: 'select-tab'; index: number }
   | { type: 'cycle-tab'; delta: 1 | -1 }
   | { type: 'palette' }
+  | { type: 'task-side' }
 
 /** Where a notification click (or an in-app PR link) takes you. */
 export type NavigateTarget = { kind: 'session'; id: string } | { kind: 'git' | 'reviews'; prId: string | null }
@@ -150,6 +151,12 @@ export interface WorkbenchApi {
     link(sessionId: string, taskId: string): Promise<void>
     unlink(sessionId: string, taskId: string): Promise<void>
     summarize(taskId: string): Promise<string>
+    /** Description, to-dos and the workflow's statuses, fetched fresh. */
+    detail(taskId: string): Promise<TaskDetail>
+    /** Moves the task to a status after a native confirm. Null when cancelled. */
+    setStatus(taskId: string, statusId: string): Promise<TaskDetail | null>
+    /** Ticks or unticks a to-do after a native confirm. Null when cancelled. */
+    setTodo(taskId: string, todoId: string, closed: boolean): Promise<TaskDetail | null>
   }
   git: {
     snapshot(): Promise<GitSnapshot>

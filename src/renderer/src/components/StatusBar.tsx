@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { Limit } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { RunPrChip } from './RunPr'
+import { sessionTasks } from './TaskSide'
 import { useShallow } from 'zustand/react/shallow'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -86,7 +87,7 @@ function Shortcuts() {
 }
 
 export function StatusBar({ children }: { children?: ReactNode }) {
-  const { sessions, view, status, hooks } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, status: s.status, hooks: s.hooks })))
+  const { sessions, view, status, hooks, tasks, taskSide, setTaskSide } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, status: s.status, hooks: s.hooks, tasks: s.tasks, taskSide: s.taskSide, setTaskSide: s.setTaskSide })))
   const now = useNow(30_000)
   const id = activeSessionId(view)
   const session = sessions.find((s) => s.id === id)
@@ -118,6 +119,15 @@ export function StatusBar({ children }: { children?: ReactNode }) {
       </span>
 
       <span className="sb-middle">
+        {view.kind === 'session' && session && !session.external && (() => {
+          const linked = sessionTasks(tasks, session.id)[0]
+          const n = linked && tasks?.tasks.find((t) => t.id === linked)?.number
+          return (
+            <button className={`sb-chip${taskSide ? ' on' : ''}`} title="Task sidebar (⌘I)" aria-pressed={taskSide} onClick={() => setTaskSide(!taskSide)}>
+              ▤ {linked ? `task${n ? ` #${n}` : ''}` : 'no task'}
+            </button>
+          )
+        })()}
         <RunPrChip />
         {hooks && !(hooks.hooks && hooks.statusline) && (
           <button className="sb-chip warn" title="Workbench hooks aren't installed, so tab states and limits don't update. Click to install." onClick={() => void window.workbench.installHooks()}>

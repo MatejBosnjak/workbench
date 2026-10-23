@@ -64,6 +64,9 @@ interface State {
   pane: PaneState | null
   /** The GitHub pane takes the whole body (⤢). */
   paneFull: boolean
+  /** The task sidebar beside a session's terminal (⌘I). Kept as ui:taskSide. */
+  taskSide: boolean
+  setTaskSide(on: boolean): void
   /** A line under the pane's strip, e.g. what happened to a Claude draft. */
   paneNote: string | null
   /** Open overlays (palette, popovers, modals); the native pane hides behind a still while any is open. */
@@ -132,6 +135,11 @@ export const useStore = create<State>((set, get) => ({
   runpr: null,
   pane: null,
   paneFull: false,
+  taskSide: false,
+  setTaskSide: (taskSide) => {
+    set({ taskSide })
+    void window.workbench.setSetting('ui:taskSide', taskSide)
+  },
   paneNote: null,
   overlays: 0,
   openedPrs: [],

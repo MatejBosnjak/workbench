@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { FE_REPO } from '@shared/runpr'
-import { groupTasks, type Task, type TasksSnapshot } from '@shared/tasks'
+import { groupTasks, statusColors, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
@@ -13,12 +13,13 @@ import { GitPane } from './GitPane'
 import { GitView, ReviewsView } from './GitView'
 import { runPr } from './RunPr'
 import { NeedPreview } from './NeedPreview'
+import { TaskDetails } from './TaskDetails'
 import { TaskPreview, taskPrimary } from './TaskPreview'
 import { useShallow } from 'zustand/react/shallow'
 
 // Productive workflow status colours, approximated with theme tokens.
-const STATUS_COLORS = ['var(--muted)', 'var(--muted)', 'var(--info)', 'var(--teal)', 'var(--ok)', 'var(--warn)', 'var(--bad)', 'var(--violet)', 'var(--accent)', 'var(--faint)', 'var(--link)']
-export const statusColor = (t: Pick<Task, 'statusColorId'>) => STATUS_COLORS[Number(t.statusColorId ?? 0) % STATUS_COLORS.length]!
+/** The status's text colour as Productive draws it. */
+export const statusColor = (t: Pick<Task, 'statusColorId'>) => statusColors({ colorId: t.statusColorId })[1]
 
 const isBugProject = (name: string) => /bug/i.test(name)
 
@@ -215,7 +216,10 @@ function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab
   if (item?.pr) return <NeedPreview item={item} tasks={snapshot} onOpen={() => openNeedItem(item, snapshot)} onClose={() => setPeekNeed(null)} />
   const task = tab === 'needs' ? (item?.task ?? null) : snapshot.tasks.find((t) => t.id === peekTask)
   return task ? (
-    <TaskPreview task={task} snapshot={snapshot} onClose={() => (tab === 'needs' ? setPeekNeed(null) : setPeekTask(null))} />
+    <>
+      <TaskPreview task={task} snapshot={snapshot} onClose={() => (tab === 'needs' ? setPeekNeed(null) : setPeekTask(null))} />
+      <TaskDetails taskId={task.id} />
+    </>
   ) : (
     <Box title={tab === 'needs' ? 'Preview' : 'Task'}>
       <span className="faint">{tab === 'needs' ? 'Click an item or press ⏎ to see it here; ⏎ again or a double-click opens it.' : 'Select a task with j / k or a click.'}</span>

@@ -38,7 +38,38 @@ button { font: inherit; color: inherit; }
   -webkit-app-region: drag;
 }
 .topbar button, .topbar .tab, .topbar .cafb { -webkit-app-region: no-drag; }
-.tb-logo { color: var(--accent); font-weight: 700; margin-right: 10px; flex-shrink: 0; }
+.mem-wrap { position: relative; flex-shrink: 0; margin-right: 10px; }
+/* ▌wb: the glyph's colour is set inline from the memory total and eases between readings. */
+.mem-btn { display: flex; align-items: center; gap: 0; height: 30px; padding: 0 10px; border: 1px solid transparent; background: transparent; color: var(--text); font-weight: 700; cursor: pointer; }
+.mem-btn:hover { border-color: var(--line-heavy); }
+.mem-btn.open { border-color: var(--accent); background: var(--accent-bg); }
+.mem-glyph { transition: color 0.8s ease, text-shadow 0.8s ease; }
+.mem-short { margin-left: 8px; font-weight: 400; color: var(--text-3); }
+.mem-pop { -webkit-app-region: no-drag; position: absolute; top: 40px; left: 0; z-index: 12; width: 620px; display: flex; flex-direction: column; gap: 18px; padding: 16px 16px 12px; background: var(--popover); border: 1px solid var(--accent); box-shadow: 0 18px 44px var(--shadow); font-weight: 400; cursor: default; }
+.mem-head { display: flex; align-items: flex-end; gap: 16px; }
+.mem-total { display: flex; flex-direction: column; gap: 2px; }
+.mem-big { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.mem-trend { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.mem-stack { display: flex; flex-direction: column; gap: 6px; }
+.mem-stack-bar { display: flex; height: 10px; gap: 2px; }
+.mem-stack-bar > span { transition: width 0.6s ease; }
+.mem-legend { display: flex; gap: 18px; color: var(--text-3); white-space: nowrap; }
+.mem-legend b { color: var(--text); }
+.mem-sec { position: relative; border: 1px solid var(--line-heavy); padding: 14px 12px 8px; }
+.mem-sec-title { position: absolute; top: -9px; left: 10px; padding: 0 6px; background: var(--popover); display: flex; gap: 8px; align-items: center; font-weight: 600; color: var(--text-2); line-height: 16px; }
+.mem-sec-title b { color: var(--text); }
+.mem-sec-aside { position: absolute; top: -9px; right: 10px; padding: 0 6px; background: var(--popover); line-height: 16px; }
+.mem-swatch { width: 8px; height: 8px; }
+.mem-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto 72px 72px; align-items: center; column-gap: 12px; padding: 3px 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+.mem-row.click { cursor: pointer; }
+.mem-row.click:hover { background: var(--raised); }
+.mem-name { min-width: 0; display: flex; gap: 8px; align-items: baseline; white-space: nowrap; overflow: hidden; }
+.mem-name > span:first-child { color: var(--text-2); }
+.mem-name > .faint { overflow: hidden; text-overflow: ellipsis; }
+.mem-extra { white-space: nowrap; text-align: right; }
+.mem-meter { width: 72px; height: 6px; }
+.mem-mb { text-align: right; color: var(--text); }
+.mem-foot { display: flex; justify-content: space-between; border-top: 1px solid var(--line-heavy); padding-top: 10px; }
 .seg-btn {
   display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; flex-shrink: 0;
   border: 1px solid var(--line-heavy); background: transparent; color: var(--text-2);

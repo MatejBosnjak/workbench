@@ -230,6 +230,21 @@ export class GitHubPane {
     this.emit()
   }
 
+  /** Live views and their renderer processes, for the memory overview. */
+  views(): { key: string; pid: number }[] {
+    return this.live.map((l) => ({ key: l.key, pid: l.view.webContents.getOSProcessId() }))
+  }
+
+  /** Drops every live view except the one on screen, keeping any with typed, unsent text. */
+  async closeIdle(): Promise<void> {
+    for (const l of [...this.live]) {
+      if (l === this.active) continue
+      const typed = (await l.view.webContents.executeJavaScript(HAS_TEXT).catch(() => false)) as boolean
+      if (!typed) this.drop(l)
+    }
+    this.emit()
+  }
+
   /** Keeps at most POOL views, evicting the least recent; asks before dropping one with typed, unsent text. */
   private async makeRoom(): Promise<void> {
     while (this.live.length >= POOL) {

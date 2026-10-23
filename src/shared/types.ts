@@ -2,6 +2,7 @@ import type { AgentSettings, ApplyResult } from './agent'
 import type { DraftTarget, GitSnapshot } from './git'
 import type { Workstream } from './workstream'
 import type { DirtyGuard, RunPrSnapshot } from './runpr'
+import type { MemorySnapshot } from './memory'
 import type { PaneState } from './pane'
 import type { LocalSnapshot, Worktree } from './local'
 import type { TasksSnapshot } from './tasks'
@@ -181,6 +182,12 @@ export interface WorkbenchApi {
     start(taskId: string, repo: string | null): Promise<Session | null>
   }
   /** GitHub inside Workbench: a native view laid over the rectangle the renderer reports. */
+  memory: {
+    snapshot(): Promise<MemorySnapshot | null>
+    /** The popover is open: sample every 5s instead of every 30s. */
+    watch(on: boolean): Promise<void>
+    onChanged(cb: (s: MemorySnapshot) => void): () => void
+  }
   pane: {
     open(url: string): Promise<void>
     bounds(b: { x: number; y: number; width: number; height: number }): Promise<void>
@@ -192,6 +199,8 @@ export interface WorkbenchApi {
     state(): Promise<PaneState>
     /** Opens the conversation and fills its reply box; false when the box wasn't found (text copied instead). */
     fill(url: string, text: string): Promise<boolean>
+    /** Drops every loaded page except the one on screen (keeping any with unsent text). */
+    closeIdle(): Promise<void>
     onChanged(cb: (s: PaneState) => void): () => void
     /** ⌘J pressed inside the pane. */
     onList(cb: () => void): () => void

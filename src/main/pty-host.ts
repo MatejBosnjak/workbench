@@ -48,6 +48,11 @@ export class PtyHost {
     return this.entries.has(id)
   }
 
+  /** Each live pty's process and how much replay history it holds (characters). */
+  processes(): { id: string; pid: number; historyChars: number }[] {
+    return [...this.entries].map(([id, e]) => ({ id, pid: e.proc.pid, historyChars: e.historyChars }))
+  }
+
   spawn(id: string, o: SpawnOpts): void {
     const proc = pty.spawn(o.file, o.args, {
       name: 'xterm-256color',

@@ -3,6 +3,7 @@ import type { GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { Workstream } from '@shared/workstream'
 import type { RunPrSnapshot } from '@shared/runpr'
+import type { MemorySnapshot } from '@shared/memory'
 import type { PaneState } from '@shared/pane'
 import type { TasksSnapshot } from '@shared/tasks'
 import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type NavigateTarget, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
@@ -74,8 +75,14 @@ const api: WorkbenchApi = {
     capture: () => ipcRenderer.invoke('pane:capture'),
     state: () => ipcRenderer.invoke('pane:state'),
     fill: (url, text) => ipcRenderer.invoke('pane:fill', url, text),
+    closeIdle: () => ipcRenderer.invoke('pane:close-idle'),
     onChanged: (cb) => on('pane:changed', (_e, s: PaneState) => cb(s)),
     onList: (cb) => on('pane:key', (_e, k: string) => k === 'list' && cb()),
+  },
+  memory: {
+    snapshot: () => ipcRenderer.invoke('memory:snapshot'),
+    watch: (on) => ipcRenderer.invoke('memory:watch', on),
+    onChanged: (cb) => on('memory:changed', (_e, s: MemorySnapshot) => cb(s)),
   },
   runpr: {
     snapshot: () => ipcRenderer.invoke('runpr:snapshot'),

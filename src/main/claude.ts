@@ -51,6 +51,11 @@ export async function runHeadless(prompt: string, o: HeadlessOptions): Promise<s
   })
 }
 
+/** Process ids of headless runs in flight, for the memory overview. */
+export function headlessPids(): number[] {
+  return [...running].flatMap((c) => (c.pid ? [c.pid] : []))
+}
+
 /** Stops every headless run still going; called on quit. */
 export function killHeadless(): void {
   for (const c of running) c.kill()

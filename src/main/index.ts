@@ -6,7 +6,8 @@ import type { AgentSettings } from '@shared/agent'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { HooksStatus, MenuCommand, NavigateTarget } from '@shared/types'
 import { Caffeinate } from './caffeinate'
-import { killHeadless } from './claude'
+import { headlessPids, killHeadless } from './claude'
+import { MemoryMonitor } from './memory'
 import { Drafts } from './drafts'
 import { prInfo } from './github'
 import { GitPoller } from './github/poller'
@@ -306,6 +307,22 @@ void app.whenReady().then(() => {
     activity: () => git.refreshSoon(),
   })
   paneRef = pane
+  const memory = new MemoryMonitor(
+    {
+      window: () => win?.webContents ?? null,
+      sessions: () => sessions.processes(),
+      local: () => local.processes(),
+      pages: () => pane.views(),
+      headless: headlessPids,
+      sessionLabel: (id) => {
+        const list = sessions.list()
+        const i = list.findIndex((s) => s.id === id)
+        return i < 0 ? null : `${i + 3} ${list[i]!.title}`
+      },
+    },
+    (s) => win?.webContents.send('memory:changed', s),
+  )
+  memory.start()
   const workstreams = new Workstreams(repo, tasks, git, linker, (ws) => win?.webContents.send('ws:changed', ws))
   tasks.start()
   git.start()
@@ -396,6 +413,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('pane:capture', () => pane.capture())
   ipcMain.handle('pane:state', () => pane.state())
   ipcMain.handle('pane:fill', (_e, url: string, text: string) => pane.fill(url, text))
+  ipcMain.handle('pane:close-idle', () => pane.closeIdle())
+  ipcMain.handle('memory:snapshot', () => memory.snapshot())
+  ipcMain.handle('memory:watch', (_e, on: boolean) => memory.watch(on))
   ipcMain.handle('drafts:compose', (_e, target: DraftTarget, instruction: string) => {
     if (target.kind === 'productive') throw new Error('Productive comments use the draft panel')
     return drafts.compose(target, instruction)
@@ -489,6 +509,7 @@ void app.whenReady().then(() => {
     tasks.stop()
     git.stop()
     focus.stop()
+    memory.stop()
     pane.dispose()
     sessions.shutdown()
     local.dispose()

@@ -147,6 +147,11 @@ export class Supervisor {
     void this.pty.killAndWait(paneId)
   }
 
+  /** Service and shell-pane ptys, for the memory overview; services are `svc:<name>`. */
+  processes(): { id: string; pid: number; historyChars: number }[] {
+    return this.pty.processes()
+  }
+
   isAlive(paneId: string): boolean {
     return this.pty.has(paneId)
   }

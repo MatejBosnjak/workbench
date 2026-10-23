@@ -254,6 +254,11 @@ export class Sessions {
     this.pty.killAll()
   }
 
+  /** Session ptys, for the memory overview. */
+  processes(): { id: string; pid: number; historyChars: number }[] {
+    return this.pty.processes()
+  }
+
   handleSignal(sig: Signal): void {
     const p = sig.payload
     const row = this.resolve(sig.wbId, p.session_id, sig.kind === 'hook' ? (p as HookPayload).hook_event_name : null, p.cwd)

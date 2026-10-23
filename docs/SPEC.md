@@ -289,6 +289,18 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
 
 - **TopBar.** A separate 56px bar with the chrome background, a 2px accent line along the bottom and a shadow over the content. All items are boxed segments with no wrapping; long session names are truncated.
   - Left to right: `▌wb`, then the fixed places `1 Today` and `2 Local 6/8`, a divider, the session tabs `3…n`, and on the right the caffeinate cup and ⌘K.
+  - **Memory (`▌wb`).** `▌wb` is a button showing the total memory in use, e.g. `▌wb 2.4G` (design: the "1b · Memory" board).
+    - **Total:** Workbench's own processes, plus every session's process tree (claude and whatever it started: MCP servers, test runners), plus local services.
+    - **Glyph colour:** the `▌` blends light purple → purple → dark purple → dark red → bright red. Each step is 1/12 of the Mac's RAM, with red from a third (1.5 / 3 / 4.5 / 6 GB on an 18 GB Mac). Between steps the colour blends in OKLab and eases over 0.8s, so it never jumps at a threshold. macOS memory pressure "critical" forces bright red.
+    - **Popover:** click opens it; Esc or a click outside closes it. It has:
+      - the total, with the Mac's RAM and memory pressure;
+      - a 30-minute sparkline with the change over that time;
+      - a bar split into Workbench / Sessions / Local services;
+      - three boxed sections:
+        - **Workbench:** app window (with terminals mounted), main process (with terminal history), loaded GitHub pages (with "close idle"), GPU, helpers, and any headless claude run.
+        - **Sessions:** each tab's process tree by size, with a breakdown like `claude 312 · node ×2 96`; ↗ marks growth of 30 MB+ over 10 minutes; a click opens the session.
+        - **Local services:** each service, plus shell panes.
+    - **Sampling:** one `ps` call plus `sysctl kern.memorystatus_vm_pressure_level`, every 30s in the background (enough for the colour and the trend) and every 5s while the popover is open.
   - The current screen is filled with the accent colour.
   - Session tabs have no state dot. Every tab carries its state colour as a bar along its bottom edge: 2px at 45% strength on unfocused tabs, so they stay quiet, and 3px at full strength on the current session. The current session is also a raised box with bold text, outlined on top, left and right in the muted accent (`--accent-line`), its bottom edge left to the state bar. A waiting session that isn't current only ever shows the muted purple bar, so "needs you" and "current" never look alike. Hovering a tab shows its state as a tooltip.
   - **Overflow.** The session tabs take the free width between the divider and the cup and never wrap or shrink below their width. When they don't fit, the strip scrolls horizontally with no visible scrollbar:

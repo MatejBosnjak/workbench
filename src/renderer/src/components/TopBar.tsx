@@ -3,6 +3,7 @@ import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { CaffeinateButton } from './CaffeinateControl'
 import { Cup } from './Cup'
+import { MemoryButton } from './Memory'
 import { useShallow } from 'zustand/react/shallow'
 
 const STATE_LABEL: Record<SessionState, string> = {
@@ -115,9 +116,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
 
   return (
     <header className="topbar">
-      <span className="tb-logo" aria-hidden="true">
-        ▌wb
-      </span>
+      <MemoryButton />
       <nav className="places" aria-label="Workbench">
         <button className="seg-btn place" aria-current={view.kind === 'today' ? 'page' : undefined} onClick={() => show({ kind: 'today' })}>
           1 Today

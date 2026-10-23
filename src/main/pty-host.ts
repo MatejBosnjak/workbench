@@ -35,6 +35,7 @@ export class PtyHost {
     private onExit: (id: string, code: number) => void,
     /** Typed input, after it's written to the pty. */
     private onInput?: (id: string, data: string) => void,
+    private onOutput?: (id: string, data: string) => void,
   ) {}
 
   has(id: string): boolean {
@@ -54,6 +55,7 @@ export class PtyHost {
     this.entries.set(id, e)
 
     proc.onData((data) => {
+      this.onOutput?.(id, data)
       e.pending += data
       this.remember(e, data)
       if (e.pending.length >= FLUSH_BYTES) this.flush(e)

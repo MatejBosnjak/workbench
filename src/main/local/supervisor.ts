@@ -31,8 +31,6 @@ export class Supervisor {
     for (const def of config.services) this.states.set(def.name, this.initial(def, false))
     // brew is slow to answer; show the chips straight away.
     this.infra = config.infra.map((name) => ({ name, status: 'unknown' }))
-    // brew is slow to answer; show the chips straight away.
-    this.infra = config.infra.map((name) => ({ name, status: 'unknown' }))
     this.timers.push(setInterval(() => void this.checkHealth(), HEALTH_MS))
     this.timers.push(setInterval(() => void this.refreshGit(), GIT_MS))
     void this.refreshGit()
@@ -46,6 +44,29 @@ export class Supervisor {
       profile: this.repo.getSetting('localProfile', this.config.profiles[0]?.id ?? 'full'),
       infra: this.infra,
     }
+  }
+
+  state(name: string): ServiceState | undefined {
+    return this.states.get(name)
+  }
+
+  /** The service that runs this repo (e.g. `app` for frontend). */
+  serviceForRepo(repo: string): ServiceState | undefined {
+    return [...this.states.values()].find((s) => s.def.repo === repo && !s.transient)
+  }
+
+  /** Points a stopped service at another folder (no restart). */
+  async setCwd(name: string, path: string): Promise<void> {
+    const s = this.states.get(name)
+    if (!s) return
+    s.cwd = path
+    this.repo.setSetting(`serviceCwd:${name}`, path)
+    for (const id of this.paneIds(name)) this.pty.write(id, `\x15cd ${shellQuote(path)}\r`)
+    await this.refreshGit()
+  }
+
+  async refreshNow(): Promise<void> {
+    await this.refreshGit()
   }
 
   setProfile(id: string): void {
@@ -161,7 +182,7 @@ export class Supervisor {
   }
 
   /** Starts a second copy of the service on the next free port, in the given worktree. */
-  async runAlongside(name: string, path: string): Promise<string | null> {
+  async runAlongside(name: string, path: string, command?: string): Promise<string | null> {
     const s = this.states.get(name)
     if (!s?.def.port) return null
     let port = s.def.port + 1
@@ -178,7 +199,7 @@ export class Supervisor {
     }
     this.states.set(copy.name, { ...this.initial(copy, true), cwd: path })
     await this.refreshGit()
-    await this.start(copy.name, (s.def.repo && readWtrc().commands[s.def.repo]) || s.def.command)
+    await this.start(copy.name, command ?? ((s.def.repo && readWtrc().commands[s.def.repo]) || s.def.command))
     return copy.name
   }
 
@@ -262,7 +283,7 @@ export class Supervisor {
   }
 }
 
-function portOpen(port: number): Promise<boolean> {
+export function portOpen(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const sock = createConnection({ port, host: '127.0.0.1' })
     const done = (ok: boolean) => {

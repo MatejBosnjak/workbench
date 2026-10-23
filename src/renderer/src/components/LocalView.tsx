@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { LocalSnapshot, ServiceState } from '@shared/local'
 import { Panes } from './Panes'
 import { WorktreeSwitcher } from './WorktreeSwitcher'
+import { RunPanel } from './RunPr'
+import { useStore } from '../store'
 
 const STATE: Record<ServiceState['status'], string> = { running: 'running', stopping: 'stopping…', stopped: 'stopped', crashed: 'crashed' }
 const home = (p: string) => p.replace(/^\/Users\/[^/]+\/(Productive\/)?/, '')
@@ -21,6 +23,7 @@ function stateText(s: ServiceState): string {
 export function LocalView({ snapshot, active }: { snapshot: LocalSnapshot | null; active: boolean }) {
   const [selected, setSelected] = useState<string | null>(null)
   const [switcher, setSwitcher] = useState(false)
+  const runJob = useStore((s) => s.runpr?.job)
   const [, tick] = useState(0)
   const now = Date.now()
 
@@ -62,6 +65,11 @@ export function LocalView({ snapshot, active }: { snapshot: LocalSnapshot | null
         </div>
       </div>
 
+      {runJob && runJob.state !== 'done' && runJob.state !== 'cancelled' && (
+        <div className="local-run">
+          <RunPanel inline />
+        </div>
+      )}
       <div className="local-body">
         <section className="svc-list" aria-label="Services">
           {inProfile.map((s) => {

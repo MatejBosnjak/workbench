@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { TasksSnapshot } from '@shared/tasks'
+import type { DirtyGuard, RunPrSnapshot } from '@shared/runpr'
 import { rootOf } from '@shared/workstream'
 import type { CaffeinateState, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
 
@@ -43,6 +44,14 @@ interface State {
   draft: DraftTarget | null
   setLocal(l: LocalSnapshot): void
   setGit(g: GitSnapshot): void
+  runpr: RunPrSnapshot | null
+  runPanel: boolean
+  runGuard: { n: number; guard: DirtyGuard } | null
+  runError: string | null
+  setRunpr(r: RunPrSnapshot): void
+  setRunPanel(open: boolean): void
+  setRunGuard(g: { n: number; guard: DirtyGuard } | null): void
+  setRunError(e: string | null): void
   setTasks(t: TasksSnapshot): void
   closeWorkstream(): void
   setTodayTab(t: TodayTab): void
@@ -76,6 +85,14 @@ export const useStore = create<State>((set, get) => ({
   draft: null,
   setLocal: (local) => set({ local }),
   setGit: (git) => set({ git }),
+  runpr: null,
+  runPanel: false,
+  runGuard: null,
+  runError: null,
+  setRunpr: (runpr) => set({ runpr }),
+  setRunPanel: (runPanel) => set({ runPanel }),
+  setRunGuard: (runGuard) => set({ runGuard }),
+  setRunError: (runError) => set({ runError }),
   setTasks: (tasks) => set({ tasks }),
   closeWorkstream: () => {
     set({ wsPlace: null })

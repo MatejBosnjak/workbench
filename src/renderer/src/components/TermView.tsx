@@ -47,6 +47,7 @@ export function TermView(props: TermViewProps) {
   const cb = useRef(props)
   cb.current = props
   const [card, setCard] = useState<CardAnchor | null>(null)
+  const hideCard = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
     const t = new XTerm({
@@ -114,8 +115,14 @@ export function TermView(props: TermViewProps) {
             text: pr ?? m[0],
             decorations: { underline: true, pointerCursor: true },
             activate: (e: MouseEvent, url: string) => openLink(e, url),
-            hover: pr ? (e: MouseEvent, url: string) => setCard({ url, x: e.clientX, y: e.clientY }) : undefined,
-            leave: pr ? () => setCard(null) : undefined,
+            hover: pr
+              ? (e: MouseEvent, url: string) => {
+                  clearTimeout(hideCard.current)
+                  setCard({ url, x: e.clientX, y: e.clientY })
+                }
+              : undefined,
+            // A short grace period lets the pointer move onto the card (it has a Run app button).
+            leave: pr ? () => (hideCard.current = setTimeout(() => setCard(null), 250)) : undefined,
           }
         })
         callback(links.length ? links : undefined)
@@ -170,7 +177,7 @@ export function TermView(props: TermViewProps) {
   return (
     <>
       <div className={className} hidden={hideWhenInactive && !active} ref={el} onMouseDown={() => term.current?.focus()} />
-      {card && <PrCard anchor={card} />}
+      {card && <PrCard anchor={card} onEnter={() => clearTimeout(hideCard.current)} onLeave={() => setCard(null)} />}
     </>
   )
 }

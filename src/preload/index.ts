@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { Workstream } from '@shared/workstream'
+import type { RunPrSnapshot } from '@shared/runpr'
 import type { TasksSnapshot } from '@shared/tasks'
 import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type NavigateTarget, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
@@ -60,6 +61,14 @@ const api: WorkbenchApi = {
     setNote: (rootId, body) => ipcRenderer.invoke('ws:note', rootId, body),
     repos: () => ipcRenderer.invoke('ws:repos'),
     start: (taskId, repo) => ipcRenderer.invoke('ws:start', taskId, repo),
+  },
+  runpr: {
+    snapshot: () => ipcRenderer.invoke('runpr:snapshot'),
+    onChanged: (cb) => on('runpr:changed', (_e, s: RunPrSnapshot) => cb(s)),
+    guard: (n) => ipcRenderer.invoke('runpr:guard', n),
+    run: (n, opts) => ipcRenderer.invoke('runpr:run', n, opts ?? {}),
+    cancel: () => ipcRenderer.invoke('runpr:cancel'),
+    back: () => ipcRenderer.invoke('runpr:back'),
   },
   forkSession: (id) => ipcRenderer.invoke('sessions:fork', id),
   onNavigate: (cb) => on('navigate', (_e, t: NavigateTarget) => cb(t)),

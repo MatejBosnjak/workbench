@@ -38,3 +38,6 @@ with `claude --settings`.
 
 `WORKBENCH_BACKGROUND=1` opens the window behind whatever has focus and keeps the app out of the
 Dock and ⌘-Tab. Automated test runs use it.
+
+`WORKBENCH_WTRC` points the worktree features at another `.wtrc.json`, and `WORKBENCH_PNPM` swaps the
+`pnpm` that Run PR uses for installs and builds. The Run PR test uses both with a throwaway repo.

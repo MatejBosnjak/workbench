@@ -10,6 +10,9 @@ function git(cwd: string, args: string[], timeout = 15_000): Promise<string | nu
   })
 }
 
+/** Runs git and returns stdout, or null on failure. */
+export const gitOut = (cwd: string, args: string[], timeout?: number) => git(cwd, args, timeout)
+
 export async function currentBranch(cwd: string): Promise<string | null> {
   return (await git(cwd, ['branch', '--show-current']))?.trim() || null
 }
@@ -38,7 +41,8 @@ interface Wtrc {
   commands?: Record<string, string>
 }
 
-export function readWtrc(file = join(homedir(), '.wtrc.json')): { reposDirs: string[]; worktreesDirs: string[]; commands: Record<string, string> } {
+// WORKBENCH_WTRC points tests at a scratch config.
+export function readWtrc(file = process.env.WORKBENCH_WTRC ?? join(homedir(), '.wtrc.json')): { reposDirs: string[]; worktreesDirs: string[]; commands: Record<string, string> } {
   if (!existsSync(file)) return { reposDirs: [], worktreesDirs: [], commands: {} }
   const c = JSON.parse(readFileSync(file, 'utf8')) as Wtrc
   const base = resolve(file, '..')

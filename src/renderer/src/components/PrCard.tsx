@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { PrInfo } from '@shared/types'
+import { RunAppButton } from './RunPr'
 
 export interface CardAnchor {
   url: string
@@ -22,7 +23,7 @@ function stateOf(pr: PrInfo): [string, string] {
 
 const REVIEW: Record<string, string> = { APPROVED: 'Approved', CHANGES_REQUESTED: 'Changes requested', REVIEW_REQUIRED: 'Review required' }
 
-export function PrCard({ anchor }: { anchor: CardAnchor }) {
+export function PrCard({ anchor, onEnter, onLeave }: { anchor: CardAnchor; onEnter?(): void; onLeave?(): void }) {
   const [pr, setPr] = useState<PrInfo | null | undefined>(undefined)
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function PrCard({ anchor }: { anchor: CardAnchor }) {
   const left = Math.min(anchor.x, window.innerWidth - 380)
   const top = anchor.y + 18 + 140 > window.innerHeight ? anchor.y - 150 : anchor.y + 18
   return (
-    <div className="pr-card" style={{ left, top }}>
+    <div className="pr-card" style={{ left, top }} onMouseEnter={onEnter} onMouseLeave={onLeave}>
       {pr === undefined && <span className="muted">Loading PR…</span>}
       {pr === null && <span className="muted">Couldn't load this PR with gh.</span>}
       {pr && (
@@ -51,7 +52,8 @@ export function PrCard({ anchor }: { anchor: CardAnchor }) {
             {pr.reviewDecision && <span>{REVIEW[pr.reviewDecision] ?? pr.reviewDecision}</span>}
             {pr.checks && <span style={{ color: CHECKS[pr.checks][1] }}>{CHECKS[pr.checks][0]}</span>}
           </span>
-          <span className="pop-note">Click opens it on GitHub</span>
+          {pr.repo === 'productiveio/frontend' && pr.state === 'OPEN' && <RunAppButton n={pr.number} />}
+          <span className="pop-note">Click opens its row in Workbench · ⌘-click opens GitHub</span>
         </>
       )}
     </div>

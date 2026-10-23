@@ -15,6 +15,8 @@ import { Supervisor } from './local/supervisor'
 import { Linker } from './linker'
 import { createWorktree, planWorktree, repoRoots } from './local/git'
 import { Notifier } from './notify'
+import { FocusTracker } from './focus-pr'
+import { RunPr } from './local/run-pr'
 import { TasksPoller } from './productive/tasks'
 import { Sessions } from './sessions'
 import { shellEnv, which } from './shell-env'
@@ -161,13 +163,20 @@ function buildMenu(): void {
 void app.whenReady().then(() => {
   if (BACKGROUND) app.setActivationPolicy('accessory')
   void shellEnv() // warm up; the first session would otherwise wait on it
-  const caffeinate = new Caffeinate((s) => win?.webContents.send('caf:changed', s))
   const repo = new Repo(openDb(join(dataDir(), 'workbench.db')))
+  const caffeinate = new Caffeinate((s) => win?.webContents.send('caf:changed', s), {
+    confirm: async (message, detail) =>
+      (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Replace', 'Keep it'], defaultId: 1, cancelId: 1, message, detail })).response === 0,
+    owned: { get: () => repo.getSetting('caf:amphetamineOwned', false), set: (v) => repo.setSetting('caf:amphetamineOwned', v) },
+  })
   const local = new Supervisor(
     loadConfig(join(dataDir(), 'services.json')),
     repo,
     () => win?.webContents,
-    (s) => win?.webContents.send('local:changed', s),
+    (s) => {
+      win?.webContents.send('local:changed', s)
+      refreshRunPr()
+    },
     (id) => win?.webContents.send('local:pane-exit', id),
   )
   const sessions = new Sessions(repo, {
@@ -179,8 +188,10 @@ void app.whenReady().then(() => {
     statusChanged: () => win?.webContents.send('status:changed', sessions.statusSnapshot()),
     hook: (id, event, payload) => {
       void linker.onHook(id, event, payload)
+      focus.onHook(id, event, payload)
       notifySession(id, event)
     },
+    output: (id, data) => focus.onOutput(id, data),
   })
   // The session on screen; its own notifications are skipped while the window has focus.
   let viewedSession: string | null = null
@@ -199,7 +210,10 @@ void app.whenReady().then(() => {
     const s = sessions.list().find((x) => x.id === id)
     if (s && !s.external) notifier.session(id, s.title, event === 'Notification' ? 'waiting' : 'finished')
   }
-  const tasksChanged = () => win?.webContents.send('tasks:changed', linker.snapshot())
+  const tasksChanged = () => {
+    win?.webContents.send('tasks:changed', linker.snapshot())
+    focus.refreshTasks()
+  }
   let hadTasks = false
   const tasks = new TasksPoller(repo, () => {
     tasksChanged()
@@ -227,11 +241,30 @@ void app.whenReady().then(() => {
     gitSeenAt = git.fetchedAt
     notifier.git(gitSnapshot())
     void linker.inferAll()
+    focus.refreshTasks()
+    refreshRunPr()
   })
   const linker = new Linker(repo, tasks, git, sessions, tasksChanged, dataDir())
   const confirmPost = async (message: string, detail: string) =>
     (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Post', 'Cancel'], defaultId: 1, cancelId: 1, message, detail })).response === 0
   const drafts = new Drafts(repo, git, tasks, linker, confirmPost, gitChanged, dataDir())
+  // Run PR in app. Log lines arrive fast during a run; the renderer gets at most ten updates a second.
+  let runprTimer: NodeJS.Timeout | null = null
+  const runprChanged = () => {
+    runprTimer ??= setTimeout(() => {
+      runprTimer = null
+      win?.webContents.send('runpr:changed', runpr.snapshot())
+    }, 100)
+  }
+  let refreshTimer: NodeJS.Timeout | null = null
+  function refreshRunPr() {
+    refreshTimer ??= setTimeout(() => {
+      refreshTimer = null
+      void runpr?.refresh()
+    }, 1000)
+  }
+  const focus = new FocusTracker(repo, sessions, git, runprChanged)
+  const runpr = new RunPr(repo, local, git, focus, runprChanged)
   const workstreams = new Workstreams(repo, tasks, git, linker, (ws) => win?.webContents.send('ws:changed', ws))
   tasks.start()
   git.start()
@@ -324,6 +357,11 @@ void app.whenReady().then(() => {
   ipcMain.handle('drafts:save', (_e, id: number, body: string) => drafts.save(id, body))
   ipcMain.handle('drafts:discard', (_e, id: number) => drafts.discard(id))
   ipcMain.handle('drafts:send', (_e, id: number, body: string) => drafts.send(id, body))
+  ipcMain.handle('runpr:snapshot', () => runpr.snapshot())
+  ipcMain.handle('runpr:guard', (_e, n: number) => runpr.guard(n))
+  ipcMain.handle('runpr:run', (_e, n: number, opts: { alongside?: boolean; dirty?: 'stash' | 'alongside' }) => runpr.run(n, opts))
+  ipcMain.handle('runpr:cancel', () => runpr.cancel())
+  ipcMain.handle('runpr:back', () => runpr.goBack())
   ipcMain.handle('local:snapshot', () => local.snapshot())
   ipcMain.handle('local:profile', (_e, id: string) => local.setProfile(id))
   ipcMain.handle('local:start', (_e, name: string) => local.start(name))
@@ -366,9 +404,8 @@ void app.whenReady().then(() => {
   ipcMain.handle('hooks:uninstall', () => confirmUninstall().then(hooksChanged))
 
   let quitting = false
+  let cafStopped = false
   app.on('before-quit', (e) => {
-    tasks.stop()
-    git.stop()
     const running = local.running()
     if (!quitting && running.length) {
       e.preventDefault()
@@ -385,7 +422,16 @@ void app.whenReady().then(() => {
       void local.stopAll().finally(() => app.quit())
       return
     }
-    caffeinate.stop()
+    // Ending Workbench's Amphetamine session is async; finish it before the process goes.
+    if (!cafStopped) {
+      e.preventDefault()
+      cafStopped = true
+      void caffeinate.stop().finally(() => app.quit())
+      return
+    }
+    tasks.stop()
+    git.stop()
+    focus.stop()
     sessions.shutdown()
     local.dispose()
     stopSignalServer(signals, socketPath())

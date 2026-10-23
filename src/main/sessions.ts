@@ -18,6 +18,8 @@ export interface SessionEvents {
   statusChanged(): void
   /** A hook event was applied to a tab (after its state changed). */
   hook?(id: string, event: string, payload: HookPayload): void
+  /** Terminal output of a Workbench tab. */
+  output?(id: string, data: string): void
 }
 
 export class Sessions {
@@ -51,6 +53,7 @@ export class Sessions {
         this.repo.update(id, { state })
         this.events.sessionsChanged()
       },
+      (id, data) => this.events.output?.(id, data),
     )
   }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { prRef } from '@shared/git'
 import type { Task, TaskLink, TasksSnapshot } from '@shared/tasks'
 import { openWorkstream, useStore } from '../store'
+import { RunAppButton } from './RunPr'
 import { ago, Diamond, dueLabel, StatusGlyph } from './TodayView'
 
 export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
@@ -105,17 +106,19 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
         <dd className="peek-prs">
           {prs.length
             ? prs.map((p) => (
-                <button
-                  key={p.id}
-                  className="link-btn mono"
-                  title={p.title}
-                  onClick={() => {
-                    setTodayTab(git?.mine.includes(p) ? 'git' : 'reviews')
-                    setFocusPr(p.id)
-                  }}
-                >
-                  {prRef(p)}
-                </button>
+                <span key={p.id} className="peek-pr">
+                  <button
+                    className="link-btn mono"
+                    title={p.title}
+                    onClick={() => {
+                      setTodayTab(git?.mine.includes(p) ? 'git' : 'reviews')
+                      setFocusPr(p.id)
+                    }}
+                  >
+                    {prRef(p)}
+                  </button>
+                  {p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} compact />}
+                </span>
               ))
             : <span className="muted">No PRs</span>}
         </dd>

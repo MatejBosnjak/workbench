@@ -5,6 +5,7 @@ import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
 import { TodayView } from './components/TodayView'
 import { WorkstreamView } from './components/WorkstreamView'
+import { DirtyGuardModal } from './components/RunPr'
 import { Palette } from './components/Palette'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
@@ -58,9 +59,13 @@ export function App() {
     void window.workbench.git.snapshot().then(setGit)
     const offGit = window.workbench.git.onChanged(setGit)
     const offNav = window.workbench.onNavigate(navigate)
+    const { setRunpr } = useStore.getState()
+    void window.workbench.runpr.snapshot().then(setRunpr)
+    const offRun = window.workbench.runpr.onChanged(setRunpr)
     return () => {
       offGit()
       offNav()
+      offRun()
     }
   }, [])
   useEffect(() => window.workbench.reportView(activeSessionId(view)), [view])
@@ -126,6 +131,7 @@ export function App() {
         <span className="sb-sep" />
         <Picker />
       </StatusBar>
+      <DirtyGuardModal />
       {paletteOpen && <Palette onNew={(pick) => void newSession(pick)} />}
     </div>
   )

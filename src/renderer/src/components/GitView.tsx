@@ -3,6 +3,7 @@ import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@sha
 import { ageDays, groupMine, groupReviews, lastMessage, needsReply, prRef, verb } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
 import { useStore } from '../store'
+import { RunAppButton } from './RunPr'
 
 const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', faint: 'var(--faint)' }
 const CI_LABEL = { pass: 'CI passing', fail: 'CI failing', pending: 'CI running', none: 'No CI' }
@@ -189,6 +190,7 @@ function PrRow({ p, git, tasks, focused }: { p: Pr; git: GitSnapshot; tasks: Tas
           {state}
         </span>
         <span className={`ci-dot ci-${p.ci}`} role="img" aria-label={CI_LABEL[p.ci]} title={CI_LABEL[p.ci]} />
+        <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
         <span className={`pr-talk-label${open.length ? ' open' : ''}`}>{talk}</span>
         <span className="pr-age mono">{age(p.updatedAt)}</span>
       </div>
@@ -260,6 +262,7 @@ export function ReviewsView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnap
                     </button>
                     <span className="pr-note">{mine ? `your task #${mine.number ?? mine.id}` : ''}</span>
                     <span className={`ci-dot ci-${p.ci}`} role="img" aria-label={CI_LABEL[p.ci]} title={CI_LABEL[p.ci]} />
+                    <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
                     <span className="pr-age mono" style={{ color: d > 14 ? 'var(--bad)' : d > 3 ? 'var(--warn)' : 'var(--faint)' }}>
                       {age(p.createdAt)}
                     </span>

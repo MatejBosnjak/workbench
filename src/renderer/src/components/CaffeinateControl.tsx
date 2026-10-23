@@ -6,7 +6,7 @@ import { Cup } from './Cup'
 const OPTIONS: { mode: CaffeinateState['mode']; label: string; short: string; note: string }[] = [
   { mode: 'off', label: 'Off', short: 'Sleep ok', note: 'The Mac sleeps as usual' },
   { mode: 'on', label: 'Awake', short: 'Awake', note: 'While the session is running' },
-  { mode: 'lid', label: 'Awake, lid closed', short: 'Lid closed', note: 'Keeps running with the lid shut · needs power and an external display' },
+  { mode: 'lid', label: 'Awake, lid closed', short: 'Lid closed', note: 'Keeps running with the lid shut' },
 ]
 
 export function CaffeinateControl() {
@@ -49,12 +49,20 @@ export function CaffeinateControl() {
           <span className="pop-label">Keep the Mac awake</span>
           {OPTIONS.map((o) => {
             const disabled = o.mode === 'lid' && !caf.lidAvailable
+            const note =
+              o.mode !== 'lid'
+                ? o.note
+                : caf.lidVia === 'amphetamine'
+                  ? `${o.note} · via Amphetamine`
+                  : caf.lidVia === 'clamshell'
+                    ? `${o.note} · clamshell mode (power + external display)`
+                    : `Needs power, and Amphetamine with Power Protect${caf.lidSetup ? ` (${caf.lidSetup})` : ''} or an external display`
             return (
-              <button key={o.mode} role="radio" aria-checked={o.mode === caf.mode} className={`pop-item${o.mode === caf.mode ? ' on' : ''}`} disabled={disabled} title={disabled ? 'Connect power and an external display' : undefined} onClick={() => set(o.mode)}>
+              <button key={o.mode} role="radio" aria-checked={o.mode === caf.mode} className={`pop-item${o.mode === caf.mode ? ' on' : ''}`} disabled={disabled} title={disabled ? note : undefined} onClick={() => set(o.mode)}>
                 <Cup mode={o.mode} size={18} knockout="var(--popover)" />
                 <span className="pop-text">
                   <span>{o.label}</span>
-                  <span className="pop-note">{o.note}</span>
+                  <span className="pop-note">{note}</span>
                 </span>
                 <span className="check">{o.mode === caf.mode ? '✓' : ''}</span>
               </button>

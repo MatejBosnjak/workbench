@@ -94,7 +94,7 @@ Keeps the Mac awake while sessions run.
     - Install Amphetamine's **Power Protect** helper (needed on Apple Silicon, otherwise every session asks for Touch ID or a password).
     - Dismiss the closed-display warning once with "Do Not Show This Message Again" (Preferences → Sessions).
 
-    Workbench checks for Amphetamine, its scripting access and Power Protect. If any is missing, "Lid closed" shows as unavailable with a Set up link.
+    Workbench checks that Amphetamine is installed and that Power Protect is (it installs `~/Library/Application Scripts/com.if.Amphetamine/powerProtect.scpt`). If either is missing, "Lid closed" shows as unavailable and says what's missing. Scripting access is checked on first use, when macOS asks once for Automation permission.
   - **Power.** If power is unplugged, the mode falls back to Awake and sends a notification.
   - **To verify by hand:** that `enable closed display mode` really keeps the Mac running with the lid shut. Its dictionary notes mention the "Allow system to sleep when display is closed" preference, so the meaning could be inverted.
   - **Rejected:** `sudo pmset disablesleep 1`. It needs root, reports disagree on whether it works on Apple Silicon, and it disables sleep everywhere, battery included.
@@ -203,14 +203,15 @@ One click runs the frontend PR you're working on or reviewing in the `app` servi
 - **Worktree found:**
   1. stop `app`
   2. run the per-repo command from `~/.wtrc.json` (`pnpm i && pnpm start`) in that worktree
-- **No worktree** (typically a review): use the base checkout `~/Productive/repos/frontend`. Never touch `~/Productive/work/repos/frontend`, which is the read-only reference clone.
+- **No worktree** (typically a review): use the base checkout, the folder the `app` service is configured with in `services.json` (`~/Productive/app`, the clone the app runs from day to day). Never touch `~/Productive/work/repos/frontend`, which is the read-only reference clone.
   1. **Dirty check.** If the tree has uncommitted changes, ask: Stash and continue (stash named `workbench: before fe #<n>`) / Run alongside / Cancel.
   2. `git fetch origin <headRefName>`. For a fork PR, `git fetch origin pull/<n>/head:pr-<n>`.
   3. `git checkout` that branch, after saving the previous branch or detached HEAD and any stash, for ↩ Back.
   4. `pnpm i`, skipped when `pnpm-lock.yaml` is unchanged since the last install in that checkout.
   5. Build the workspace packages (lib, ui, form, prosemirror) when their sources changed. A fresh checkout doesn't compile without them.
   6. Restart `app`.
-- **Run alongside.** Runs the same steps but starts a second `app` on the next free port instead of replacing the running one.
+- **Run alongside.** Starts a second `app` on the next free port instead of replacing the running one. A PR with a worktree runs from it; one without gets a detached review worktree `<worktrees>/frontend-review-<n>`, since the base checkout is where the main `app` runs.
+- **Port in use.** If the app's port is held by a process Workbench didn't start (e.g. the `prd` tmux session), the run stops with that message instead of starting a second server on the same port.
 - **Run panel.** The run shows as a job in Local and in a popover from the chip: each step with done, running, skipped or pending; a live log tail; Cancel; and Run alongside instead.
 - **Back.** After a base-checkout run, the chip offers "↩ Back to <previous>". It restores the branch, pops the stash and restarts `app`.
 

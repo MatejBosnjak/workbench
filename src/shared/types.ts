@@ -1,6 +1,7 @@
 import type { AgentSettings, ApplyResult } from './agent'
 import type { DraftTarget, GitSnapshot } from './git'
 import type { Workstream } from './workstream'
+import type { DirtyGuard, RunPrSnapshot } from './runpr'
 import type { LocalSnapshot, Worktree } from './local'
 import type { TasksSnapshot } from './tasks'
 
@@ -69,8 +70,11 @@ export interface CaffeinateState {
   scope: 'session' | 'all'
   /** The session a 'session'-scoped mode follows. */
   sessionId: string | null
-  /** Lid-closed mode needs AC power and an external display. */
+  /** Lid-closed mode needs AC power, plus Amphetamine set up or an external display (clamshell). */
   lidAvailable: boolean
+  lidVia: 'amphetamine' | 'clamshell' | null
+  /** What's missing for the Amphetamine route, if anything. */
+  lidSetup: string | null
   /** Why the mode last changed by itself, if it did. */
   note: string | null
 }
@@ -170,6 +174,16 @@ export interface WorkbenchApi {
      * after a confirm that shows the exact git commands. Null when cancelled.
      */
     start(taskId: string, repo: string | null): Promise<Session | null>
+  }
+  runpr: {
+    snapshot(): Promise<RunPrSnapshot>
+    onChanged(cb: (s: RunPrSnapshot) => void): () => void
+    /** The base checkout's uncommitted changes a run would hit, or null. */
+    guard(n: number): Promise<DirtyGuard | null>
+    /** Starts putting fe #n into the app; returns the guard when the base checkout is dirty and no answer was given. */
+    run(n: number, opts?: { alongside?: boolean; dirty?: 'stash' | 'alongside' }): Promise<DirtyGuard | null>
+    cancel(): Promise<void>
+    back(): Promise<void>
   }
   /** A new tab continuing a copy of the session's conversation (claude --fork-session), linked to the same tasks. */
   forkSession(id: string): Promise<Session | null>

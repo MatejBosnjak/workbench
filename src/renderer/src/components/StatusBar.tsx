@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Limit } from '@shared/types'
 import { activeSessionId, useStore } from '../store'
+import { RunPrChip } from './RunPr'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const clock = (unix: number) => {
@@ -66,6 +67,8 @@ export function StatusBar({ children }: { children?: ReactNode }) {
           Hooks not installed · Install…
         </button>
       )}
+
+      <RunPrChip />
 
       <span className="sb-group push" title="Context window of the active session">
         <span>Context</span>

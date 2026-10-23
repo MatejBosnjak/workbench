@@ -270,7 +270,7 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
   - The selected row is filled with the accent colour, with text in `--on-accent`.
   - Status is a coloured `●` for started statuses or `○` for not-started ones.
   - Subtasks are indented with `└`, a milestone row starts with `◆`, and bug priority is shown as `!` or `!!`.
-- **Counters.** A row of five boxed counters sits under the TopBar on Today. Each has a 38px number with its breakdown beside it, not under it: one part per line, stacked against the box's right edge (right-aligned) and centred vertically on the number, in a faint 11.5px with tight line height so three lines fit the number's height. The `·` in the examples below separates those lines:
+- **Counters.** A row of five boxed counters sits under the TopBar on Today. Each has a 38px number with its breakdown beside it, not under it: one part per line, stacked against the box's right edge (right-aligned) and aligned to the top of the number, in a faint 11.5px with tight line height so three lines fit the number's height. The active counter (the one whose list is shown; Needs you by default) has a larger number, 44px instead of 38px, with a soft glow in its own colour. The number sits on a fixed 48px line, so the box never changes height. Switching counters eases the size and glow over 0.25s (no animation with reduced motion). The `·` in the examples below separates the breakdown lines:
 
   | Counter | Breakdown |
   |---|---|

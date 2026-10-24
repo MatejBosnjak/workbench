@@ -5,7 +5,7 @@ import type { DirtyGuard, RunPrSnapshot } from './runpr'
 import type { MemorySnapshot } from './memory'
 import type { PaneState } from './pane'
 import type { LocalSnapshot, Worktree } from './local'
-import type { Person, TaskDetail, TasksSnapshot } from './tasks'
+import type { Person, SessionPrLink, TaskDetail, TasksSnapshot } from './tasks'
 import type { Mark } from './marks'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
@@ -170,6 +170,8 @@ export interface WorkbenchApi {
     refresh(): Promise<void>
     /** Starts a session for the task (in its worktree when there is one) and links it. */
     start(taskId: string): Promise<Session | null>
+    /** Starts a session about a PR that names none of my tasks: named after it, connected to it, its URL in the first prompt. */
+    startForPr(pr: Omit<SessionPrLink, 'sessionId'>): Promise<Session | null>
     link(sessionId: string, taskId: string): Promise<void>
     unlink(sessionId: string, taskId: string): Promise<void>
     summarize(taskId: string): Promise<string>

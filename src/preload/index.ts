@@ -45,6 +45,7 @@ const api: WorkbenchApi = {
     onChanged: (cb) => on('tasks:changed', (_e, s: TasksSnapshot) => cb(s)),
     refresh: () => ipcRenderer.invoke('tasks:refresh'),
     start: (taskId) => ipcRenderer.invoke('tasks:start', taskId),
+    startForPr: (pr) => ipcRenderer.invoke('tasks:start-for-pr', pr),
     link: (sessionId, taskId) => ipcRenderer.invoke('tasks:link', sessionId, taskId),
     unlink: (sessionId, taskId) => ipcRenderer.invoke('tasks:unlink', sessionId, taskId),
     summarize: (taskId) => ipcRenderer.invoke('tasks:summarize', taskId),

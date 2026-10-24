@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
 import type { DraftTarget, GitSnapshot, Pr } from '@shared/git'
-import type { Person } from '@shared/tasks'
+import type { Person, SessionPrLink } from '@shared/tasks'
 import type { HooksStatus, MenuCommand, NavigateTarget, TabMenuPick } from '@shared/types'
 import { Caffeinate } from './caffeinate'
 import { headlessPids, killHeadless } from './claude'
@@ -370,7 +370,11 @@ void app.whenReady().then(() => {
   }
   sessions.taskStart = (id) => {
     const taskId = repo.links().find((l) => l.sessionId === id && l.via === 'started from this task')?.taskId
-    if (!taskId) return null
+    if (!taskId) {
+      // A session started from a PR: the PR it was connected to.
+      const pr = repo.sessionPrs().find((p) => p.sessionId === id)
+      return pr ? { prompt: `lets look at this PR ${pr.url} `, title: withoutRepoPrefix(pr.title) } : null
+    }
     const task = tasks.tasks.find((t) => t.id === taskId)
     const url = task?.url ?? workstreams.url(taskId)
     return url ? { prompt: `lets look at this task ${url} `, title: withoutRepoPrefix(task?.title ?? workstreams.title(taskId) ?? 'Task') } : null
@@ -445,6 +449,13 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('tasks:refresh', () => tasks.refresh())
   ipcMain.handle('tasks:start', (_e, taskId: string) => startForTask(taskId, linker.worktreeFor(taskId) ?? undefined))
+  ipcMain.handle('tasks:start-for-pr', (_e, pr: Omit<SessionPrLink, 'sessionId'>) => {
+    const s = sessions.create({})
+    sessions.setTitle(s.id, withoutRepoPrefix(pr.title))
+    repo.addSessionPr(s.id, pr)
+    tasksChanged()
+    return sessions.get(s.id)
+  })
   ipcMain.handle('ws:open', (_e, rootId: string) => workstreams.open(rootId))
   ipcMain.handle('ws:refresh', (_e, rootId: string) => workstreams.refresh(rootId))
   ipcMain.handle('ws:note', (_e, rootId: string, body: string) => workstreams.setNote(rootId, body))

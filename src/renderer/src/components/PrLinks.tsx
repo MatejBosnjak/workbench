@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useShallow } from 'zustand/react/shallow'
-import type { Pr } from '@shared/git'
+import { prRef, type Pr } from '@shared/git'
 import { MARK_WORD, prSessions, prTasks, type LinkedSession } from '@shared/links'
 import { statusVivid, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
@@ -54,7 +54,21 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
   useEffect(() => setMenu(null), [prUrl])
 
   const { tasks: prTasks, sessions: linked } = prLinks(pr, prUrl, tasks, sessions, runpr?.focus ?? {})
-  if (!prTasks.length && !linked.length) return null
+  // A PR that names none of my tasks (a review, say) still gets a session of its own.
+  const startForPr = async () => {
+    setMenu(null)
+    const n = /\/pull\/(\d+)/.exec(prUrl)?.[1] ?? ''
+    const s = await window.workbench.tasks.startForPr({ url: prUrl, label: pr ? prRef(pr) : `${prUrl.split('/')[4]} #${n}`, title: pr?.title ?? `PR #${n}` })
+    if (s) show({ kind: 'session', id: s.id })
+  }
+  if (!prTasks.length && !linked.length)
+    return (
+      <span className="prl">
+        <button type="button" className="new-sess" title="New session about this PR" aria-label="New session about this PR" onClick={() => void startForPr()}>
+          + new <Spark />
+        </button>
+      </span>
+    )
 
   const first = prTasks[0]
   const best = linked[0]
@@ -142,13 +156,15 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
                 <span className={`mk-${s.mark}`}>{MARK_WORD[s.mark]}</span>
               </button>
             ))}
-            {first && (
-              <>
-                {linked.length > 0 && <span className="prl-sep" />}
-                <button role="menuitem" className="prl-item prl-new" onClick={() => void start(first)}>
-                  + new <Spark /> for this task
-                </button>
-              </>
+            {linked.length > 0 && <span className="prl-sep" />}
+            {first ? (
+              <button role="menuitem" className="prl-item prl-new" onClick={() => void start(first)}>
+                + new <Spark /> for this task
+              </button>
+            ) : (
+              <button role="menuitem" className="prl-item prl-new" onClick={() => void startForPr()}>
+                + new <Spark /> for this PR
+              </button>
             )}
           </Menu>
         )}

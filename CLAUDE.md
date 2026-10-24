@@ -14,7 +14,7 @@ Personal Electron desktop app for working with Claude Code.
 1. It works in the app (drive it; don't stop at tests).
 2. The screen's section in `docs/SPEC.md` describes it as built (behaviour, not history; the why goes in `decisions.md`).
 3. Its screenshots are retaken: `pnpm snap <shot…>` (names are the files in `docs/design/current/`), or `pnpm snap` for all. Then refresh the canvas's CURRENT board: publish the new PNGs as `project/current/<name>.png` (re-read the live `project/canvas.json` first; other sessions add boards).
-4. All three land in the same commit. The commit-msg hook (`scripts/docs-check.mjs`) rejects a `src/` change without docs; put `[no-docs]` in the message only when nothing visible or behavioural changed.
+4. All three land in the same commit. The commit-msg hook (`scripts/docs-check.mjs`) rejects a `src/` change unless the SPEC sections whose `Code:` line lists those files are updated too (screenshots alone don't count); it names the sections. A new file goes on the `Code:` line of the section it belongs to. Put `[no-docs]` in the message only when nothing visible or behavioural changed.
 
 Other sessions may be working in this repo at the same time: pull before starting, re-read the screen's SPEC section and screenshot before designing, and don't revert docs another session updated.
 

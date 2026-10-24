@@ -66,6 +66,8 @@ Shared (pure, tested)    src/shared: tasks, git, links, marks, runpr, pane, memo
 
 - **Packaging.** `pnpm install-app`: electron-builder `--mac dir`, copied to `/Applications/Workbench.app`. Unsigned, no auto-update; rebuild after pulling.
 
+Code (plumbing that every screen rests on): `src/main/index.ts`, `claude.ts`, `hooks-install.ts`, `signal-server.ts`, `state.ts`, `shell-env.ts`, `notify.ts`, `src/main/store/`, `src/main/productive/client.ts`, `src/main/github.ts`, `src/shared/types.ts`, `src/renderer/src/store.ts`, `src/renderer/src/main.tsx`, `src/renderer/index.html`, `env.d.ts`, `Box.tsx`, `xterm-theme.ts`.
+
 ## Visual style
 
 Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
@@ -115,7 +117,7 @@ Image: `docs/design/current/palette.png`. Code: `Palette.tsx`.
 
 ## Today › Needs you
 
-Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek), `needs.ts`, `NeedPreview.tsx`.
+Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek), `needs.ts`, `NeedPreview.tsx`, `DraftPanel.tsx`, `src/main/drafts.ts`.
 
 - **Counters** under the TopBar on every Today tab: Needs you, My tasks, My PRs, Reviews, 5h limit. Each has a big number with its breakdown stacked at the right (e.g. `2 PRs · 1 thread · 1 task`, `7 working · 10 in review`, `3 need a reply · 13 drafts`, `N waiting on authors · 11 bot PRs hidden`, `resets 16:00`). The active one (the tab shown) has a larger, glowing number and a near-white outline; switching eases over 0.25s. Clicking a counter switches tab; 5h isn't a tab.
 - **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), and overdue tasks. Each row: kind, ref, text, detail, and `zz`.
@@ -286,7 +288,7 @@ Image: `docs/design/current/workstream.png`. Code: `WorkstreamView.tsx`, `src/ma
 
 ## Local
 
-Image: `docs/design/current/local.png`. Code: `LocalView.tsx`, `Panes.tsx`, `WorktreeSwitcher.tsx`, `src/main/local/`.
+Image: `docs/design/current/local.png`. Code: `LocalView.tsx`, `Panes.tsx`, `WorktreeSwitcher.tsx`, `src/main/local/`, `panes.ts`, `ports.ts`, `src/shared/local.ts`.
 
 - **Config** (`services.json` in the data folder, seeded from `prd`): app (`pnpm start`, port 4201, 2 panes), api (`bundle exec sidekiq`), e2e-tests (`npm run cli`), exporter, pdf-generator, pdf-viewer (`npm run start`), AI (`DEV_API_ENV=production pnpm start` in `ai-agent`). Profiles: prd · full, Frontend only, AI work, Exports & PDF.
 - Header: profile switch, **Stop all**, **Start missing (n)**. A Run PR job shows inline here while it runs.
@@ -297,7 +299,7 @@ Image: `docs/design/current/local.png`. Code: `LocalView.tsx`, `Panes.tsx`, `Wor
 
 ## Run PR in app
 
-Image: chip in the StatusBar of `session.png`. Code: `RunPr.tsx`, `src/main/focus-pr.ts`, `src/main/local/run-pr.ts`, `src/shared/runpr.ts`.
+Image: chip in the StatusBar of `session.png`. Code: `RunPr.tsx`, `src/main/focus-pr.ts`, `src/main/local/run-pr.ts`, `src/shared/runpr.ts`, `src/main/github/fe-pr.ts`.
 
 - **Focus PR** per session from signals: its cwd is a frontend worktree on a PR's branch, or a frontend PR URL / `#n` in its prompts or output (strongest, newest wins); then a PR of its task, or a `gh pr view/checkout/diff <n>` it ran.
 - **Chip:** "App · <branch> → Session · fe #n ▶ Run" on a mismatch; "Switching app to fe #n · step i of n" with a bar while running; "✓ App on fe #n · <url>" when they match; "Run fe #n failed · details"; ↩ Back after a base-checkout run.

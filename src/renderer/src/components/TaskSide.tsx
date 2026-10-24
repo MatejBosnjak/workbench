@@ -126,7 +126,7 @@ export function PrSide({ session }: { session: Session }) {
           ))}
         </div>
       )}
-      {prs.length === 0 ? <span className="faint">No PR for this session.</span> : <GitPane active onClose={() => setSessionSide(null)} />}
+      {prs.length === 0 ? <span className="faint">No PR for this session.</span> : <GitPane active side onClose={() => setSessionSide(null)} />}
     </aside>
   )
 }

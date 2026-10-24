@@ -78,6 +78,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Theme **Dusk** only (muted synthwave on graphite, purple accent). Colours are CSS tokens.
 - **Status colours.** Productive's 17 status colours each map to a bright stand-in (`statusVivid`) for marks, labels, the strip and chips; Productive's own pastel pairs (`statusColors`) stay for tag-style badges such as the status button.
 - Shortcuts are never printed in the UI except in the ⌨ popover and tooltips.
+- Sidebars share one frame: 18px/14px padding and a box with its title set into the top border and its tools at the right (task sidebar, PR sidebar).
 - Buttons in one bar share its height (the session bar's are all 28px, `+ new ✻` included).
 - A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
 
@@ -252,7 +253,7 @@ Image: `docs/design/current/session-task-side.png`. Code: `TaskSide.tsx` (TaskSi
 
 Image: `docs/design/current/session-pr-side.png`. Code: `TaskSide.tsx` (PrSide), `GitPane.tsx`.
 
-- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. × closes the sidebar.
+- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. Framed like the task sidebar: a box with the PR's ref, state and CI set into its top border and the tools (‹ › browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
 - **Per session:** each session remembers its own sidebar (task, PR or none; `ui:sessionSides`), closed until opened. The PR sidebar shows only while the session has a PR; ⌘⇧I does nothing without one.
 - **Width (both sidebars):** drag the left edge to resize (←/→ when it has focus); double-click resets to the default. Each sidebar remembers its width (`ui:sideWidths`), never narrower than 320px or leaving the terminal less than 360px. The GitHub pane waits behind a still while dragging.
 

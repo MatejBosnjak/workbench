@@ -912,9 +912,14 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .main.side-full > .term { visibility: hidden; }
 .pr-side { position: absolute; top: 0; right: 0; bottom: 0; width: var(--side-w); display: flex; flex-direction: column; border-left: 1px solid var(--line-heavy); background: var(--bg); }
 .main.side-full > .pr-side { width: 100%; border-left: 0; }
-.pr-side > .ts-tabs { margin: 8px 10px 0; }
-.pr-side > .faint { padding: 18px 14px; }
 .pr-side > .gp, .pr-side > .gp-empty { flex: 1; min-height: 0; height: auto; }
+/* In a session's sidebar the pane is framed like the task sidebar: facts set into the top border, tools at its right. */
+.pr-side { padding: 18px 14px 14px; box-sizing: border-box; }
+.pr-side > .ts-tabs { margin: 0 0 14px; }
+.gp.gp-side { padding: 16px 0 0; }
+.gp-side > .gp-facts { display: flex; align-items: center; gap: 10px; max-width: calc(100% - 300px); }
+.gp-side > .box-aside .gp-tools { margin-left: 0; }
+.gp-side > .gp-note { border-top: 1px solid var(--accent-line); }
 .session-bar { display: flex; align-items: center; gap: 10px; height: 38px; flex-shrink: 0; padding: 0 14px; background: var(--raised); border-bottom: 1px solid var(--line-heavy); white-space: nowrap; }
 .sbar-btn { display: flex; align-items: center; gap: 10px; height: 28px; padding: 0 10px 0 0; min-width: 0; overflow: hidden; border: 1px solid var(--line-heavy); background: transparent; color: var(--text-2); cursor: pointer; }
 .sbar-btn.pad, .sbar-btn:not(:has(.sbar-rail)) { padding-left: 10px; }

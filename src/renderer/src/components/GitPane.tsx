@@ -12,7 +12,17 @@ const CI = { pass: ['CI passing', 'var(--ok)'], fail: ['CI failing', 'var(--bad)
  * The GitHub pane: a strip with the PR's facts and actions, and the area the native GitHub view is laid over.
  * While an overlay is open the view hides and a still of it stands in, so nothing looks different.
  */
-export function GitPane({ active, onClose }: { active: boolean; /** Replaces closing the pane (the session sidebar closes itself instead). */ onClose?(): void }) {
+export function GitPane({
+  active,
+  onClose,
+  side = false,
+}: {
+  active: boolean
+  /** Replaces closing the pane (the session sidebar closes itself instead). */
+  onClose?(): void
+  /** In a session's sidebar: framed like the task sidebar, without the task and session links the session bar already shows. */
+  side?: boolean
+}) {
   const { pane, git, overlays, paneFull, setPaneFull, paneNote, setPaneNote } = useStore(useShallow((s) => ({ pane: s.pane, git: s.git, overlays: s.overlays, paneFull: s.paneFull, setPaneFull: s.setPaneFull, paneNote: s.paneNote, setPaneNote: s.setPaneNote })))
   const area = useRef<HTMLDivElement>(null)
   const [still, setStill] = useState<string | null>(null)
@@ -97,53 +107,75 @@ export function GitPane({ active, onClose }: { active: boolean; /** Replaces clo
   const replies = pr && git ? pr.conversations.filter((c) => c.messages.at(-1)?.author !== git.viewer && git.seen[c.key] !== c.messages.at(-1)?.id).length : 0
   const n = key ? /\/pull\/(\d+)$/.exec(key)?.[1] : null
 
+  const facts = (
+    <>
+      <span className="gp-ref">{pr ? prRef(pr) : key ? `${key.split('/')[4]} #${n}` : (pane?.title ?? '')}</span>
+      {state && <span className={`gp-state st-${state.replace(' ', '-')}`}>{state}</span>}
+      {pr && <span style={{ color: ciColor }}>● {ciText}</span>}
+      {replies > 0 && <span className="gp-reply">{replies} reply needed</span>}
+      {pane?.loading && <span className="faint">loading…</span>}
+    </>
+  )
+  const tools = (
+    <span className="gp-tools">
+      {pr?.repo === FE_REPO && <RunAppButton n={pr.number} compact />}
+      <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>
+        ‹
+      </button>
+      <button className="key-btn" title="Forward (⌘])" disabled={!pane?.canForward} onClick={() => void window.workbench.pane.nav('forward')}>
+        ›
+      </button>
+      <button className="key-btn" title="Open in browser" onClick={() => void window.workbench.pane.nav('external')}>
+        ⌘↩ browser
+      </button>
+      <button className="key-btn" title={paneFull ? 'Back to the split (⌘J)' : 'Full width'} onClick={() => setPaneFull(!paneFull)}>
+        ⤢
+      </button>
+      <button
+        className="key-btn"
+        title="Close"
+        onClick={() => {
+          setPaneFull(false)
+          if (onClose) onClose()
+          else void window.workbench.pane.close()
+        }}
+      >
+        ×
+      </button>
+    </span>
+  )
+  const note = paneNote && (
+    <div className="gp-note">
+      {paneNote}
+      <button className="link-btn" onClick={() => setPaneNote(null)}>
+        dismiss
+      </button>
+    </div>
+  )
+  const areaEl = (
+    <div className="gp-area" ref={area}>
+      {still && covered && <img className="gp-still" src={still} alt="" />}
+    </div>
+  )
+
+  if (side)
+    return (
+      <section className="box gp gp-side">
+        <span className="box-title gp-facts">{facts}</span>
+        <span className="box-aside">{tools}</span>
+        {note}
+        {areaEl}
+      </section>
+    )
   return (
     <div className="gp">
       <div className="gp-strip">
-        <span className="gp-ref">{pr ? prRef(pr) : key ? `${key.split('/')[4]} #${n}` : (pane?.title ?? '')}</span>
-        {state && <span className={`gp-state st-${state.replace(' ', '-')}`}>{state}</span>}
-        {pr && <span style={{ color: ciColor }}>● {ciText}</span>}
-        {replies > 0 && <span className="gp-reply">{replies} reply needed</span>}
-        {pane?.loading && <span className="faint">loading…</span>}
+        {facts}
         {key && <PrLinks pr={pr} prUrl={key} />}
-        <span className="gp-tools">
-          {pr?.repo === FE_REPO && <RunAppButton n={pr.number} compact />}
-          <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>
-            ‹
-          </button>
-          <button className="key-btn" title="Forward (⌘])" disabled={!pane?.canForward} onClick={() => void window.workbench.pane.nav('forward')}>
-            ›
-          </button>
-          <button className="key-btn" title="Open in browser" onClick={() => void window.workbench.pane.nav('external')}>
-            ⌘↩ browser
-          </button>
-          <button className="key-btn" title={paneFull ? 'Back to the split (⌘J)' : 'Full width'} onClick={() => setPaneFull(!paneFull)}>
-            ⤢
-          </button>
-          <button
-            className="key-btn"
-            title="Close"
-            onClick={() => {
-              setPaneFull(false)
-              if (onClose) onClose()
-              else void window.workbench.pane.close()
-            }}
-          >
-            ×
-          </button>
-        </span>
+        {tools}
       </div>
-      {paneNote && (
-        <div className="gp-note">
-          {paneNote}
-          <button className="link-btn" onClick={() => setPaneNote(null)}>
-            dismiss
-          </button>
-        </div>
-      )}
-      <div className="gp-area" ref={area}>
-        {still && covered && <img className="gp-still" src={still} alt="" />}
-      </div>
+      {note}
+      {areaEl}
     </div>
   )
 }

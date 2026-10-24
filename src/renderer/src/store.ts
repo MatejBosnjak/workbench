@@ -7,7 +7,7 @@ import type { PaneState } from '@shared/pane'
 import { prKey } from '@shared/pane'
 import { useEffect } from 'react'
 import { rootOf } from '@shared/workstream'
-import type { CaffeinateState, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
+import type { CaffeinateState, HeldNote, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
 
 export type SessionSide = 'task' | 'pr' | null
 
@@ -82,6 +82,14 @@ interface State {
   paneNote: string | null
   /** Open overlays (palette, popovers, modals); the native pane hides behind a still while any is open. */
   overlays: number
+  /** Focus (⌘F): the screen on view stays; everything pointing elsewhere goes quiet and its notifications are held. */
+  focus: boolean
+  /** Notifications held while focused. */
+  held: number
+  /** What was held, shown once focus ends; null when there's nothing to show. */
+  digest: HeldNote[] | null
+  toggleFocus(): Promise<void>
+  setDigest(d: HeldNote[] | null): void
   /** PRs opened from a link that aren't in My git or My reviews: a temporary "Opened" group. */
   openedPrs: { url: string; title: string }[]
   /** Needs-you items put to sleep: item key → until (ms). Kept in SQLite as ui:snoozed. */
@@ -167,6 +175,16 @@ export const useStore = create<State>((set, get) => ({
   },
   paneNote: null,
   overlays: 0,
+  focus: false,
+  held: 0,
+  digest: null,
+  toggleFocus: async () => {
+    const on = !get().focus
+    set({ focus: on, digest: null })
+    const held = await window.workbench.setFocus(on)
+    if (!on && held.length) set({ digest: held })
+  },
+  setDigest: (digest) => set({ digest }),
   openedPrs: [],
   snoozed: {},
   snooze: (key, until) => {

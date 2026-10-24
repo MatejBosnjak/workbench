@@ -171,6 +171,7 @@ function buildMenu(): void {
           { label: 'Switch or Run…', accelerator: 'CmdOrCtrl+K', click: () => send({ type: 'palette' }) },
           { label: 'Task Sidebar', accelerator: 'CmdOrCtrl+I', click: () => send({ type: 'task-side' }) },
           { label: 'PR Sidebar', accelerator: 'CmdOrCtrl+Shift+I', click: () => send({ type: 'pr-side' }) },
+          { label: 'Focus on This Screen', accelerator: 'CmdOrCtrl+F', click: () => send({ type: 'focus' }) },
           { type: 'separator' },
           { label: 'Next Tab', accelerator: 'CmdOrCtrl+Shift+]', click: () => send({ type: 'cycle-tab', delta: 1 }) },
           { label: 'Previous Tab', accelerator: 'CmdOrCtrl+Shift+[', click: () => send({ type: 'cycle-tab', delta: -1 }) },
@@ -211,6 +212,8 @@ void app.whenReady().then(() => {
     sessionsChanged: () => {
       const list = sessions.list()
       caffeinate.sessionsChanged(list)
+      // The Dock badge counts sessions waiting on you.
+      app.setBadgeCount(list.filter((s) => s.state === 'waiting').length)
       win?.webContents.send('sessions:changed', list)
     },
     statusChanged: () => {
@@ -243,7 +246,8 @@ void app.whenReady().then(() => {
     win.focus()
     win.webContents.send('navigate', t)
   }
-  const notifier = new Notifier(repo, navigate)
+  const notifier = new Notifier(repo, navigate, (n) => win?.webContents.send('focus:held', n))
+  ipcMain.handle('focus:set', (_e, on: boolean) => notifier.setFocus(on))
   const notifySession = (id: string, event: string) => {
     if (event !== 'Notification' && event !== 'Stop') return
     if (win?.isFocused() && viewedSession === id) return

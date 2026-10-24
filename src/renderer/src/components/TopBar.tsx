@@ -3,6 +3,7 @@ import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { CaffeinateButton } from './CaffeinateControl'
 import { Cup } from './Cup'
+import { FocusChip } from './Focus'
 import { MemoryButton } from './Memory'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -23,6 +24,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
     return (caf.scope === 'all' ? s.alive : caf.sessionId === s.id) ? caf.mode : null
   }
   const activeId = activeSessionId(view)
+  const focus = useStore((s) => s.focus)
   const activeSession = view.kind === 'session' ? sessions.find((s) => s.id === activeId) : undefined
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropBefore, setDropBefore] = useState<string | null>(null)
@@ -30,6 +32,8 @@ export function TopBar({ onNew }: { onNew: () => void }) {
   const strip_ = () => strip.current
   const [hidden, setHidden] = useState<string[]>([])
   const [moreOpen, setMoreOpen] = useState(false)
+  // Waiting sessions scrolled out of view: +N says so, so none hides in the overflow.
+  const hiddenWaiting = sessions.filter((s) => hidden.includes(s.id) && s.state === 'waiting').length
   useOverlay(moreOpen)
 
   // Overflow: the strip scrolls sideways (edge hover, wheel); +N counts tabs fully or partly out of view.
@@ -180,8 +184,14 @@ export function TopBar({ onNew }: { onNew: () => void }) {
       </div>
       {hidden.length > 0 && (
         <span className="tab-more-wrap">
-          <button className="seg-btn tab-more" title={`${hidden.length} more session${hidden.length > 1 ? 's' : ''}`} aria-expanded={moreOpen} onClick={() => setMoreOpen(!moreOpen)}>
-            +{hidden.length} <span className="faint">▾</span>
+          <button
+            className={`seg-btn tab-more${hiddenWaiting ? ' waiting' : ''}`}
+            title={`${hidden.length} more session${hidden.length > 1 ? 's' : ''}${hiddenWaiting ? `, ${hiddenWaiting} waiting for you` : ''}`}
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen(!moreOpen)}
+          >
+            +{hidden.length}
+            {hiddenWaiting > 0 && <span className="tab-more-wait">●{hiddenWaiting}</span>} <span className="faint">▾</span>
           </button>
           {moreOpen && (
             <div className="tab-menu" role="menu">
@@ -210,6 +220,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
         +
       </button>
 
+      {focus && <FocusChip />}
       <span className="tb-right">
         <CaffeinateButton />
         <button className="seg-btn kbar" title="Switch or run (⌘K)" onClick={() => useStore.getState().setPalette(true)}>

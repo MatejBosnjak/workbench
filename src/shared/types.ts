@@ -114,9 +114,19 @@ export type MenuCommand =
   | { type: 'task-side' }
   | { type: 'pr-side' }
   | { type: 'mark-step'; delta: 1 | -1 }
+  | { type: 'focus' }
 
 /** Where a notification click (or an in-app PR link) takes you. */
 export type NavigateTarget = { kind: 'session'; id: string } | { kind: 'git' | 'reviews'; prId: string | null }
+
+/** A notification held back while focus (⌘F) was on, shown when it ends. */
+export interface HeldNote {
+  kind: 'waiting' | 'finished' | 'github'
+  title: string
+  body: string
+  at: number
+  target: NavigateTarget
+}
 
 export interface WorkbenchApi {
   listSessions(): Promise<Session[]>
@@ -242,6 +252,10 @@ export interface WorkbenchApi {
   onNavigate(cb: (t: NavigateTarget) => void): () => void
   /** Tells main which session is on screen, so its notifications can be skipped. */
   reportView(sessionId: string | null): void
+  /** Focus (⌘F): while on, notifications are held instead of shown. Turning it off returns what was held. */
+  setFocus(on: boolean): Promise<HeldNote[]>
+  /** How many notifications focus is holding, on each change. */
+  onHeld(cb: (n: number) => void): () => void
   local: {
     snapshot(): Promise<LocalSnapshot>
     onChanged(cb: (s: LocalSnapshot) => void): () => void

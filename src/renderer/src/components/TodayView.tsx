@@ -64,14 +64,13 @@ export function taskFePr(task: Pick<Task, 'id'>, git: GitSnapshot | null): numbe
 }
 
 export const TodayView = memo(function TodayView({ snapshot, git, active }: { snapshot: TasksSnapshot | null; git: GitSnapshot | null; active: boolean }) {
-  // Only the 5h limit from status: the rest changes on every statusline tick and would re-render all of Today.
+  // Nothing from status: it changes on every statusline tick and would re-render all of Today.
   const {
     todayTab: tab,
     setTodayTab,
     draft,
-    fiveRaw,
     paneFull,
-  } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, fiveRaw: s.status.usage?.fiveHour, paneFull: s.paneFull })))
+  } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, paneFull: s.paneFull })))
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 60_000)
@@ -95,8 +94,6 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
   const drafts = git?.mine.filter((p) => p.draft).length ?? 0
   const bots = git?.reviews.filter((p) => p.authorBot).length ?? 0
   const asked = git?.reviews.filter((p) => p.requested === false && !p.authorBot).length ?? 0
-  const five = fiveRaw && (!fiveRaw.resetsAt || fiveRaw.resetsAt * 1000 > Date.now()) ? fiveRaw : null
-  const resets = five?.resetsAt ? new Date(five.resetsAt * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : null
 
   const counters: { id: string; title: string; value: string; unit?: string; note: string; tone?: string; to?: TodayTab }[] = [
     {
@@ -116,14 +113,6 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
       value: git?.fetchedAt ? String(git.reviews.filter((p) => p.requested !== false && !p.authorBot).length) : '—',
       note: [asked && `${asked} waiting on authors`, `${bots} bot PRs hidden`].filter(Boolean).join(' · '),
       to: 'reviews',
-    },
-    {
-      id: 'five',
-      title: '5h limit',
-      value: five ? String(Math.round(five.pct)) : '—',
-      unit: five ? '%' : undefined,
-      note: resets ? `resets ${resets}` : 'no data yet',
-      tone: five ? (five.pct >= 80 ? 'var(--bad)' : five.pct >= 50 ? 'var(--warn)' : 'var(--ok)') : undefined,
     },
   ]
 
@@ -150,7 +139,7 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
         <div className="counters">
           {counters.map((c) => (
             // Active = the counter whose view is shown.
-            <button key={c.id} className={`counter${c.to === tab ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
+            <button key={c.id} className={`counter${c.id === 'needs' ? ` lead${needs.length ? ' hot' : ''}` : ''}${c.to === tab ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
               <span className="box-title">{c.title}</span>
               <span className="counter-value" style={c.tone ? ({ color: c.tone, '--glow': c.tone } as CSSProperties) : undefined}>
                 {c.value}

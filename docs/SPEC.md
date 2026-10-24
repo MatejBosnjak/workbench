@@ -72,8 +72,9 @@ Code (plumbing that every screen rests on): `src/main/index.ts`, `claude.ts`, `h
 
 Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 
-- TUI look: JetBrains Mono 12.5px with tabular numbers; 1px square boxes with the title set into the top border; the active box's border and title in the accent.
-- Selected rows are filled with the accent, text in `--on-accent`.
+- TUI look: JetBrains Mono 12.5px with tabular numbers; 1px square boxes with the title set into the top border; the box holding the selection gets a lighter border and title.
+- **Violet means "needs you".** The accent marks waiting sessions (tab, +N count, status-bar dot, row marks, question bookmarks), the Needs-you number, primary actions and the ▌wb mark. Selection and "current" never use it: selected rows, the current place and tab, picked chips and the open sidebar's button are raised with a light outline or bar, and keep their own colours. Amber isn't an attention colour either; it's Productive's Working status, effort, and meter warnings.
+- **Still at rest.** Nothing loops; glow is kept for a waiting tab and the Needs-you number. Plain ground behind lists and the terminal.
 - Theme **Dusk** only (muted synthwave on graphite, purple accent). Colours are CSS tokens.
 - **Status colours.** Productive's 17 status colours each map to a bright stand-in (`statusVivid`) for marks, labels, the strip and chips; Productive's own pastel pairs (`statusColors`) stay for tag-style badges such as the status button.
 - Shortcuts are never printed in the UI except in the ⌨ popover and tooltips.
@@ -83,12 +84,13 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 
 Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear in every image. Code: `TopBar.tsx`, `StatusBar.tsx`, `keys.ts`, `App.tsx`.
 
-- **TopBar** (56px, chrome background, 2px accent line below): `▌wb` memory button, places `1 Today` and `2 Local up/n`, a temporary workstream place when one is open (× closes it), a divider, session tabs `3…n`, `+` new session, then the caffeinate cup and ⌘K.
-  - The current place or tab is filled/outlined in the accent.
-  - **Session tabs** carry their state as a bar along the bottom edge: 2px at 45% on other tabs, 3px full on the current one. The current tab is a purple-tinted box, outlined top/left/right, with a 2px accent top line. A waiting tab that isn't current shows only the muted purple bar.
+- **TopBar** (56px, chrome background, a 1px line below): `▌wb` memory button, places `1 Today` and `2 Local up/n`, a temporary workstream place when one is open (× closes it), a divider, session tabs `3…n`, `+` new session, then the caffeinate cup and ⌘K.
+  - The current place or tab is raised and outlined in grey.
+  - **Session tabs** carry their state as a bar along the bottom edge: 2px at 45% on other tabs, 3px full on the current one. The current tab is a raised box outlined in grey on three sides. A waiting tab that isn't current gets a full violet bar, a violet border and the bar's only glow.
   - Tabs: double-click renames (a manual name sticks over claude's terminal title; clearing it unlocks), drag to reorder, middle-click closes, hover shows state, title and cwd. Caffeinated tabs show the cup at 13px.
   - **Overflow:** tabs never wrap or shrink; the strip scrolls sideways with no scrollbar. Hovering within 56px of an edge scrolls that way (faster nearer the edge; the cursor shows the direction only while there's more), the vertical wheel scrolls it, edges fade while tabs hide beyond them, and a `+N ▾` menu lists tabs out of view. The current tab always scrolls fully into view.
-- **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot, name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks or the statusline aren't installed (click installs); then the meters and the picker.
+  - **+N** counts tabs out of view and, when any of them waits on you, adds a violet `●k` and a violet underline, so a waiting session never hides in the overflow.
+- **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot (same colours as its tab), name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks or the statusline aren't installed (click installs); then the meters and the picker.
   - **ctx** (green, full-strength gradient; amber ≥ 60% with a `/compact` button that runs it, red ≥ 75%), **5h** (purple, `↻HH:MM` reset), **wk** (blue). 48px bars; the gradient's strength ranks them. Until a first value arrives the track shows a faint sweep and the value reads `—`. Hover shows the full text.
 - **Keys** (only when no terminal or text field has focus):
 
@@ -107,7 +109,7 @@ Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear
   | m | mark the selected PR's replies seen (My PRs) |
   | ? | shortcuts popover |
 
-  ⌘ shortcuts (menu): ⌘T new session, ⇧⌘T new session in folder…, ⌘W close tab, ⌘K switch or run, ⌘I task sidebar, ⇧⌘I PR sidebar, ⇧⌘[ / ⇧⌘] previous / next tab, ⌘[ / ⌘] previous / next bookmark, ⌘1–9 places and tabs.
+  ⌘ shortcuts (menu): ⌘T new session, ⇧⌘T new session in folder…, ⌘W close tab, ⌘K switch or run, ⌘I task sidebar, ⇧⌘I PR sidebar, ⌘F focus, ⇧⌘[ / ⇧⌘] previous / next tab, ⌘[ / ⌘] previous / next bookmark, ⌘1–9 places and tabs.
 
 ## ⌘K palette
 
@@ -116,18 +118,27 @@ Image: `docs/design/current/palette.png`. Code: `Palette.tsx`.
 - Groups: Sessions, Recently closed, Actions (new session, new session in folder…). Typing also searches Workstreams, Tasks and PRs (mine and reviews, bots excluded); every query word must match.
 - `/command` runs a slash command in the current running session. `/model` and `/effort` are refused there (they rewrite the global defaults); the picker covers them.
 
+## Focus (⌘F)
+
+Code: `Focus.tsx`, `notify.ts`, `store.ts`, `keys.ts`, `styles.css`.
+
+- **This screen only.** The screen on view stays as it is (a session keeps its terminal, session bar and sidebar; Today the list and its card). Everything that points elsewhere fades to 20% grey: the TopBar's places, tabs, +N, cup and ⌘K, the status bar except the session cell, and Today's other counters. Resting the pointer on a faded part brings it back.
+- A **focus** chip in the TopBar: `focus · this screen only · N held · ⌘F to leave`; clicking it leaves.
+- **Held:** while focused, main holds every notification instead of showing it, including finished turns, and counts them in the chip.
+- **Leaving** (⌘F, the chip, or Esc when no terminal or text field has focus; Esc in a terminal stays claude's) shows **While you were focused**: what was held, waiting sessions first, then GitHub, then finished turns, newest first within each. A row opens its tab or PR; ⏎ goes to the top one, esc stays. Nothing held: no list.
+
 ## Today › Needs you
 
 Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek), `needs.ts`, `NeedPreview.tsx`, `DraftPanel.tsx`, `src/main/drafts.ts`.
 
-- **Counters** under the TopBar on every Today tab: Needs you, My tasks, My PRs, Reviews, 5h limit. Each has a big number with its breakdown stacked at the right (e.g. `2 PRs · 1 thread · 1 task`, `7 working · 10 in review`, `3 need a reply · 13 drafts`, `N waiting on authors · 11 bot PRs hidden`, `resets 16:00`). The active one (the tab shown) has a larger, glowing number and a near-white outline; switching eases over 0.25s. Clicking a counter switches tab; 5h isn't a tab.
+- **Counters** under the TopBar on every Today tab: Needs you, My tasks, My PRs, Reviews (the 5h limit lives in the status bar). Each has a big number with its breakdown stacked at the right (e.g. `2 PRs · 1 thread · 1 task`, `7 working · 10 in review`, `3 need a reply · 13 drafts`, `N waiting on authors · 11 bot PRs hidden`). Needs you leads: wider, a 52px number, violet, glowing while anything waits; the others are 28px. The active one (the tab shown) gets a near-white outline. Clicking a counter switches tab.
 - **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), and overdue tasks. Each row: kind, ref, text, detail, and `zz`.
   - `zz` / `z` sleeps an item until tomorrow 08:00; it wakes sooner if the item changes (a new message, push or due date). Sleeping items sit in a **Sleeping** box with "wake".
   - **Threads** box: up to six reply-needed conversations with the last message quoted; more link to My PRs.
 - **Needs reply:** a conversation (an unresolved review thread, or the PR's own conversation of comments plus review bodies) whose last message isn't mine and isn't marked seen. Bots and bare approvals don't count.
 - Click or ⏎ shows the item in the right sidebar; ⏎ again or a double-click opens it (a PR in the GitHub pane at its last message; a task into its session).
 - **PR card** (sidebar): kind, ref with CI, title, branch, updated, the PR's task chips and best session (or `+ new ✻`), the latest message; ⏎ open, **draft reply with Claude**, ▶ Run app (frontend), sleep, open in browser.
-- **Notifications** (native): a new reply or comment on my PR, changes requested, CI failed (not on drafts), a new review request, and a session waiting or finished (skipped while that tab is on screen and the window focused). Each opens its row or tab. The first poll only records what's there; more than four at once become one summary.
+- **Notifications** (native), in tiers. A session **waiting** on you: banner with sound (skipped while that tab is on screen and the window focused). GitHub, already only what's for me (a new reply or comment on my PR, changes requested, CI failed not on drafts, a new review request): banner without sound, except a review request. A session **finishing** its turn: no banner; its tab shows it. Each opens its row or tab. The first poll only records what's there; more than four at once become one summary. The Dock badge counts sessions waiting on you. While focus is on, all of them are held (see Focus).
 
 ## Today › My tasks
 
@@ -140,7 +151,7 @@ Image: `docs/design/current/today-tasks.png`. Code: `TodayView.tsx` (Home, TaskS
 - **Group by status:** one box per status in strip order, titled in its colour; rows flat in project order.
 - **Rows** (quiet, hairline-separated, no tint):
   - tree lines from parent to children (a continuous guide per level, `├` / `└` joints);
-  - a glowing status dot in the status colour (a ring for not started, a diamond for a milestone);
+  - a status dot in the status colour (a ring for not started, a diamond for a milestone);
   - the title exactly as in Productive; a parent is bold with its child count; a subtask shown without its parent names it in faint text;
   - the status name in its colour, due date (red when late), and the best session's mark plus count, or `+ ✻` on hover/selection to start one;
   - a context header (hollow diamond) for a parent that isn't mine ("not assigned to you") or is filtered out; click opens its workstream.
@@ -223,7 +234,7 @@ Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, 
 
 Image: `docs/design/current/session.png` (rail), `docs/design/current/session-legend.png`. Code: `Marks.tsx`, `src/shared/marks.ts`, `src/main/marks.ts`.
 
-- A 16px rail at the terminal's right edge with one mark per **prompt** (violet circle), **Subagent result** (teal diamond) and **question for you** (orange triangle), each glowing, placed at its position in the scrollback.
+- A 16px rail at the terminal's right edge with one mark per **prompt** (violet circle), **Subagent result** (teal diamond) and **question for you** (violet triangle: it's waiting on you), each glowing, placed at its position in the scrollback.
 - Marks come from the transcript (read incrementally by offset; refetched every 2s while output flows) and are matched to the terminal buffer (`❯` prompts, `⏺` results, `⎿ ·` questions), newest first.
 - Hover or focus shows the text, kind and time. Click jumps there with a short soft scroll and briefly outlines the line, then hands focus back to the terminal. ⌘[ / ⌘] step to the previous / next mark; arrows, Home and End move within the rail.
 - `+N` at the top counts marks older than the scrollback (tooltip lists them). `?` at the foot opens the legend (Esc or click outside closes). Below 28rem width the rail hides; ⌘[ / ⌘] still work.
@@ -265,7 +276,7 @@ Image: `docs/design/current/picker.png`. Code: `Picker.tsx`, `src/shared/agent.t
 
 Image: `docs/design/current/caffeinate.png`. Code: `CaffeinateControl.tsx`, `Cup.tsx`, `src/main/caffeinate.ts`, `amphetamine.ts`.
 
-- A 44px espresso cup in the TopBar: empty grey (Off), coffee with animated steam and a coffee glow (Awake), plus a cyan shut-laptop badge and glow (Lid closed). Steam stops with Reduce Motion.
+- A 44px espresso cup in the TopBar: empty grey (Off), coffee with steam that plays twice when turned on and then rests, on a coffee-tinted button (Awake), plus a cyan shut-laptop badge (Lid closed). Tabs show the cup without steam. No steam with Reduce Motion.
 - Click or `c` opens the popover: Off / Awake / Lid closed (`o` / `a` / `l`), each with a note, and **applies to: this session / all**. Esc closes.
 - **Awake:** `powerSaveBlocker('prevent-app-suspension')`; turns itself off when the scoped sessions stop.
 - **Lid closed:** on AC power, via Amphetamine's AppleScript (`start new session` indefinite + `enable closed display mode`; `end session` only for a session Workbench started, remembered across crashes; asks before replacing one it didn't start). Needs Amphetamine's Power Protect helper; otherwise unavailable with the reason shown. Without Amphetamine, available only in clamshell mode (AC + external display) via `caffeinate -s`. Unplugging falls back to Awake with a notification.

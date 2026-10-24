@@ -104,6 +104,8 @@ const api: WorkbenchApi = {
   forkSession: (id) => ipcRenderer.invoke('sessions:fork', id),
   onNavigate: (cb) => on('navigate', (_e, t: NavigateTarget) => cb(t)),
   reportView: (sessionId) => ipcRenderer.send('ui:view', sessionId),
+  setFocus: (on) => ipcRenderer.invoke('focus:set', on),
+  onHeld: (cb) => on('focus:held', (_e, n: number) => cb(n)),
   local: {
     snapshot: () => ipcRenderer.invoke('local:snapshot'),
     onChanged: (cb) => on('local:changed', (_e, s: LocalSnapshot) => cb(s)),

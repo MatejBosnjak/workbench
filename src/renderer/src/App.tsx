@@ -7,6 +7,7 @@ import { TodayView } from './components/TodayView'
 import { WorkstreamView } from './components/WorkstreamView'
 import { DirtyGuardModal } from './components/RunPr'
 import { Palette } from './components/Palette'
+import { FocusDigest } from './components/Focus'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
@@ -51,6 +52,8 @@ function onMenu(cmd: MenuCommand): void {
       return useStore.getState().toggleSessionSide('pr')
     case 'mark-step':
       return stepMarks(cmd.delta)
+    case 'focus':
+      return void useStore.getState().toggleFocus()
     case 'palette':
       return useStore.getState().setPalette(!useStore.getState().paletteOpen)
     case 'cycle-tab': {
@@ -80,11 +83,13 @@ export function App() {
     const offRun = window.workbench.runpr.onChanged(setRunpr)
     // ⌘J inside the GitHub pane: back to the list, out of full width.
     const offList = window.workbench.pane.onList(() => useStore.getState().setPaneFull(false))
+    const offHeld = window.workbench.onHeld((held) => useStore.setState({ held }))
     return () => {
       offGit()
       offNav()
       offRun()
       offList()
+      offHeld()
     }
   }, [])
   useEffect(() => window.workbench.reportView(activeSessionId(view)), [view])
@@ -133,12 +138,13 @@ export function App() {
   const active = sessions.find((s) => s.id === activeId)
   const sessionSide = useStore((s) => s.sessionSide)
   const paneFull = useStore((s) => s.paneFull)
+  const focus = useStore((s) => s.focus)
   const side = view.kind === 'session' && !!active && !active.external ? sessionSide : null
   const sideWidth = useStore((s) => (side ? s.sideWidths[side] : undefined))
   const full = side === 'pr' && paneFull
 
   return (
-    <div className="app">
+    <div className={`app${focus ? ' focus' : ''}`}>
       <TopBar onNew={() => void newSession()} />
       {view.kind === 'session' && active && !active.external && <SessionBar session={active} />}
       <main className={`main${side ? ` with-side side-${side}${full ? ' side-full' : ''}` : ''}`} style={sideWidth ? ({ '--side-w': `min(${sideWidth}px, calc(100% - 360px))` } as CSSProperties) : undefined}>
@@ -160,6 +166,7 @@ export function App() {
         <Picker />
       </StatusBar>
       <DirtyGuardModal />
+      <FocusDigest />
       {paletteOpen && <Palette onNew={(pick) => void newSession(pick)} />}
     </div>
   )

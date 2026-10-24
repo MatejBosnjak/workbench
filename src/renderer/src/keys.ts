@@ -53,6 +53,8 @@ export function installKeys(newSession: () => void): () => void {
     if (st.paletteOpen || st.runGuard || st.cafOpen) return
     if (e.key === 'Escape') {
       if (st.keysOpen) st.setKeysOpen(false)
+      // Esc in a terminal belongs to claude; elsewhere it leaves focus.
+      else if (st.focus && !typing(document.activeElement)) void st.toggleFocus()
       return
     }
     if (typing(document.activeElement)) return

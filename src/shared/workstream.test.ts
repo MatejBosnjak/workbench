@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rootOf, slug, subtree, timeline, treeOrder, type WsPr, type WsTask } from './workstream'
+import { itemRepos, repoFromTitle, rootOf, slug, subtree, timeline, treeOrder, type WsPr, type WsTask } from './workstream'
 
 const t = (id: string, parentId: string | null, p: Partial<WsTask> = {}): WsTask => ({
   id,
@@ -77,5 +77,30 @@ describe('slug', () => {
   it('makes a short ascii name from a task title', () => {
     expect(slug('FE: Service markup in fixed amount — rate cards (Add from rate card)')).toBe('service-markup-fixed-amount-rate-cards')
     expect(slug('Scenarios: različita marža u pregledu')).toBe('scenarios-razlicita-marza-pregledu')
+  })
+})
+
+describe('repoFromTitle', () => {
+  it('reads the prefix, and nothing without one', () => {
+    expect(repoFromTitle('FE: Sharing link')).toBe('frontend')
+    expect(repoFromTitle('[BE] Public reject API')).toBe('api')
+    expect(repoFromTitle('E2E: proposals')).toBe('e2e-tests')
+    expect(repoFromTitle('PM: confirm email')).toBeNull()
+    expect(repoFromTitle('Proposals v2')).toBeNull()
+  })
+})
+
+describe('itemRepos', () => {
+  const ghPr = (repoName: string, taskIds: string[]) => ({ repoName, taskIds }) as WsPr
+  const ws = {
+    rootId: 'M',
+    tasks: [t('M', null, { title: 'Proposals v2' }), t('A', 'M', { title: 'BE: Reject API' }), t('A1', 'A', { title: 'Reject email' }), t('B', 'M', { title: 'Copy review' }), t('C', 'M', { title: 'FE: Sharing link' })],
+    prs: [ghPr('frontend', ['C']), ghPr('ai-agent', ['C']), ghPr('specs', ['M'])],
+  }
+  it("uses a PR's own repo, the task's PRs, then the title prefix up the tree, never the root's PRs", () => {
+    expect(itemRepos({ kind: 'pr', at: 0, taskId: 'C', pr: ghPr('api', ['C']), what: 'opened' }, ws)).toEqual(['api'])
+    expect(itemRepos({ kind: 'session', at: 0, taskId: 'C', sessionId: 's' }, ws)).toEqual(['frontend', 'ai-agent'])
+    expect(itemRepos({ kind: 'task', at: 0, taskId: 'A1', text: '', chip: 'TASK' }, ws)).toEqual(['api'])
+    expect(itemRepos({ kind: 'task', at: 0, taskId: 'B', text: '', chip: 'TASK' }, ws)).toEqual([])
   })
 })

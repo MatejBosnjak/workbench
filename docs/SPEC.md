@@ -77,6 +77,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Theme **Dusk** only (muted synthwave on graphite, purple accent). Colours are CSS tokens.
 - **Status colours.** Productive's 17 status colours each map to a bright stand-in (`statusVivid`) for marks, labels, the strip and chips; Productive's own pastel pairs (`statusColors`) stay for tag-style badges such as the status button.
 - Shortcuts are never printed in the UI except in the ⌨ popover and tooltips.
+- A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
 
 ## Shell: TopBar, StatusBar, keys
 
@@ -283,7 +284,7 @@ Image: `docs/design/current/workstream.png`. Code: `WorkstreamView.tsx`, `src/ma
 
 - One screen per milestone or parent task, opened from a task's parent, a context header, or ⌘K; it shows as a temporary TopBar place until closed.
 - Loaded on open and Refresh, never polled: the Productive tree (root plus 3 levels, including others' and closed subtasks) and history; PRs from a GitHub search in productiveio for the tree's task ids (rollup PRs mentioning many tasks are skipped unless their branch names the task); transcript line counts and durations.
-- Header: title, status, **Post update to task** (Productive comment draft with confirm), **Resume last session**. Tabs: **Timeline** (sessions, PR events, task events in time order, filterable by subtask), **Sessions · N** (Open tab / Resume, Fork with context), **PRs · N**, **Notes** (local).
+- Header: title, status, **Post update to task** (Productive comment draft with confirm), **Resume last session**. Tabs: **Timeline** (sessions, PR events, task events in time order; opens at the newest end). A sticky **Show** row filters it by repo: All, then each repo with its count, most first, and **other** for items no repo can be told for. A PR event counts for its own repo; a session or task event for the repos of its task's PRs, else the repo its title prefix names (FE: frontend, BE: api, AI: ai-agent, E/E2E: e2e-tests, Dev/Spec: specs), else its nearest parent's; the root's own PRs don't count, since a milestone's span every repo, **Sessions · N** (Open tab / Resume, Fork with context), **PRs · N**, **Notes** (local).
 - Side: **Structure** tree with status, PR, worktree and session chips; every row ends with the assignee's avatar (mine ringed violet, unassigned a dashed ring); closed subtasks folded behind "show N closed". **Start work** per open subtask of mine: switch to its running session, or start one in its worktree; without one, pick a repo and Workbench creates `feature/<taskId>-<slug>` in `<worktrees>/<repo>-<taskId>-<slug>` from `origin/<default>` after a confirm showing the commands (or "No worktree · default folder"). **Where I left off** with Summarize latest.
 
 ## Local

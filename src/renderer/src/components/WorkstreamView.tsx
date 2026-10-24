@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { TaskLink } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import type { TimelineItem, Workstream, WsLink, WsPr, WsTask } from '@shared/workstream'
-import { subtree, timeline } from '@shared/workstream'
+import { itemRepos, repoFromTitle, timeline } from '@shared/workstream'
 import { shortRepo } from '@shared/git'
 import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
@@ -28,10 +28,9 @@ function when(ms: number): string {
   return `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}\n${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
 }
 
-/** A repo guess for a new worktree from the title's prefix (FE:, BE:, AI: …). */
+/** A repo guess for a new worktree from the title's prefix (FE:, BE:, AI: …); frontend when it names none. */
 function guessRepo(title: string, repos: string[]): string | null {
-  const m = /^\s*\[?(fe|be|ai|e|e2e|dev|spec)\]?\s*[:\]]/i.exec(title)?.[1]?.toLowerCase()
-  const want = { fe: 'frontend', be: 'api', ai: 'ai-agent', e: 'e2e-tests', e2e: 'e2e-tests', spec: 'specs', dev: 'specs' }[m ?? ''] ?? 'frontend'
+  const want = repoFromTitle(title) ?? 'frontend'
   return repos.includes(want) ? want : (repos[0] ?? null)
 }
 
@@ -39,7 +38,8 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
   const { sessions, tasks: snap, draft, setDraft, show, setTodayTab, setPeekTask } = useStore(useShallow((s) => ({ sessions: s.sessions, tasks: s.tasks, draft: s.draft, setDraft: s.setDraft, show: s.show, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })))
   const [ws, setWs] = useState<Workstream | null>(null)
   const [tab, setTab] = useState<Tab>('timeline')
-  const [scope, setScope] = useState('all')
+  /** Timeline filter: 'all', a repo name, or 'other' for items no repo can be told for. */
+  const [repo, setRepo] = useState('all')
 
   useEffect(() => {
     void window.workbench.ws.open(rootId).then(setWs)
@@ -72,10 +72,12 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
   const latest = [...links].sort((a, b) => (liveById.get(b.sessionId)?.lastEventAt ?? b.session.lastEventAt) - (liveById.get(a.sessionId)?.lastEventAt ?? a.session.lastEventAt))
   const sessionIds = [...new Set(latest.map((l) => l.sessionId))]
 
-  // Scope chips: the root's direct subtasks that have any work on them.
-  const scopes = (ws?.tasks ?? []).filter((t) => t.depth === 1 && (sessionsOf(t.id).length || prsOf(t.id).length || (t.mine && !t.closed)))
-  const inScope = scope === 'all' || !ws ? null : subtree(ws, scope)
-  const shown = items.filter((i) => !inScope || inScope.has(i.taskId))
+  // Repo chips, most items first; an item can count for several repos (a task with PRs in two).
+  const reposOf = (i: TimelineItem) => (ws ? itemRepos(i, ws) : [])
+  const counts = new Map<string, number>()
+  for (const i of items) for (const r of reposOf(i).length ? reposOf(i) : ['other']) counts.set(r, (counts.get(r) ?? 0) + 1)
+  const repoChips = [...counts].filter(([r]) => r !== 'other').sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  const shown = repo === 'all' ? items : items.filter((i) => (reposOf(i).length ? reposOf(i).includes(repo) : repo === 'other'))
 
   const open = async (sessionId: string) => {
     if (!liveById.has(sessionId)) await window.workbench.reopenSession(sessionId)
@@ -228,14 +230,19 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
             <>
               <div className="chips">
                 <span className="muted ws-show">Show</span>
-                <button className={`fchip${scope === 'all' ? ' on' : ''}`} onClick={() => setScope('all')}>
-                  Everything
+                <button className={`fchip${repo === 'all' ? ' on' : ''}`} onClick={() => setRepo('all')}>
+                  All <span className="mono">{items.length}</span>
                 </button>
-                {scopes.map((t) => (
-                  <button key={t.id} className={`fchip${scope === t.id ? ' on' : ''}`} title={t.title} onClick={() => setScope(t.id)}>
-                    {t.title.length > 40 ? `${t.title.slice(0, 39)}…` : t.title}
+                {repoChips.map(([r, n]) => (
+                  <button key={r} className={`fchip${repo === r ? ' on' : ''}`} onClick={() => setRepo(r)}>
+                    {r} <span className="mono">{n}</span>
                   </button>
                 ))}
+                {counts.has('other') && repoChips.length > 0 && (
+                  <button className={`fchip${repo === 'other' ? ' on' : ''}`} title="Items whose task has no PR and no FE:/BE:/AI: prefix" onClick={() => setRepo('other')}>
+                    other <span className="mono">{counts.get('other')}</span>
+                  </button>
+                )}
               </div>
               {ws?.fetchedAt === null && ws.loading && <div className="today-empty muted">Loading the workstream from Productive and GitHub…</div>}
               {ws?.fetchedAt !== null && shown.length === 0 && <div className="today-empty muted">Nothing here yet.</div>}
@@ -346,7 +353,7 @@ function Structure({ ws, sessionsOf, prsOf, live, onTask }: { ws: Workstream | n
   const rows = ws.tasks.filter((t) => t.depth === 0 || showClosed || !t.closed)
   return (
     <Box
-      title={`Structure (${ws.tasks.length - 1})`}
+      title={ws.tasks.length ? `Structure (${ws.tasks.length - 1})` : 'Structure'}
       aside={
         closed.length > 0 && (
           <button className="link-btn" onClick={() => setShowClosed(!showClosed)}>

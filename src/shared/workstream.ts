@@ -139,6 +139,31 @@ export function timeline(ws: Pick<Workstream, 'rootId' | 'tasks' | 'prs' | 'acti
   return items.sort((a, b) => a.at - b.at)
 }
 
+const PREFIX_REPO: Record<string, string> = { fe: 'frontend', be: 'api', ai: 'ai-agent', e: 'e2e-tests', e2e: 'e2e-tests', spec: 'specs', dev: 'specs' }
+
+/** The repo a task's title names by its prefix (FE:, BE:, AI:, E2E:, [FE] …), or null. */
+export function repoFromTitle(title: string): string | null {
+  const m = /^\s*\[?(fe|be|ai|e|e2e|dev|spec)\]?\s*[:\]]/i.exec(title)?.[1]?.toLowerCase()
+  return m ? (PREFIX_REPO[m] ?? null) : null
+}
+
+/**
+ * The repos a timeline item belongs to: a PR event's own repo; for a session or task event, the repos of its task's
+ * PRs, else the repo its title prefix names, else the nearest parent's. The root's own PRs don't count (a milestone's
+ * span every repo). Empty when nothing says.
+ */
+export function itemRepos(item: TimelineItem, ws: Pick<Workstream, 'rootId' | 'tasks' | 'prs'>): string[] {
+  if (item.kind === 'pr') return [item.pr.repoName]
+  const byId = new Map(ws.tasks.map((t) => [t.id, t]))
+  for (let t = byId.get(item.taskId); t; t = t.parentId ? byId.get(t.parentId) : undefined) {
+    const prs = t.id === ws.rootId ? [] : [...new Set(ws.prs.filter((p) => p.taskIds.includes(t!.id)).map((p) => p.repoName))]
+    if (prs.length) return prs
+    const named = repoFromTitle(t.title)
+    if (named) return [named]
+  }
+  return []
+}
+
 /** Lowercase ascii words for a branch or folder name. */
 const STOP = new Set(['a', 'an', 'the', 'in', 'on', 'of', 'for', 'and', 'to', 'from', 'with', 'u', 'i', 'za', 'na'])
 

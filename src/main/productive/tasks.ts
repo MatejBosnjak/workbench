@@ -124,6 +124,22 @@ export class TasksPoller {
     }
   }
 
+  private looked = new Map<string, Promise<Task | null>>()
+
+  /** A task by id, for a number seen in a prompt: my list first, else one cached lookup (null if there's no such task). */
+  lookup(taskId: string): Promise<Task | null> {
+    const mine = this.tasks.find((t) => t.id === taskId && !t.context)
+    if (mine) return Promise.resolve(mine)
+    let hit = this.looked.get(taskId)
+    if (!hit) {
+      hit = this.client()
+        .then(({ api, orgSlug }) => api.getOne(`/tasks/${taskId}`, ['include=project,task_list,workflow_status']).then(({ data, included }) => taskMapper(included, orgSlug)(data, false)))
+        .catch(() => null)
+      this.looked.set(taskId, hit)
+    }
+    return hit
+  }
+
   private peopleCache: Person[] | null = null
 
   /** Active users in the org, for tagging; loaded once per run. */

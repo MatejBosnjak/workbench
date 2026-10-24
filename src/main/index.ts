@@ -3,7 +3,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
-import type { DraftTarget, GitSnapshot } from '@shared/git'
+import type { DraftTarget, GitSnapshot, Pr } from '@shared/git'
 import type { Person } from '@shared/tasks'
 import type { HooksStatus, MenuCommand, NavigateTarget } from '@shared/types'
 import { Caffeinate } from './caffeinate'
@@ -28,6 +28,7 @@ import { shellEnv, which } from './shell-env'
 import { startSignalServer, stopSignalServer } from './signal-server'
 import { openDb } from './store/db'
 import { Repo } from './store/repo'
+import { Suggester } from './suggest'
 import { Workstreams } from './workstreams'
 import { slug } from '@shared/workstream'
 
@@ -223,9 +224,14 @@ void app.whenReady().then(() => {
     hook: (id, event, payload) => {
       void linker.onHook(id, event, payload)
       focus.onHook(id, event, payload)
+      if (event === 'UserPromptSubmit' && payload.prompt) suggest.onPrompt(id, payload.prompt)
+      if (event === 'PostToolUse' && payload.tool_name === 'Bash') suggest.onCommand(id, String((payload.tool_input as { command?: string } | undefined)?.command ?? ''))
       notifySession(id, event)
     },
-    output: (id, data) => focus.onOutput(id, data),
+    output: (id, data) => {
+      focus.onOutput(id, data)
+      suggest.onOutput(id, data)
+    },
   })
   // The session on screen; its own notifications are skipped while the window has focus.
   let viewedSession: string | null = null
@@ -244,8 +250,9 @@ void app.whenReady().then(() => {
     const s = sessions.list().find((x) => x.id === id)
     if (s && !s.external) notifier.session(id, s.title, event === 'Notification' ? 'waiting' : 'finished')
   }
+  const tasksSnapshot = () => ({ ...linker.snapshot(), sessionPrs: repo.sessionPrs(), suggestions: suggest.list() })
   const tasksChanged = () => {
-    win?.webContents.send('tasks:changed', linker.snapshot())
+    win?.webContents.send('tasks:changed', tasksSnapshot())
     focus.refreshTasks()
   }
   let hadTasks = false
@@ -257,10 +264,13 @@ void app.whenReady().then(() => {
       void linker.inferAll()
     }
   })
+  // PRs connected to a task by hand count as naming it, so every view that reads taskRefs shows them.
+  const withPrTasks = (prs: Pr[], extra: Map<string, string[]>): Pr[] =>
+    prs.map((p) => (extra.has(p.url) ? { ...p, taskRefs: [...new Set([...p.taskRefs, ...extra.get(p.url)!])] } : p))
   const gitSnapshot = (): GitSnapshot => ({
     viewer: git.viewer,
-    mine: git.mine,
-    reviews: git.reviews,
+    mine: withPrTasks(git.mine, repo.prTasks()),
+    reviews: withPrTasks(git.reviews, repo.prTasks()),
     fetchedAt: git.fetchedAt,
     error: git.error,
     loading: git.loading,
@@ -279,6 +289,18 @@ void app.whenReady().then(() => {
     refreshRunPr()
   })
   const linker = new Linker(repo, tasks, git, sessions, tasksChanged, dataDir())
+  const suggest = new Suggester({
+    repo,
+    tasks,
+    linkedTasks: (id) =>
+      repo
+        .links()
+        .filter((l) => l.sessionId === id)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((l) => l.taskId),
+    viewer: () => git.viewer,
+    changed: () => tasksChanged(),
+  })
   const confirmPost = async (message: string, detail: string) =>
     (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Post', 'Cancel'], defaultId: 1, cancelId: 1, message, detail })).response === 0
   const drafts = new Drafts(repo, git, tasks, linker, confirmPost, gitChanged, dataDir())
@@ -383,7 +405,28 @@ void app.whenReady().then(() => {
   ipcMain.handle('shell:open', (_e, url: string) => {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url)
   })
-  ipcMain.handle('tasks:snapshot', () => linker.snapshot())
+  ipcMain.handle('tasks:snapshot', () => tasksSnapshot())
+  // A link suggestion's answer. 'yes' makes the links it offered; 'pr-only' connects just the PR to the session;
+  // 'todo' also writes a "PR: url" to-do on the task, after a confirm; 'no' is remembered for that session.
+  ipcMain.handle('suggest:answer', async (_e, id: string, answer: 'yes' | 'pr-only' | 'todo' | 'no') => {
+    if (answer === 'no') return suggest.dismiss(id)
+    const s = suggest.take(id)
+    if (!s) return
+    if (s.kind === 'task') linker.link(s.sessionId, s.taskId, 'task id in prompt', 'manual')
+    else {
+      repo.addSessionPr(s.sessionId, s)
+      if (s.task && answer !== 'pr-only') {
+        repo.addPrTask(s.url, s.task.id)
+        if (s.task.fromPr) linker.link(s.sessionId, s.task.id, `PR ${s.label}`, 'manual')
+        if (answer === 'todo' && (await askProductive('Add this to-do?', `PR: ${s.url}\n\nAssigned to you, on ${s.task.title}`))) {
+          const { personId } = await tasks.client()
+          await tasks.addTodo(s.task.id, `PR: ${s.url}`, personId)
+        }
+      }
+      gitChanged()
+    }
+    tasksChanged()
+  })
   ipcMain.handle('tasks:refresh', () => tasks.refresh())
   ipcMain.handle('tasks:start', (_e, taskId: string) => startForTask(taskId, linker.worktreeFor(taskId) ?? undefined))
   ipcMain.handle('ws:open', (_e, rootId: string) => workstreams.open(rootId))

@@ -72,3 +72,35 @@ async function fetchPr(url: string, repo: string): Promise<PrInfo | null> {
     )
   })
 }
+
+export interface PrBasics {
+  url: string
+  /** owner/name */
+  repo: string
+  number: number
+  title: string
+  branch: string
+  body: string
+  createdAt: string
+  author: string
+}
+
+/** Who opened a PR, when, and its branch and description; read-only, through `gh`. */
+export async function prBasics(url: string): Promise<PrBasics | null> {
+  const m = PR_URL.exec(url)
+  if (!m) return null
+  const env = await shellEnv()
+  const gh = which('gh', env)
+  if (!gh) return null
+  return new Promise((resolve) => {
+    execFile(gh, ['pr', 'view', m[0], '--json', 'number,title,headRefName,body,createdAt,author'], { env, timeout: 15_000 }, (err, stdout) => {
+      if (err) return resolve(null)
+      try {
+        const d = JSON.parse(stdout) as { number: number; title: string; headRefName: string; body: string; createdAt: string; author: { login: string } | null }
+        resolve({ url: m[0], repo: `${m[1]}/${m[2]}`, number: d.number, title: d.title, branch: d.headRefName, body: d.body ?? '', createdAt: d.createdAt, author: d.author?.login ?? '' })
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+}

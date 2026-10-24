@@ -43,7 +43,33 @@ export interface TasksSnapshot {
   links: TaskLink[]
   /** By session id. */
   summaries: Record<string, { text: string; createdAt: number }>
+  /** PRs connected to sessions by hand (a link suggestion); missing in snapshots from before they existed. */
+  sessionPrs?: SessionPrLink[]
+  /** Link suggestions waiting for an answer, oldest first. */
+  suggestions?: Suggestion[]
 }
+
+export interface SessionPrLink {
+  sessionId: string
+  url: string
+  /** "fe #30301" */
+  label: string
+  title: string
+}
+
+/** A connection Workbench noticed but won't make without you: a task id in a prompt, or a PR the session opened. */
+export type Suggestion =
+  | { id: string; sessionId: string; kind: 'task'; taskId: string; title: string; area: string; status: string; colorId: string | null }
+  | {
+      id: string
+      sessionId: string
+      kind: 'pr'
+      url: string
+      label: string
+      title: string
+      /** The task to connect it to: the session's own task, else one the PR names. */
+      task: { id: string; title: string; fromPr: boolean } | null
+    }
 
 // --- grouping (spec: Today › My tasks) ---
 
@@ -150,6 +176,12 @@ const TASK_URL = /app\.productive\.io\/\d+-[\w-]+\/(?:go\/)?(?:projects\/\d+\/)?
 /** Task ids from Productive task URLs in a prompt. */
 export function taskIdsFromText(text: string): string[] {
   return [...new Set([...text.matchAll(TASK_URL)].map((m) => m[1]!))]
+}
+
+/** Bare 7–9 digit numbers in a prompt that might be task ids; numbers inside URLs and paths don't count. */
+export function idsInPrompt(text: string): string[] {
+  const bare = text.replace(/\bhttps?:\/\/\S+/g, ' ').replace(/\S*[/\\]\S*/g, ' ')
+  return [...new Set([...bare.matchAll(/(?:^|[^\w.#-])(\d{7,9})(?![\w.-]*\d)(?=[^\w]|$)/g)].map((m) => m[1]!))]
 }
 
 /** Task ids in a path or branch name (`frontend-21071362-markup`, `feature/20794624-jira`), limited to known tasks. */

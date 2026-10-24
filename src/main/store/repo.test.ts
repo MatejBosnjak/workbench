@@ -69,7 +69,7 @@ describe('Repo', () => {
   it('migrations are idempotent', () => {
     const db = openDb(':memory:')
     migrate(db)
-    expect(db.pragma('user_version', { simple: true })).toBe(6)
+    expect(db.pragma('user_version', { simple: true })).toBe(7)
   })
 })
 
@@ -105,5 +105,17 @@ describe('seen and drafts', () => {
     expect(repo.draft(id)).toMatchObject({ target, body: 'hello', status: 'ready', error: null })
     repo.deleteDraft(id)
     expect(repo.drafts()).toEqual([])
+  })
+  it('keeps PRs connected by hand and remembers a turned-down suggestion', () => {
+    const repo = new Repo(openDb(':memory:'))
+    repo.addSessionPr('s1', { url: 'https://github.com/o/r/pull/1', label: 'r #1', title: 'Fix' })
+    repo.addSessionPr('s1', { url: 'https://github.com/o/r/pull/1', label: 'r #1', title: 'Fix' })
+    repo.addPrTask('https://github.com/o/r/pull/1', '123')
+    expect(repo.sessionPrs()).toEqual([{ sessionId: 's1', url: 'https://github.com/o/r/pull/1', label: 'r #1', title: 'Fix' }])
+    expect(repo.prTasks().get('https://github.com/o/r/pull/1')).toEqual(['123'])
+    expect(repo.isDismissed('s1', 'task:9')).toBe(false)
+    repo.dismissSuggestion('s1', 'task:9')
+    expect(repo.isDismissed('s1', 'task:9')).toBe(true)
+    expect(repo.isDismissed('s2', 'task:9')).toBe(false)
   })
 })

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Link suggestions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.win{position:relative;width:560px;height:330px;border:1px solid #3A3647;display:flex;flex-direction:column;background:#0E0D12;overflow:hidden}
+.tabs{height:34px;flex-shrink:0;display:flex;align-items:center;gap:6px;padding:0 10px;background:#14131A;border-bottom:1px solid #A07EEA;font-size:11px}
+.tab{border:1px solid #3A3647;padding:1px 8px;color:#CDC7D8}
+.tab.on{border-color:#A07EEA;color:#ECE8F2;font-weight:700}
+.btn{border:1px solid #4A3A72;background:#211A30;color:#CDC7D8;padding:1px 8px}
+.term{flex:1;padding:10px 14px;color:#CDC7D8;font-size:11px;line-height:1.6;position:relative}
+.ln{white-space:pre;overflow:hidden}
+.mute{color:#6A647A}
+.sug{position:absolute;top:8px;right:10px;width:330px;background:#1A1921;border:1px solid #A07EEA;box-shadow:0 18px 44px rgba(0,0,0,.6);padding:10px 12px;font-size:11px;display:flex;flex-direction:column;gap:6px}
+.sug .k{color:#A07EEA;font-weight:700}
+.sug .t{color:#ECE8F2}
+.row{display:flex;gap:8px;align-items:center;margin-top:2px}
+.pri{border:0;background:#A07EEA;color:#120E16;font:inherit;font-weight:700;padding:1px 10px}
+.sec{border:1px solid #3A3647;background:transparent;color:#CDC7D8;font:inherit;padding:0 8px}
+.x{margin-left:auto;color:#6A647A}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.cap{color:#A69FB4;max-width:560px;font-size:12px}
+.h{color:#A07EEA;font-weight:600}
+</style>
+</helmet>
+<div style="width: 1940px; height: 560px; box-sizing: border-box; padding: 48px; display: flex; gap: 56px; background: #0E0D12; color: #ECE8F2; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.55">
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="h">1 · TASK ID IN A PROMPT</div>
+<div class="win">
+<div class="tabs"><span class="tab">1 Today</span><span class="tab on">3 Claude Code</span><span style="flex:1"></span><span class="btn">Task</span></div>
+<div class="term">
+<div class="ln" style="background:#211A30;color:#ECE8F2">&gt; check 12014975, the copy is still off on the empty state</div>
+<div class="ln">● Looking at the contacts empty state copy.</div>
+<div class="ln mute">  ⎿ Search "empty state" (4 results)</div>
+<div class="sug" role="dialog" aria-label="Link suggestion">
+<div><span class="k">Link task?</span> <span class="mute">· 12014975 in your prompt</span></div>
+<div class="t"><span class="dot" style="background:#4FD69C"></span>CRM Contacts copy update</div>
+<div class="mute">Product: CRM › Contacts · working</div>
+<div class="row"><button class="pri">Link</button><span class="x">× not this</span></div>
+</div>
+</div>
+</div>
+<div class="cap">After you send a prompt with a 7–9 digit number that is a Productive task (your list first, else one API lookup). Pops from the Task button; Link stores a manual link, × never asks again for that id in this session. No tokens.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="h">2 · SESSION OPENED A PR (TASK LINKED)</div>
+<div class="win">
+<div class="tabs"><span class="tab">1 Today</span><span class="tab on">3 CRM Contacts copy…</span><span style="flex:1"></span><span class="btn">Task</span><span class="btn">Pr</span></div>
+<div class="term">
+<div class="ln mute">  ⎿ gh pr create --fill</div>
+<div class="ln">    https://github.com/productiveio/frontend/pull/30301</div>
+<div class="ln">● Opened fe #30301.</div>
+<div class="sug" role="dialog" aria-label="Link suggestion">
+<div><span class="k">New PR</span> <span class="mute">· opened in this session</span></div>
+<div class="t">fe #30301 · Contacts empty state copy</div>
+<div class="mute">Connect it to this session and to CRM Contacts copy update?</div>
+<div class="row"><button class="pri">Connect</button><button class="sec">+ add PR to-do in Productive</button><span class="x">×</span></div>
+</div>
+</div>
+</div>
+<div class="cap">When the session runs gh pr create or prints a PR URL that's new (any repo). Connect stores it locally: the PR shows on the session's Pr button and on the task card, even if its branch and description don't name the task. "+ add PR to-do" also writes a "PR: url" to-do on the task, after the usual confirm.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="h">3 · SESSION OPENED A PR (NO TASK)</div>
+<div class="win">
+<div class="tabs"><span class="tab">1 Today</span><span class="tab on">3 api fix</span><span style="flex:1"></span><span class="btn">Task</span></div>
+<div class="term">
+<div class="ln">    https://github.com/productiveio/api/pull/23101</div>
+<div class="ln">● Opened api #23101.</div>
+<div class="sug" role="dialog" aria-label="Link suggestion">
+<div><span class="k">New PR</span> <span class="mute">· opened in this session</span></div>
+<div class="t">api #23101 · Reject custom templates on proposals</div>
+<div class="mute">The PR names task 19997745: API: reject custom document templates on proposals</div>
+<div class="row"><button class="pri">Connect both</button><button class="sec">PR only</button><span class="x">×</span></div>
+</div>
+</div>
+</div>
+<div class="cap">No task linked yet: if the PR's branch or description names a task, offer it with the PR; otherwise just "Connect to session" plus a pick-a-task link. One suggestion at a time; newer ones queue behind it.</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1940,"height":560}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

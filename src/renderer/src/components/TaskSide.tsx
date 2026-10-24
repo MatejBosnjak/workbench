@@ -9,19 +9,26 @@ import { useStore } from '../store'
 import { Box } from './Box'
 import { GitHubIcon, NewSessionButton, ProductiveIcon } from './Chips'
 import { GitPane } from './GitPane'
+import { LinkSuggest } from './LinkSuggest'
 import { TaskDetails } from './TaskDetails'
 import { TaskPreview } from './TaskPreview'
 
 /** Tasks linked to the session, latest link first. */
 export const sessionTasks = (snapshot: TasksSnapshot | null, sessionId: string): string[] => sessionTaskIds(snapshot, sessionId)
 
-/** The session's PRs: those linked to its tasks, and the frontend PR its branch belongs to. */
+/** The session's PRs: ones connected to it by hand, the frontend PR its branch belongs to, and those linked to its tasks. */
 export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: GitSnapshot | null, runpr: RunPrSnapshot | null): SessionPr[] {
   const ids = new Set(sessionTasks(tasks, sessionId))
   const all = [...(git?.mine ?? []), ...(git?.reviews ?? [])]
   const out = new Map<string, SessionPr>()
+  // Connected by hand (a link suggestion) first: the PR this session opened.
+  for (const l of tasks?.sessionPrs ?? []) {
+    if (l.sessionId !== sessionId) continue
+    const p = all.find((x) => x.url === l.url)
+    out.set(l.url, { url: l.url, label: l.label, title: p?.title ?? l.title, branch: p?.branch ?? '', ci: p?.ci ?? null })
+  }
   const focus = runpr?.focus[sessionId]
-  if (focus) {
+  if (focus && !out.has(focus.url)) {
     const p = all.find((x) => x.url === focus.url)
     out.set(focus.url, { url: focus.url, label: `fe #${focus.number}`, title: focus.title, branch: focus.branch, ci: p?.ci ?? null })
   }
@@ -87,6 +94,7 @@ export function SessionBar({ session }: { session: Session }) {
         </button>
       )}
       {task && <NewSessionButton taskId={task.id} />}
+      <LinkSuggest session={session} />
       {pr?.branch && (
         <span className="sbar-branch faint">
           ⎇ <span className="muted">{pr.branch}</span>

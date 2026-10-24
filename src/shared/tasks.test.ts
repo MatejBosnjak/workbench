@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupByStatus, groupTasks, mentionToken, readMentions, statusCounts, taskIdsFromName, taskIdsFromText, treeShapes, type Task } from './tasks'
+import { groupByStatus, groupTasks, mentionToken, readMentions, statusCounts, taskIdsFromName, taskIdsFromText, treeShapes, idsInPrompt, type Task } from './tasks'
 
 let n = 0
 const task = (p: Partial<Task>): Task => ({
@@ -124,5 +124,13 @@ describe('treeShapes', () => {
   it('stops a branch line under the last child', () => {
     const s = treeShapes([{ depth: 0 }, { depth: 1 }, { depth: 2 }, { depth: 0 }])
     expect(s[2]!.through).toEqual([false])
+  })
+})
+
+describe('idsInPrompt', () => {
+  it('finds bare task-like numbers, not ones in URLs, paths, versions or PR refs', () => {
+    expect(idsInPrompt('check 12014975, the copy is off; also 21129723.')).toEqual(['12014975', '21129723'])
+    expect(idsInPrompt('see https://app.productive.io/109-productive/tasks/12014975 and fe #30301')).toEqual([])
+    expect(idsInPrompt('worktrees/frontend-21071362-markup and v1.20240101 and 123456')).toEqual([])
   })
 })

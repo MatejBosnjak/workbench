@@ -38,6 +38,7 @@ const api: WorkbenchApi = {
   onCaffeinate: (cb) => on('caf:changed', (_e, s: CaffeinateState) => cb(s)),
   prInfo: (url) => ipcRenderer.invoke('gh:pr', url),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
+  suggest: { answer: (id, answer) => ipcRenderer.invoke('suggest:answer', id, answer) },
   tasks: {
     snapshot: () => ipcRenderer.invoke('tasks:snapshot'),
     onChanged: (cb) => on('tasks:changed', (_e, s: TasksSnapshot) => cb(s)),

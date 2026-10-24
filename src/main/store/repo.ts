@@ -1,4 +1,5 @@
 import type { Draft, DraftTarget } from '@shared/git'
+import type { SessionPrLink } from '@shared/tasks'
 import type { SessionState } from '@shared/types'
 import type { Db } from './db'
 
@@ -189,6 +190,36 @@ export class Repo {
     this.db
       .prepare('INSERT INTO summaries (session_id, text, model, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(session_id) DO UPDATE SET text = excluded.text, model = excluded.model, created_at = excluded.created_at')
       .run(sessionId, text, model, Date.now())
+  }
+
+  // --- PR links made by hand ---
+
+  addSessionPr(sessionId: string, pr: { url: string; label: string; title: string }): void {
+    this.db.prepare('INSERT OR IGNORE INTO session_prs (session_id, pr_url, label, title, created_at) VALUES (?, ?, ?, ?, ?)').run(sessionId, pr.url, pr.label, pr.title, Date.now())
+  }
+
+  sessionPrs(): SessionPrLink[] {
+    const rows = this.db.prepare('SELECT session_id, pr_url, label, title FROM session_prs ORDER BY created_at').all() as { session_id: string; pr_url: string; label: string; title: string }[]
+    return rows.map((r) => ({ sessionId: r.session_id, url: r.pr_url, label: r.label, title: r.title }))
+  }
+
+  addPrTask(prUrl: string, taskId: string): void {
+    this.db.prepare('INSERT OR IGNORE INTO pr_tasks (pr_url, task_id, created_at) VALUES (?, ?, ?)').run(prUrl, taskId, Date.now())
+  }
+
+  /** Task ids by PR URL. */
+  prTasks(): Map<string, string[]> {
+    const out = new Map<string, string[]>()
+    for (const r of this.db.prepare('SELECT pr_url, task_id FROM pr_tasks').all() as { pr_url: string; task_id: string }[]) out.set(r.pr_url, [...(out.get(r.pr_url) ?? []), r.task_id])
+    return out
+  }
+
+  dismissSuggestion(sessionId: string, key: string): void {
+    this.db.prepare('INSERT OR IGNORE INTO suggest_dismissed (session_id, key) VALUES (?, ?)').run(sessionId, key)
+  }
+
+  isDismissed(sessionId: string, key: string): boolean {
+    return !!this.db.prepare('SELECT 1 FROM suggest_dismissed WHERE session_id = ? AND key = ?').get(sessionId, key)
   }
 
   // --- seen conversations ---

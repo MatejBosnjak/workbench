@@ -82,6 +82,30 @@ const MIGRATIONS: string[] = [
   -- Set by a rename or a task start; claude's terminal title no longer replaces it.
   ALTER TABLE sessions ADD COLUMN title_locked INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  -- PRs connected by hand (a link suggestion or a picker): to the session that opened them, and to a task even when
+  -- the PR's branch and description don't name it.
+  CREATE TABLE session_prs (
+    session_id TEXT NOT NULL,
+    pr_url     TEXT NOT NULL,
+    label      TEXT NOT NULL,
+    title      TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (session_id, pr_url)
+  );
+  CREATE TABLE pr_tasks (
+    pr_url     TEXT NOT NULL,
+    task_id    TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (pr_url, task_id)
+  );
+  -- Link suggestions turned down with ×: never offered again for that session.
+  CREATE TABLE suggest_dismissed (
+    session_id TEXT NOT NULL,
+    key        TEXT NOT NULL,
+    PRIMARY KEY (session_id, key)
+  );
+  `,
 ]
 
 export function openDb(file: string): Db {

@@ -120,7 +120,7 @@ Image: `docs/design/current/palette.png`. Code: `Palette.tsx`.
 
 ## Focus (⌘F)
 
-Code: `Focus.tsx`, `notify.ts`, `store.ts`, `keys.ts`, `styles.css`.
+Image: `docs/design/current/focus.png`. Code: `Focus.tsx`, `notify.ts`, `store.ts`, `keys.ts`, `styles.css`.
 
 - **This screen only.** The screen on view stays as it is (a session keeps its terminal, session bar and sidebar; Today the list and its card). Everything that points elsewhere fades to 20% grey: the TopBar's places, tabs, +N, cup and ⌘K, the status bar except the session cell, and Today's other counters. Resting the pointer on a faded part brings it back.
 - A **focus** chip in the TopBar: `focus · this screen only · N held · ⌘F to leave`; clicking it leaves.

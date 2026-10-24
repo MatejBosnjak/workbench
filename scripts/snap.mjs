@@ -133,7 +133,7 @@ const git = await api(() => window.workbench.git.snapshot())
 const withPr = new Set([...git.mine, ...git.reviews].flatMap((p) => p.taskRefs ?? []))
 const t1 = mine.find((t) => withPr.has(t.id)) ?? mine[0] ?? snap.tasks[0]
 const t2 = mine.find((t) => t !== t1)
-const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || ['palette', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
+const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || ['focus', 'palette', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
 let sid = null
 if (wantSession && t1) {
   const s = await api((id) => window.workbench.tasks.start(id), t1.id)
@@ -174,6 +174,13 @@ await shot('session-pr-side', async () => {
   await wait(5000)
 })
 await click('.session-bar .sbar-btn.pad').catch(() => {})
+const menu = (cmd) => app.evaluate(({ BrowserWindow }, c) => BrowserWindow.getAllWindows()[0].webContents.send('menu', c), cmd)
+await shot('focus', async () => {
+  await session()
+  await menu({ type: 'focus' })
+})
+// Leaving may list what was held; the next shot's Escape closes it.
+await menu({ type: 'focus' })
 const blurred = async (fn) => {
   await session()
   await page.evaluate(() => document.activeElement?.blur())

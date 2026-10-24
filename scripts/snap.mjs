@@ -1,6 +1,6 @@
 // Screenshots of every screen into docs/design/current/, from the built app on a scratch profile with live data.
 // `pnpm snap` builds first. `pnpm snap today-tasks session` retakes only the named shots.
-// The scratch profile gets a copy of your services config and GitHub pane login; hooks go to a scratch settings file,
+// The window is invisible and click-through. The scratch profile gets a copy of your services config and GitHub pane login; hooks go to a scratch settings file,
 // and every Productive or GitHub write is answered Cancel. Sessions run haiku and send two one-word prompts.
 import { _electron as electron } from 'playwright-core'
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -37,6 +37,11 @@ await app.evaluate(({ shell, dialog, BrowserWindow }) => {
   const w = BrowserWindow.getAllWindows()[0]
   w?.setSize(1600, 1000)
   w?.center()
+  // A full window with live data looks exactly like the real app: keep it invisible and click-through, so nobody
+  // works in it by mistake. Captures read the page, not the screen, and Playwright's input doesn't go through the OS.
+  w?.setOpacity(0)
+  w?.setIgnoreMouseEvents(true)
+  w?.setFocusable(false)
 })
 const page = await app.firstWindow()
 page.on('pageerror', (e) => console.log('[pageerror]', e.message))

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { prRef, type Ci, type GitSnapshot } from '@shared/git'
+import { prRepo, type Ci, type GitSnapshot } from '@shared/git'
 import type { RunPrSnapshot } from '@shared/runpr'
 import { sessionTaskIds } from '@shared/links'
 import { statusVivid, type TasksSnapshot } from '@shared/tasks'
@@ -30,9 +30,9 @@ export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: 
   const focus = runpr?.focus[sessionId]
   if (focus && !out.has(focus.url)) {
     const p = all.find((x) => x.url === focus.url)
-    out.set(focus.url, { url: focus.url, label: `fe #${focus.number}`, title: focus.title, branch: focus.branch, ci: p?.ci ?? null })
+    out.set(focus.url, { url: focus.url, label: 'fe', title: focus.title, branch: focus.branch, ci: p?.ci ?? null })
   }
-  for (const p of all) if (p.taskRefs.some((t) => ids.has(t)) && !out.has(p.url)) out.set(p.url, { url: p.url, label: prRef(p), title: p.title, branch: p.branch, ci: p.ci })
+  for (const p of all) if (p.taskRefs.some((t) => ids.has(t)) && !out.has(p.url)) out.set(p.url, { url: p.url, label: prRepo(p), title: p.title, branch: p.branch, ci: p.ci })
   return [...out.values()]
 }
 
@@ -150,7 +150,7 @@ export function TaskSide({ session }: { session: Session }) {
         <div className="ts-tabs">
           {ids.map((t) => (
             <button key={t} className={`sb-chip${t === id ? ' on' : ''}`} onClick={() => setPicked(t)}>
-              {snapshot?.tasks.find((x) => x.id === t)?.title ?? `#${t}`}
+              {snapshot?.tasks.find((x) => x.id === t)?.title ?? 'Task'}
             </button>
           ))}
         </div>
@@ -162,7 +162,6 @@ export function TaskSide({ session }: { session: Session }) {
           <div className="ts-pick">
             {mine.map((t) => (
               <button key={t.id} className="pop-item" onClick={() => void window.workbench.tasks.link(session.id, t.id)}>
-                <span className="faint">#{t.number ?? t.id}</span>
                 <span className="pop-text">{t.title}</span>
               </button>
             ))}

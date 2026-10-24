@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { lastMessage, prRef, verb } from '@shared/git'
+import { lastMessage, prRepo, verb } from '@shared/git'
 import { prSessions, prTasks } from '@shared/links'
 import { FE_REPO } from '@shared/runpr'
 import type { TasksSnapshot } from '@shared/tasks'
@@ -34,7 +34,7 @@ export function NeedPreview({ item, tasks, onOpen, onClose }: { item: NeedItem; 
     <Box title="PR" className="peek" aside={<button className="icon-btn" aria-label="Close" onClick={onClose}>×</button>}>
       <span className={`need-kind need-${item.kind.replace(' ', '-')}`}>{item.kind}</span>
       <span className="gp-ref">
-        {prRef(p)} <span style={{ color: ciColor, fontWeight: 400 }}>● {ciText}</span>
+        {prRepo(p)} <span style={{ color: ciColor, fontWeight: 400 }}>● {ciText}</span>
       </span>
       <h2 className="peek-title">{p.title}</h2>
       <div className="kv">

@@ -143,10 +143,10 @@ export function StatusSelect({ task }: { task: Task }) {
   )
 }
 
-/** A URL as it reads best: a GitHub PR or issue as repo#n, anything else without its scheme. */
+/** A URL as it reads best: a GitHub PR or issue as "frontend PR" (the number is in the tooltip), anything else without its scheme. */
 export function shortUrl(url: string): string {
   const gh = url.match(/^https?:\/\/github\.com\/[^/]+\/([^/]+)\/(?:pull|issues)\/(\d+)\/?$/)
-  return gh ? `${gh[1]}#${gh[2]}` : url.replace(/^https?:\/\/(www\.)?/, '')
+  return gh ? `${gh[1]} ${url.includes('/issues/') ? 'issue' : 'PR'}` : url.replace(/^https?:\/\/(www\.)?/, '')
 }
 
 /** Plain text with its URLs as links that open in the browser. */

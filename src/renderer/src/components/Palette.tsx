@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { RecentSession, Session, SessionState } from '@shared/types'
-import { prRef } from '@shared/git'
+import { prRepo } from '@shared/git'
 import { rootOf } from '@shared/workstream'
 import { navigate, openWorkstream, useOverlay, useStore } from '../store'
 import { useShallow } from 'zustand/react/shallow'
@@ -84,7 +84,7 @@ export function Palette({ onNew }: { onNew(pick: boolean): void }) {
       key: t.id,
       group: 'Tasks',
       title: t.title,
-      detail: `#${t.number ?? t.id} · ${t.statusName} · ${t.projectName}`,
+      detail: `${t.statusName} · ${t.projectName}`,
       hint: '↵ preview',
       run: () => {
         setTodayTab('tasks')
@@ -99,7 +99,7 @@ export function Palette({ onNew }: { onNew(pick: boolean): void }) {
       key: p.id,
       group: 'PRs',
       title: p.title,
-      detail: `${prRef(p)} · ${kind === 'git' ? 'yours' : `review · ${p.author}`} · ${p.branch}`,
+      detail: `${prRepo(p)} · ${kind === 'git' ? 'yours' : `review · ${p.author}`} · ${p.branch}`,
       hint: '↵ show',
       run: () => navigate({ kind, prId: p.id }),
     }))

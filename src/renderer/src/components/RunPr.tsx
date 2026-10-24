@@ -39,7 +39,7 @@ export function RunAppButton({ n, compact = false }: { n: number; compact?: bool
   const busy = runpr.job?.state === 'running'
   return (
     <span className={`run-btn-wrap${compact ? ' compact' : ''}`}>
-      <button className="run-btn" disabled={busy} title={busy ? 'Another run is in progress' : `Run fe #${n} in the app`} onClick={(e) => (e.stopPropagation(), void runPr(n))}>
+      <button className="run-btn" disabled={busy} title={busy ? 'Another run is in progress' : 'Run this PR in the app'} onClick={(e) => (e.stopPropagation(), void runPr(n))}>
         <Play /> Run app
       </button>
       {!compact && runpr.hints[n] && <span className="run-hint">{runpr.hints[n]}</span>}
@@ -67,7 +67,7 @@ export function RunPrChip() {
       <button className="run-chip busy" onClick={() => setRunPanel(!runPanel)}>
         <span className="run-spin" role="img" aria-label="Running" />
         <span>
-          {job.pr.title.startsWith('Back to') ? job.pr.title : <>Switching app to <span className="mono">fe #{job.pr.number}</span></>}
+          {job.pr.title.startsWith('Back to') ? job.pr.title : <>Switching app to {job.pr.title}</>}
         </span>
         <span className="muted">
           · {cur?.label ?? '…'} · {i + 1} of {job.steps.length}
@@ -80,7 +80,7 @@ export function RunPrChip() {
   } else if (job && job.state === 'failed' && runPanel === false && !runpr.appPr) {
     chip = (
       <button className="run-chip bad" onClick={() => setRunPanel(true)}>
-        Run fe #{job.pr.number} failed · details
+        Run failed · details
       </button>
     )
   } else if (focus && runpr.appPr !== focus.number) {
@@ -92,8 +92,8 @@ export function RunPrChip() {
         </span>
         <span className="run-arrow">→</span>
         <span className="muted">Session</span>
-        <span className="mono" title={focus.title}>
-          fe #{focus.number}
+        <span className="run-pr-title" title={focus.title}>
+          {focus.title}
         </span>
         <button className="run-go" onClick={() => void runPr(focus.number)}>
           <Play /> Run
@@ -196,7 +196,7 @@ export function RunPanel({ inline = false }: { inline?: boolean }) {
       {job && (
         <>
           <div className="run-panel-head">
-            <span className="run-panel-title">{job.pr.title.startsWith('Back to') ? job.pr.title : `Run fe #${job.pr.number} in app`}</span>
+            <span className="run-panel-title">{job.pr.title.startsWith('Back to') ? job.pr.title : `Run ${job.pr.title} in the app`}</span>
             <span className={`run-state ${job.state}`}>{job.state === 'running' ? 'running' : job.state}</span>
           </div>
           <span className="pop-note">

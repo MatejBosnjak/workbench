@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { prRef, type Pr } from '@shared/git'
+import { prRef, prRepo, shortRepo, type Pr } from '@shared/git'
 import { FE_REPO } from '@shared/runpr'
 import { useStore } from '../store'
 import { PrLinks } from './PrLinks'
@@ -109,10 +109,19 @@ export function GitPane({
 
   const facts = (
     <>
-      <span className="gp-ref">{pr ? prRef(pr) : key ? `${key.split('/')[4]} #${n}` : (pane?.title ?? '')}</span>
+      <span className="gp-ref" title={pr ? prRef(pr) : undefined}>{pr ? prRepo(pr) : key ? shortRepo(key.split('/')[4] ?? '') : ''}</span>
+      <span className="gp-title">{pr?.title ?? pane?.title ?? ''}</span>
       {state && <span className={`gp-state st-${state.replace(' ', '-')}`}>{state}</span>}
-      {pr && <span style={{ color: ciColor }}>● {ciText}</span>}
-      {replies > 0 && <span className="gp-reply">{replies} reply needed</span>}
+      {pr && (
+        <span style={{ color: ciColor }} title={ciText}>
+          ●{side ? ` ${ciText}` : ''}
+        </span>
+      )}
+      {replies > 0 && (
+        <span className="gp-reply" title={`${replies} ${replies === 1 ? 'reply' : 'replies'} needed`}>
+          ↩ {replies}
+        </span>
+      )}
       {pane?.loading && <span className="faint">loading…</span>}
     </>
   )
@@ -125,8 +134,8 @@ export function GitPane({
       <button className="key-btn" title="Forward (⌘])" disabled={!pane?.canForward} onClick={() => void window.workbench.pane.nav('forward')}>
         ›
       </button>
-      <button className="key-btn" title="Open in browser" onClick={() => void window.workbench.pane.nav('external')}>
-        ⌘↩ browser
+      <button className="key-btn" title="Open in browser (⌘↩)" aria-label="Open in browser" onClick={() => void window.workbench.pane.nav('external')}>
+        ↗
       </button>
       <button className="key-btn" title={paneFull ? 'Back to the split (⌘J)' : 'Full width'} onClick={() => setPaneFull(!paneFull)}>
         ⤢

@@ -1,3 +1,4 @@
+import { shortRepo } from '@shared/git'
 import { useEffect, useState } from 'react'
 import type { PrInfo } from '@shared/types'
 import { RunAppButton } from './RunPr'
@@ -44,7 +45,7 @@ export function PrCard({ anchor, onEnter, onLeave }: { anchor: CardAnchor; onEnt
       {pr && (
         <>
           <span className="pr-card-head mono">
-            {pr.repo} #{pr.number}
+            {shortRepo(pr.repo.split('/')[1] ?? pr.repo)}
           </span>
           <span className="pr-card-title">{pr.title}</span>
           <span className="pr-card-meta">

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
-import { prRef } from '@shared/git'
+import { prRepo, shortRepo } from '@shared/git'
 import { useStore } from '../store'
 
 function targetLabel(t: DraftTarget): string {
   if (t.kind === 'productive') return `Comment on “${t.title}”`
-  const ref = `${t.repo.split('/')[1]} #${t.number}`
-  return t.kind === 'gh-thread' ? `Reply on ${ref} · ${t.path ?? 'thread'}` : `Reply on ${ref}`
+  const repo = shortRepo(t.repo.split('/')[1] ?? t.repo)
+  return t.kind === 'gh-thread' ? `Reply in ${repo} · ${t.path ?? 'thread'}` : `Reply in ${repo}`
 }
 
 /** Today's side panel for one draft: optional instruction, Claude's text, edit, send with confirm. */
@@ -43,7 +43,7 @@ export function DraftPanel({ target, git }: { target: DraftTarget; git: GitSnaps
   return (
     <aside className="peek draft" aria-label="Draft">
       <div className="peek-top">
-        <span className="peek-status">{target.kind === 'productive' ? 'Productive' : pr ? prRef(pr) : 'GitHub'}</span>
+        <span className="peek-status">{target.kind === 'productive' ? 'Productive' : pr ? prRepo(pr) : 'GitHub'}</span>
         <span className="peek-tools">
           <button className="icon-btn" aria-label="Close draft" onClick={() => setDraft(null)}>
             ×

@@ -117,7 +117,7 @@ export class Suggester {
         }
       }
     }
-    this.queue.push({ id: `s${++this.n}`, sessionId, kind: 'pr', url: pr.url, label: `${shortRepo(pr.repo.split('/')[1]!)} #${pr.number}`, title: pr.title, task })
+    this.queue.push({ id: `s${++this.n}`, sessionId, kind: 'pr', url: pr.url, label: shortRepo(pr.repo.split('/')[1]!), title: pr.title, task })
     this.d.changed()
   }
 }

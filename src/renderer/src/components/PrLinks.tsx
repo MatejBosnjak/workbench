@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useShallow } from 'zustand/react/shallow'
-import { prRef, type Pr } from '@shared/git'
+import { prRepo, shortRepo, type Pr } from '@shared/git'
 import { MARK_WORD, prSessions, prTasks, type LinkedSession } from '@shared/links'
 import { statusVivid, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
@@ -58,7 +58,7 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
   const startForPr = async () => {
     setMenu(null)
     const n = /\/pull\/(\d+)/.exec(prUrl)?.[1] ?? ''
-    const s = await window.workbench.tasks.startForPr({ url: prUrl, label: pr ? prRef(pr) : `${prUrl.split('/')[4]} #${n}`, title: pr?.title ?? `PR #${n}` })
+    const s = await window.workbench.tasks.startForPr({ url: prUrl, label: pr ? prRepo(pr) : shortRepo(prUrl.split('/')[4] ?? ''), title: pr?.title ?? `PR #${n}` })
     if (s) show({ kind: 'session', id: s.id })
   }
   if (!prTasks.length && !linked.length)

@@ -788,7 +788,9 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .today-body.split .today-main { height: 100%; padding-right: 6px; }
 .gp { height: 100%; display: flex; flex-direction: column; border: 1px solid var(--line-heavy); min-width: 0; }
 .gp-strip { display: flex; align-items: center; gap: 12px; height: 34px; flex-shrink: 0; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line-heavy); background: var(--chrome); white-space: nowrap; overflow: hidden; }
-.gp-ref { color: var(--text); font-weight: 700; }
+.gp-ref { color: var(--text); font-weight: 700; flex-shrink: 0; }
+.gp-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.run-pr-title { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gp-state { color: var(--text-3); }
 .gp-state.st-changes-requested { color: var(--bad); }
 .gp-state.st-approved { color: var(--ok); }
@@ -980,6 +982,10 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 /* GitHub pane strip: Task ▾ and Session ▾, menus of the PR's tasks and linked sessions. */
 .prl { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .prl + .gp-tools { margin-left: 8px; }
+/* In the strip the task/session buttons (capped) and the tools keep their size; the PR's title gives way. */
+.gp-strip .gp-title { flex: 0 1 auto; min-width: 60px; }
+.gp-strip .prl, .gp-strip .gp-tools { flex-shrink: 0; }
+.gp-strip .prl-btn { max-width: 200px; overflow: hidden; }
 .prl-wrap { position: relative; }
 .prl-btn { display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border: 1px solid var(--line-heavy); background: transparent; color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .prl-btn:hover { border-color: var(--text-3); color: var(--text); }

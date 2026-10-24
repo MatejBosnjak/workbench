@@ -86,7 +86,10 @@ export const isBot = (login: string, typename?: string) => typename === 'Bot' ||
 
 const SHORT: Record<string, string> = { frontend: 'fe', 'ai-agent': 'ai', 'e2e-tests': 'e2e' }
 export const shortRepo = (name: string) => SHORT[name] ?? name
+/** "fe #30278": for tooltips, prompts and anything a machine reads. On screen a PR is its repo and title (prRepo). */
 export const prRef = (p: Pick<Pr, 'repoName' | 'number'>) => `${shortRepo(p.repoName)} #${p.number}`
+/** A PR's repo as it reads on screen ("fe", "api"), next to its title; numbers stay out of sight. */
+export const prRepo = (p: Pick<Pr, 'repoName'>) => shortRepo(p.repoName)
 
 export function lastMessage(c: Conversation): GhMessage | null {
   return c.messages.at(-1) ?? null
@@ -208,14 +211,14 @@ export function gitEvents(s: Pick<GitSnapshot, 'viewer' | 'mine' | 'reviews' | '
       const last = lastMessage(c)!
       // The changes-requested event below covers that review.
       if (last.state === 'CHANGES_REQUESTED') continue
-      out.push({ key: `msg:${last.id}`, title: `${last.author} ${verb(c)} ${prRef(p)}`, body: excerpt(last.body || p.title), target: at })
+      out.push({ key: `msg:${last.id}`, title: `${last.author} ${verb(c)}: ${p.title}`, body: excerpt(last.body || p.title), target: at })
     }
     if (p.changesRequestedBy && changesPending(p))
-      out.push({ key: `cr:${p.changesRequestedBy.id}`, title: `Changes requested on ${prRef(p)}`, body: `${p.changesRequestedBy.author} · ${p.title}`, target: at })
-    if (p.ci === 'fail' && !p.draft) out.push({ key: `ci:${p.id}:${p.headSha}`, title: `CI failed on ${prRef(p)}`, body: p.title, target: at })
+      out.push({ key: `cr:${p.changesRequestedBy.id}`, title: `Changes requested: ${p.title}`, body: p.changesRequestedBy.author, target: at })
+    if (p.ci === 'fail' && !p.draft) out.push({ key: `ci:${p.id}:${p.headSha}`, title: `CI failed: ${p.title}`, body: prRepo(p), target: at })
   }
   for (const p of s.reviews) {
-    if (p.requested && !p.authorBot) out.push({ key: `rr:${p.id}`, title: `Review requested: ${prRef(p)}`, body: `${p.author} · ${p.title}`, target: { tab: 'reviews', prId: p.id } })
+    if (p.requested && !p.authorBot) out.push({ key: `rr:${p.id}`, title: `Review requested: ${p.title}`, body: p.author, target: { tab: 'reviews', prId: p.id } })
   }
   return out
 }

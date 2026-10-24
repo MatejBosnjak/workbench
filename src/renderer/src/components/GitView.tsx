@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@shared/git'
-import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, shortRepo } from '@shared/git'
+import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, prRepo, shortRepo } from '@shared/git'
 import { prTasks } from '@shared/links'
 import type { TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
@@ -220,7 +220,7 @@ function OpenedGroup({ git }: { git: GitSnapshot }) {
           <div key={o.url} id={`pr-${o.url}`} className={`pr-wrap${selPr === o.url ? ' sel' : ''}`}>
             <div className="pr-row rev">
               <button className="pr-main" onClick={(e) => openRow({ id: o.url, url: o.url }, e.metaKey)}>
-                <span className="pr-ref mono">{m ? `${shortRepo(m[1]!)} #${m[2]}` : 'PR'}</span>
+                <span className="pr-ref mono">{m ? shortRepo(m[1]!) : 'PR'}</span>
                 <span className="pr-title-wrap">
                   <span className="pr-title">{info[o.url]?.title ?? '…'}</span>
                   <span className="pr-branch">{info[o.url]?.state ?? ''}</span>
@@ -250,7 +250,7 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
     <div id={`pr-${p.id}`} className={`pr-wrap merge${score === 4 ? ' ready' : ''}${focused ? ' focus' : ''}${selected ? ' sel' : ''}`} style={{ '--rail': TONE[tone] } as React.CSSProperties}>
       <div className="pr-row">
         <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
-          <span className="pr-ref mono">{prRef(p)}</span>
+          <span className="pr-ref mono" title={prRef(p)}>{prRepo(p)}</span>
           <span className="pr-title-wrap">
             <span className="pr-title">{p.title}</span>
           </span>
@@ -331,7 +331,7 @@ function ReviewRow({ p, tasks, focused, selected }: { p: Pr; tasks: TasksSnapsho
     <div id={`pr-${p.id}`} className={`pr-wrap${focused ? ' focus' : ''}${selected ? ' sel' : ''}`}>
       <div className="pr-row rev">
         <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
-          <span className="pr-ref mono">{prRef(p)}</span>
+          <span className="pr-ref mono" title={prRef(p)}>{prRepo(p)}</span>
           <span className="pr-title-wrap">
             <span className="pr-title">{p.title}</span>
             <span className="pr-branch">

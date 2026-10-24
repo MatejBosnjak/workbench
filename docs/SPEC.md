@@ -78,6 +78,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Theme **Dusk** only (muted synthwave on graphite, purple accent). Colours are CSS tokens.
 - **Status colours.** Productive's 17 status colours each map to a bright stand-in (`statusVivid`) for marks, labels, the strip and chips; Productive's own pastel pairs (`statusColors`) stay for tag-style badges such as the status button.
 - Shortcuts are never printed in the UI except in the ⌨ popover and tooltips.
+- **No task or PR numbers on screen.** A PR reads as its repo (`fe`, `api`, `specs`) and title, a task as its title; GitHub links in text read `frontend PR`. Numbers stay in tooltips, search, git commands, and anything sent to Claude or GitHub. Notifications name the PR by title (`CI failed: <title>`).
 - Sidebars share one frame: 18px/14px padding and a box with its title set into the top border and its tools at the right (task sidebar, PR sidebar).
 - Buttons in one bar share its height (the session bar's are all 28px, `+ new ✻` included).
 - A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
@@ -118,7 +119,7 @@ Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear
 
 Image: `docs/design/current/palette.png`. Code: `Palette.tsx`.
 
-- Groups: Sessions, Recently closed, Actions (new session, new session in folder…). Typing also searches Workstreams, Tasks and PRs (mine and reviews, bots excluded); every query word must match.
+- Groups: Sessions, Recently closed, Actions (new session, new session in folder…). Typing also searches Workstreams, Tasks and PRs (mine and reviews, bots excluded); every query word must match. Rows show status and project for tasks, repo and author for PRs; no numbers.
 - `/command` runs a slash command in the current running session. `/model` and `/effort` are refused there (they rewrite the global defaults); the picker covers them.
 
 ## Focus (⌘F)
@@ -135,12 +136,12 @@ Image: `docs/design/current/focus.png`. Code: `Focus.tsx`, `notify.ts`, `store.t
 Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek), `needs.ts`, `NeedPreview.tsx`, `DraftPanel.tsx`, `src/main/drafts.ts`.
 
 - **Counters** under the TopBar on every Today tab: Needs you, My tasks, My PRs, Reviews (the 5h limit lives in the status bar). Each has a big number with its breakdown stacked at the right (e.g. `2 PRs · 1 thread · 1 task`, `7 working · 10 in review`, `3 need a reply · 13 drafts`, `N waiting on authors · 11 bot PRs hidden`). Needs you leads: wider, a 52px number, violet, glowing while anything waits; the others are 28px. The active one (the tab shown) gets a near-white outline. Clicking a counter switches tab.
-- **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), and overdue tasks. Each row: kind, ref, text, detail, and `zz`.
+- **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), and overdue tasks. Each row: kind, the PR's repo (or `task`), text, detail, and `zz`.
   - `zz` / `z` sleeps an item until tomorrow 08:00; it wakes sooner if the item changes (a new message, push or due date). Sleeping items sit in a **Sleeping** box with "wake".
   - **Threads** box: up to six reply-needed conversations with the last message quoted; more link to My PRs.
 - **Needs reply:** a conversation (an unresolved review thread, or the PR's own conversation of comments plus review bodies) whose last message isn't mine and isn't marked seen. Bots and bare approvals don't count.
 - Click or ⏎ shows the item in the right sidebar; ⏎ again or a double-click opens it (a PR in the GitHub pane at its last message; a task into its session).
-- **PR card** (sidebar): kind, ref with CI, title, branch, updated, the PR's task chips and best session (or `+ new ✻`), the latest message; ⏎ open, **draft reply with Claude**, ▶ Run app (frontend), sleep, open in browser.
+- **PR card** (sidebar): kind, repo with CI, title, branch, updated, the PR's task chips and best session (or `+ new ✻`), the latest message; ⏎ open, **draft reply with Claude**, ▶ Run app (frontend), sleep, open in browser.
 - **Notifications** (native), in tiers. A session **waiting** on you: banner with sound (skipped while that tab is on screen and the window focused). GitHub, already only what's for me (a new reply or comment on my PR, changes requested, CI failed not on drafts, a new review request): banner without sound, except a review request. A session **finishing** its turn: no banner; its tab shows it. Each opens its row or tab. The first poll only records what's there; more than four at once become one summary. The Dock badge counts sessions waiting on you. While focus is on, all of them are held (see Focus).
 
 ## Today › My tasks
@@ -166,7 +167,7 @@ Image: `docs/design/current/today-tasks.png`. Code: `TodayView.tsx` (Home, TaskS
 Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `TaskDetails.tsx`, `Chips.tsx`.
 
 - **Card** (box titled `<project> › <task list>`): the parent (opens its workstream), the title (links to Productive, underlined in the status colour) with the **status button** (Productive's pastel tag; ▾ menu of the workflow's statuses, keyboard-navigable; a pick applies at once, no confirm), due and last activity.
-- **PR** row: PR chips (▶ Run app on frontend ones); **sessions (N)** with **link ✻** to link an open session by hand.
+- **PR** row: PR chips (▶ Run app on frontend ones); GitHub links in the Productive description, to-dos and comments read `frontend PR` (the URL in the tooltip); **sessions (N)** with **link ✻** to link an open session by hand.
 - Linked sessions: mark, time, first prompt; × unlinks. **left off**: Summarize / refresh runs `claude -p --model haiku` over the latest linked transcript's tail; cached per session.
 - On the box's bottom edge: **+ new ✻** (always a new session) and **⏎ continue** (switch to the live session, open the latest tab, or resume it; hidden with no session).
 - **Productive box** below it: description (URLs clickable); **to-dos** with done count, `+` add form (text, assignee from my colleagues or unassigned), hide/show done; each to-do has a checkbox and an assignee avatar with a searchable people picker. On someone else's task, my open to-dos are highlighted. **comments** newest first under a composer that's one quiet line until focused, then three lines with `@` tagging (tags notify), post, and **draft with Claude**.
@@ -179,7 +180,7 @@ Image: `docs/design/current/today-prs.png`. Code: `GitView.tsx` (GitView, PrRow)
 - **Source.** `gh api graphql` every 2 min: my open PRs (review decision, CI rollup, mergeable state, draft, head branch), review requests made to me directly (team requests don't count), threads and comments.
 - Left list, right the GitHub pane (resizable split, remembered).
 - Repo chips and **Hide drafts**. Grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. A PR opened from a link that isn't in my lists gets a temporary **Opened** group.
-- **Row:** a rail in the stage colour; ref and title; the task chip; ▶ Run app (frontend); `↩ N` when replies wait on me (opens the first in Needs you); age; an `n/4` score. Under it four checks, each ✓ / ✕ / ·: CI (no CI counts as passing), reviews, conflicts, open threads. 4/4 rows get a faint green tint. Within a stage: highest score, then most recently updated.
+- **Row:** a rail in the stage colour; repo and title (the number in the repo's tooltip); the task chip; ▶ Run app (frontend); `↩ N` when replies wait on me (opens the first in Needs you); age; an `n/4` score. Under it four checks, each ✓ / ✕ / ·: CI (no CI counts as passing), reviews, conflicts, open threads. 4/4 rows get a faint green tint. Within a stage: highest score, then most recently updated.
 - ⏎ / click opens in the pane, ⌘-click the browser, `m` marks replies seen.
 
 ## Today › Reviews
@@ -188,14 +189,14 @@ Image: `docs/design/current/today-reviews.png`. Code: `GitView.tsx` (ReviewsView
 
 - **Reviews** box: PRs waiting on my review (requested, or re-requested after I asked for changes), in **New this week** and **Waiting longer** (oldest first). Repo chips and **Hide bots** (on by default) apply to both boxes. The counter counts only this box.
 - **You asked for changes** box: PRs where my latest review asked for changes and I haven't been re-requested; latest first.
-- **Row:** ref, title, author (· bot), "your task" chip when it names one of my tasks, CI dot, ▶ Run app, age (amber after 3 days, red after 14).
+- **Row:** repo, title, author (· bot), "your task" chip when it names one of my tasks, CI dot, ▶ Run app, age (amber after 3 days, red after 14).
 
 ## GitHub pane
 
 Image: `docs/design/current/github-pane.png`. Code: `GitPane.tsx`, `PrLinks.tsx`, `src/main/github/pane.ts`, `src/shared/pane.ts`.
 
 - An Electron `WebContentsView` (not an iframe) drawn over the right panel of My PRs / Reviews, or full width (⤢), or in a session's PR sidebar. One native view is shared; a still image stands in while an overlay or menu covers it.
-- **Strip:** ref, state, CI, `N reply needed`, the **Task ▾** and **Session ▾** buttons, ▶ Run app (frontend), ‹ › history, `⌘↩ browser`, ⤢, ×.
+- **Strip:** repo and title (the title gives way when tight), state, a CI dot (wording in its tooltip), `↩ N` replies needed, the **Task ▾** and **Session ▾** buttons (capped at 200px), ▶ Run app (frontend), ‹ › history, ↗ browser (⌘↩), ⤢, ×.
   - **Task ▾**: the first task's rail, Productive logo and title (`+N`); the menu lists the PR's tasks with status. Click shows it in My tasks; ↗ opens Productive.
   - **Session ▾**: the best session's mark and title (`+N`); the menu lists sessions linked to those tasks plus any session working on this frontend PR, live first. Click switches (reopening a closed tab); "+ new ✻ for this task". With a task but no session, the button is `+ new ✻` directly.
   - **A PR that names none of my tasks** (a review, say) gets `+ new ✻` in their place (and "+ new ✻ for this PR" in Session ▾ once it has sessions): a new session named after the PR, connected to it by hand, its first prompt prefilled with `lets look at this PR <url>`.
@@ -227,7 +228,7 @@ Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `s
 Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, `TaskSide.tsx` (SessionBar), `ExternalPanel.tsx`, `PrCard.tsx`, `src/main/sessions.ts`, `pty-host.ts`.
 
 - **Spawning.** `claude` (or `claude --resume <id>`) in a pty, with `--model` / `--effort` / `--permission-mode` from the session's settings. Default cwd `~/Productive/work` (setting `defaultCwd`); a task session starts in the task's worktree when there is one. Fork (from a workstream) starts `--resume <id> --fork-session` in a new tab.
-- **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws. Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
+- **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws. Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with repo, title, state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
 - **Session bar** (38px, raised, under the TopBar, only for Workbench sessions):
   - **Task button:** status rail, Productive logo, title, status, `⌘I` → task sidebar. No task: "link task…".
   - **PR button:** GitHub logo, title, CI state, `+N`, `⌘⇧I` → PR sidebar; hidden with no PR. The session's PRs, in order: connected by hand, the frontend PR its branch is on, PRs of its tasks.
@@ -247,14 +248,14 @@ Image: `docs/design/current/session.png` (rail), `docs/design/current/session-le
 
 Image: `docs/design/current/session-task-side.png`. Code: `TaskSide.tsx` (TaskSide).
 
-- At the right of the terminal, 34% of the window by default (420–560px): the task card and Productive box (as in Today). Several linked tasks: chips at the top pick one. No task: a filter and a list of my tasks to link.
+- At the right of the terminal, 34% of the window by default (420–560px): the task card and Productive box (as in Today). Several linked tasks: chips at the top pick one. No task: a filter and a list (titles only) of my tasks to link.
 - Readability: the title at 14px without the status underline (it shows on hover); the parent on one line; labels (PR, sessions, left off, description, to-dos, comments) in a quieter tone than their content, with space between sections. URLs in descriptions, to-dos and comments read short: a GitHub PR or issue as `repo#n`, others without `https://`; the full URL is the tooltip.
 
 ## Session PR sidebar (⌘⇧I)
 
 Image: `docs/design/current/session-pr-side.png`. Code: `TaskSide.tsx` (PrSide), `GitPane.tsx`.
 
-- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. Framed like the task sidebar: a box with the PR's ref, state and CI set into its top border and the tools (‹ › browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
+- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. Framed like the task sidebar: a box with the PR's repo, title, state and CI set into its top border and the tools (‹ › browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
 - **Per session:** each session remembers its own sidebar (task, PR or none; `ui:sessionSides`), closed until opened. The PR sidebar shows only while the session has a PR; ⌘⇧I does nothing without one.
 - **Width (both sidebars):** drag the left edge to resize (←/→ when it has focus); double-click resets to the default. Each sidebar remembers its width (`ui:sideWidths`), never narrower than 320px or leaving the terminal less than 360px. The GitHub pane waits behind a still while dragging.
 
@@ -268,7 +269,7 @@ Image: `docs/design/current/session-suggest.png`. Code: `LinkSuggest.tsx`, `src/
   - session has a task → **Connect** (PR to session and task) or **+ add PR to-do in Productive** (also a `PR: <url>` to-do, after a confirm);
   - no task but the PR's branch or body names one → **Connect both** or **PR only**;
   - no task → **Connect to session** or **+ pick a task…** (also opens the task sidebar).
-- Connected PRs are stored (`session_prs`, `pr_tasks`) and show everywhere a task's or session's PRs do.
+- Connected PRs are stored (`session_prs`, `pr_tasks`) and show everywhere a task's or session's PRs do. Cards name a PR by repo and title.
 
 ## Picker
 
@@ -291,7 +292,7 @@ Image: `docs/design/current/caffeinate.png`. Code: `CaffeinateControl.tsx`, `Cup
 Image: `docs/design/current/memory.png`. Code: `Memory.tsx`, `src/main/memory.ts`, `src/shared/memory.ts`.
 
 - `▌wb 2.4G`: total of Workbench's processes, every session's process tree, and local services. The `▌` blends light purple → purple → dark purple → dark red → bright red in steps of 1/12 of RAM (OKLab, eased 0.8s); critical memory pressure forces bright red.
-- Click opens the popover (Esc / outside closes): total with RAM and pressure, a 30-minute sparkline and change, a bar split Workbench / Sessions / Local services, and three sections: **Workbench** (window, main, GitHub pages with "close idle", GPU, helpers, headless claude runs), **Sessions** (each tab's tree by size, e.g. `claude 312 · node ×2 96`, ↗ for 30 MB+ growth over 10 min, click opens it), **Local services** (each service and its shell panes).
+- Click opens the popover (Esc / outside closes): total with RAM and pressure, a 30-minute sparkline and change, a bar split Workbench / Sessions / Local services, and three sections: **Workbench** (window, main, GitHub pages as a count with "close idle", GPU, helpers, headless claude runs), **Sessions** (each tab's tree by size, e.g. `claude 312 · node ×2 96`, ↗ for 30 MB+ growth over 10 min, click opens it), **Local services** (each service and its shell panes).
 - Sampling: one `ps` plus the pressure sysctl every 30s, every 5s while open.
 
 ## Workstream
@@ -301,7 +302,7 @@ Image: `docs/design/current/workstream.png`. Code: `WorkstreamView.tsx`, `src/ma
 - One screen per milestone or parent task, opened from a task's parent, a context header, or ⌘K; it shows as a temporary TopBar place until closed.
 - Loaded on open and Refresh, never polled: the Productive tree (root plus 3 levels, including others' and closed subtasks) and history; PRs from a GitHub search in productiveio for the tree's task ids (rollup PRs mentioning many tasks are skipped unless their branch names the task); transcript line counts and durations.
 - Header: title, status, **Post update to task** (Productive comment draft with confirm), **Resume last session**. Tabs: **Timeline** (sessions, PR events, task events in time order; opens at the newest end). A sticky **Show** row filters it by repo: All, then each repo with its count, most first, and **other** for items no repo can be told for. A PR event counts for its own repo; a session or task event for the repos of its task's PRs, else the repo its title prefix names (FE: frontend, BE: api, AI: ai-agent, E/E2E: e2e-tests, Dev/Spec: specs), else its nearest parent's; the root's own PRs don't count, since a milestone's span every repo, **Sessions · N** (Open tab / Resume, Fork with context), **PRs · N**, **Notes** (local).
-- Side: **Structure** tree with status, PR, worktree and session chips; every row ends with the assignee's avatar (mine ringed violet, unassigned a dashed ring); closed subtasks folded behind "show N closed". **Start work** per open subtask of mine: switch to its running session, or start one in its worktree (the tab named after the subtask without its repo prefix); without one, pick a repo and Workbench creates `feature/<taskId>-<slug>` in `<worktrees>/<repo>-<taskId>-<slug>` from `origin/<default>` after a confirm showing the commands (or "No worktree · default folder"). **Where I left off** with Summarize latest.
+- Side: **Structure** tree with status, PR (repo and a short title; number in the tooltip), worktree and session chips; every row ends with the assignee's avatar (mine ringed violet, unassigned a dashed ring); closed subtasks folded behind "show N closed". **Start work** per open subtask of mine: switch to its running session, or start one in its worktree (the tab named after the subtask without its repo prefix); without one, pick a repo and Workbench creates `feature/<taskId>-<slug>` in `<worktrees>/<repo>-<taskId>-<slug>` from `origin/<default>` after a confirm showing the commands (or "No worktree · default folder"). **Where I left off** with Summarize latest.
 
 ## Local
 
@@ -319,7 +320,7 @@ Image: `docs/design/current/local.png`. Code: `LocalView.tsx`, `Panes.tsx`, `Wor
 Image: chip in the StatusBar of `session.png`. Code: `RunPr.tsx`, `src/main/focus-pr.ts`, `src/main/local/run-pr.ts`, `src/shared/runpr.ts`, `src/main/github/fe-pr.ts`.
 
 - **Focus PR** per session from signals: its cwd is a frontend worktree on a PR's branch, or a frontend PR URL / `#n` in its prompts or output (strongest, newest wins); then a PR of its task, or a `gh pr view/checkout/diff <n>` it ran.
-- **Chip:** "App · <branch> → Session · fe #n ▶ Run" on a mismatch; "Switching app to fe #n · step i of n" with a bar while running; "✓ App on fe #n · <url>" when they match; "Run fe #n failed · details"; ↩ Back after a base-checkout run.
+- **Chip:** "App · <branch> → Session · <PR title> ▶ Run" on a mismatch; "Switching app to <PR title> · step i of n" with a bar while running; "✓ App on … · <url>" when they match; "Run failed · details"; ↩ Back after a base-checkout run.
 - ▶ Run app also on frontend rows in My PRs / Reviews, the task card's PRs, Needs you's PR card, the GitHub pane strip and the terminal PR card.
 - **Worktree found** (by branch, then upstream, then head commit, only under `.wtrc` worktree folders): stop `app`, run the repo's command there.
 - **No worktree:** the base checkout (`app`'s folder, `~/Productive/app`; never `~/Productive/work/repos/frontend`). A dirty tree asks: Stash and continue / Run alongside / Cancel. Then fetch, checkout (remembering the previous branch and stash for ↩ Back), `pnpm i` only if the lockfile changed, build lib · ui · form · prosemirror when their sources changed, restart, wait for the app to answer.

@@ -102,7 +102,7 @@ export class MemoryMonitor {
       {
         id: 'pages',
         name: 'GitHub pages',
-        detail: pages.length ? `${pages.length} loaded · ${pages.map((p) => `#${p.key.split('/').pop()}`).join(', ')}` : 'none loaded',
+        detail: pages.length ? `${pages.length} loaded` : 'none loaded',
         mb: mb(pages.reduce((n, p) => n + rssOf(p.pid), 0)),
         closable: pages.length > 1,
       },

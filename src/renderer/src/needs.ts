@@ -1,5 +1,5 @@
 import type { Conversation, GitSnapshot, Pr } from '@shared/git'
-import { changesPending, lastMessage, needsReply, prRef, verb } from '@shared/git'
+import { changesPending, lastMessage, needsReply, prRepo, verb } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
 
 export interface NeedItem {
@@ -27,22 +27,22 @@ export function needsYou(git: GitSnapshot | null, tasks: TasksSnapshot | null): 
   for (const p of git?.mine ?? []) {
     if (p.draft) continue
     if (changesPending(p))
-      out.push({ key: `cr:${p.changesRequestedBy?.id ?? p.id}`, kind: 'changes requested', ref: prRef(p), text: p.title, detail: p.changesRequestedBy ? `${p.changesRequestedBy.author} · ${short(p.changesRequestedBy.at)}` : '', pr: p })
-    if (p.ci === 'fail') out.push({ key: `ci:${p.id}:${p.headSha}`, kind: 'ci failing', ref: prRef(p), text: p.title, detail: p.branch, pr: p })
-    if (p.conflict) out.push({ key: `cf:${p.id}:${p.headSha}`, kind: 'conflicts', ref: prRef(p), text: p.title, detail: p.branch, pr: p })
+      out.push({ key: `cr:${p.changesRequestedBy?.id ?? p.id}`, kind: 'changes requested', ref: prRepo(p), text: p.title, detail: p.changesRequestedBy ? `${p.changesRequestedBy.author} · ${short(p.changesRequestedBy.at)}` : '', pr: p })
+    if (p.ci === 'fail') out.push({ key: `ci:${p.id}:${p.headSha}`, kind: 'ci failing', ref: prRepo(p), text: p.title, detail: p.branch, pr: p })
+    if (p.conflict) out.push({ key: `cf:${p.id}:${p.headSha}`, kind: 'conflicts', ref: prRepo(p), text: p.title, detail: p.branch, pr: p })
   }
   for (const p of git?.mine ?? []) {
     for (const c of p.conversations) {
       if (!git || !needsReply(c, git.viewer, git.seen)) continue
       const last = lastMessage(c)!
       if (last.state === 'CHANGES_REQUESTED') continue
-      out.push({ key: `re:${c.key}:${last.id}`, kind: 'reply needed', ref: prRef(p), text: `${last.author} ${verb(c)}${c.path ? ` ${c.path.split('/').pop()}` : ''}`, detail: short(last.at), pr: p, conversation: c })
+      out.push({ key: `re:${c.key}:${last.id}`, kind: 'reply needed', ref: prRepo(p), text: `${last.author} ${verb(c)}${c.path ? ` ${c.path.split('/').pop()}` : ''}`, detail: short(last.at), pr: p, conversation: c })
     }
   }
   const today = new Date().toISOString().slice(0, 10)
   for (const t of tasks?.tasks ?? []) {
     if (t.context || !t.dueDate || t.dueDate >= today || t.statusCategory === 3) continue
-    out.push({ key: `od:${t.id}:${t.dueDate}`, kind: 'overdue', ref: `#${t.number ?? t.id}`, text: t.title, detail: `due ${new Date(`${t.dueDate}T12:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`, task: t })
+    out.push({ key: `od:${t.id}:${t.dueDate}`, kind: 'overdue', ref: 'task', text: t.title, detail: `due ${new Date(`${t.dueDate}T12:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`, task: t })
   }
   return out
 }

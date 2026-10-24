@@ -13,7 +13,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 type Tab = 'timeline' | 'sessions' | 'prs' | 'notes'
 
-const prLabel = (p: WsPr) => `${shortRepo(p.repoName)} #${p.number}`
+/** A PR as it reads here: its repo; the title sits beside it, the number only in the tooltip. */
+const prLabel = (p: WsPr) => shortRepo(p.repoName)
 const isLive = (s?: Session) => !!s?.alive && (s.state === 'running' || s.state === 'waiting')
 const base = (p: string) => p.split('/').pop() ?? p
 
@@ -117,7 +118,7 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
                 <StatusGlyph task={t} size={11} /> {t.title}
               </span>
             )}
-            <span className="pop-note">linked via {l.via}</span>
+            <span className="pop-note">linked via {l.via.replace(/ #\d+$/, '')}</span>
           </span>
         </div>
         {summary ? <span className="ws-card-summary">{summary}</span> : l.session.firstPrompt && <span className="ws-card-prompt">“{l.session.firstPrompt}”</span>}
@@ -379,8 +380,8 @@ function Structure({ ws, sessionsOf, prsOf, live, onTask }: { ws: Workstream | n
               {(prsOf(t.id).length > 0 || wt || n > 0) && (
                 <div className="ws-node-chips">
                   {prsOf(t.id).map((p) => (
-                    <span key={p.url} className={`ws-tag ${p.state === 'OPEN' ? (p.draft ? 'draft' : 'pr') : p.state === 'MERGED' ? 'merged' : 'draft'}`}>
-                      {prLabel(p)}
+                    <span key={p.url} title={`${p.title} · #${p.number}`} className={`ws-tag ${p.state === 'OPEN' ? (p.draft ? 'draft' : 'pr') : p.state === 'MERGED' ? 'merged' : 'draft'}`}>
+                      {prLabel(p)} · {p.title.length > 28 ? `${p.title.slice(0, 27)}…` : p.title}
                       {p.draft && p.state === 'OPEN' ? ' draft' : ''}
                     </span>
                   ))}

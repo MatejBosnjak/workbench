@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import type { MenuCommand } from '@shared/types'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
-import { PrSide, SessionBar, TaskSide } from './components/TaskSide'
+import { PrSide, SessionBar, SideResizer, TaskSide } from './components/TaskSide'
 import { TodayView } from './components/TodayView'
 import { WorkstreamView } from './components/WorkstreamView'
 import { DirtyGuardModal } from './components/RunPr'
@@ -74,6 +74,7 @@ export function App() {
     const { setRunpr } = useStore.getState()
     void window.workbench.getSetting<Record<string, number>>('ui:snoozed', {}).then((sn) => useStore.setState({ snoozed: Object.fromEntries(Object.entries(sn).filter(([, t]) => t > Date.now())) }))
     void window.workbench.getSetting<SessionSide>('ui:sessionSide', null).then((sessionSide) => useStore.setState({ sessionSide }))
+    void window.workbench.getSetting<Partial<Record<'task' | 'pr', number>>>('ui:sideWidths', {}).then((sideWidths) => useStore.setState({ sideWidths }))
     void window.workbench.getSetting<boolean>('ui:hideDoneTodos', false).then((hideDoneTodos) => useStore.setState({ hideDoneTodos }))
     void window.workbench.runpr.snapshot().then(setRunpr)
     const offRun = window.workbench.runpr.onChanged(setRunpr)
@@ -133,12 +134,14 @@ export function App() {
   const sessionSide = useStore((s) => s.sessionSide)
   const paneFull = useStore((s) => s.paneFull)
   const side = view.kind === 'session' && !!active && !active.external ? sessionSide : null
+  const sideWidth = useStore((s) => (side ? s.sideWidths[side] : undefined))
+  const full = side === 'pr' && paneFull
 
   return (
     <div className="app">
       <TopBar onNew={() => void newSession()} />
       {view.kind === 'session' && active && !active.external && <SessionBar session={active} />}
-      <main className={`main${side ? ` with-side side-${side}${side === 'pr' && paneFull ? ' side-full' : ''}` : ''}`}>
+      <main className={`main${side ? ` with-side side-${side}${full ? ' side-full' : ''}` : ''}`} style={sideWidth ? ({ '--side-w': `min(${sideWidth}px, calc(100% - 360px))` } as CSSProperties) : undefined}>
         {sessions
           .filter((s) => mounted.has(s.id) && !s.external)
           .map((s) => (
@@ -148,6 +151,7 @@ export function App() {
         {active?.external && <ExternalPanel session={active} />}
         {side === 'task' && <TaskSide session={active!} />}
         {side === 'pr' && <PrSide session={active!} />}
+        {side && !full && <SideResizer side={side} />}
         <TodayView snapshot={tasks} git={git} active={view.kind === 'today'} />
         <LocalView snapshot={local} active={view.kind === 'local'} />
         {view.kind === 'workstream' && <WorkstreamView key={view.id} rootId={view.id} />}

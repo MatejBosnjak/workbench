@@ -1,11 +1,11 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { prRef, type Ci, type GitSnapshot } from '@shared/git'
 import type { RunPrSnapshot } from '@shared/runpr'
 import { sessionTaskIds } from '@shared/links'
 import { statusVivid, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { useShallow } from 'zustand/react/shallow'
-import { useStore } from '../store'
+import { useOverlay, useStore } from '../store'
 import { Box } from './Box'
 import { GitHubIcon, NewSessionButton, ProductiveIcon } from './Chips'
 import { GitPane } from './GitPane'
@@ -172,5 +172,54 @@ export function TaskSide({ session }: { session: Session }) {
       {id && task && snapshot && <TaskPreview task={task} snapshot={snapshot} onClose={close} />}
       {id && <TaskDetails taskId={id} withTitle={!task} />}
     </aside>
+  )
+}
+
+/** The narrowest a sidebar gets, and how much room it always leaves the terminal. */
+const SIDE_MIN = 320
+const TERM_MIN = 360
+
+/** The sidebar's left edge: drag it to resize, double-click for the default width. Each sidebar remembers its own width. */
+export function SideResizer({ side }: { side: 'task' | 'pr' }) {
+  const setWidth = useStore((s) => s.setSideWidth)
+  const main = useRef<DOMRect | null>(null)
+  const [dragging, setDragging] = useState(false)
+  // The GitHub pane is a native view that would swallow the pointer; it waits behind a still while dragging.
+  useOverlay(dragging)
+  const widthAt = (x: number) => {
+    const r = main.current!
+    return Math.min(Math.max(r.right - x, SIDE_MIN), r.width - TERM_MIN)
+  }
+  const current = (el: HTMLElement) => el.parentElement!.getBoundingClientRect().right - el.getBoundingClientRect().left - 4
+  return (
+    <div
+      className={`side-resizer${dragging ? ' dragging' : ''}`}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Sidebar width"
+      tabIndex={0}
+      title="Drag to resize · double-click to reset"
+      onPointerDown={(e) => {
+        e.preventDefault()
+        main.current = e.currentTarget.parentElement!.getBoundingClientRect()
+        e.currentTarget.setPointerCapture(e.pointerId)
+        setDragging(true)
+      }}
+      onPointerMove={(e) => main.current && setWidth(side, widthAt(e.clientX), false)}
+      onPointerUp={(e) => {
+        if (!main.current) return
+        setWidth(side, widthAt(e.clientX), true)
+        main.current = null
+        setDragging(false)
+      }}
+      onDoubleClick={() => setWidth(side, null, true)}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+        e.preventDefault()
+        main.current = e.currentTarget.parentElement!.getBoundingClientRect()
+        setWidth(side, widthAt(main.current.right - current(e.currentTarget) + (e.key === 'ArrowLeft' ? -24 : 24)), true)
+        main.current = null
+      }}
+    />
   )
 }

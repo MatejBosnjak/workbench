@@ -143,6 +143,12 @@ export function StatusSelect({ task }: { task: Task }) {
   )
 }
 
+/** A URL as it reads best: a GitHub PR or issue as repo#n, anything else without its scheme. */
+export function shortUrl(url: string): string {
+  const gh = url.match(/^https?:\/\/github\.com\/[^/]+\/([^/]+)\/(?:pull|issues)\/(\d+)\/?$/)
+  return gh ? `${gh[1]}#${gh[2]}` : url.replace(/^https?:\/\/(www\.)?/, '')
+}
+
 /** Plain text with its URLs as links that open in the browser. */
 function Linked({ text }: { text: string }) {
   const parts = text.split(/(https?:\/\/[^\s<>"]+)/g)
@@ -150,8 +156,8 @@ function Linked({ text }: { text: string }) {
     <>
       {parts.map((p, i) =>
         i % 2 ? (
-          <a key={i} href={p} onClick={(e) => (e.preventDefault(), void window.workbench.openExternal(p))}>
-            {p}
+          <a key={i} href={p} title={p} onClick={(e) => (e.preventDefault(), void window.workbench.openExternal(p))}>
+            {shortUrl(p)}
           </a>
         ) : (
           <Fragment key={i}>{p}</Fragment>

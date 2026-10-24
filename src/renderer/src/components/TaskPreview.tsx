@@ -68,7 +68,7 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
   return (
     <Box title={`${task.projectName}${task.taskListName ? ` › ${task.taskListName}` : ''}`} className="peek has-edge" aside={<button className="icon-btn" aria-label="Close task" onClick={onClose}>×</button>}>
       {parent && (
-        <button className="peek-parent" title="Open workstream" onClick={() => openWorkstream(task.id)}>
+        <button className="peek-parent" title={`${parent.title} · open workstream`} onClick={() => openWorkstream(task.id)}>
           {parent.milestone ? '◆' : '◇'} {parent.title}
         </button>
       )}

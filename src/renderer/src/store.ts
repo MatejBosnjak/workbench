@@ -74,6 +74,10 @@ interface State {
   setSessionSide(side: SessionSide): void
   /** Toggles one sidebar: opens it, or closes it when it's the one open. */
   toggleSessionSide(side: Exclude<SessionSide, null>): void
+  /** Each sidebar's width in px once dragged; unset means its default. Kept as ui:sideWidths. */
+  sideWidths: Partial<Record<Exclude<SessionSide, null>, number>>
+  /** `save` writes it to settings (at the end of a drag); null goes back to the default. */
+  setSideWidth(side: Exclude<SessionSide, null>, px: number | null, save: boolean): void
   /** A line under the pane's strip, e.g. what happened to a Claude draft. */
   paneNote: string | null
   /** Open overlays (palette, popovers, modals); the native pane hides behind a still while any is open. */
@@ -153,6 +157,14 @@ export const useStore = create<State>((set, get) => ({
     void window.workbench.setSetting('ui:sessionSide', sessionSide)
   },
   toggleSessionSide: (side) => get().setSessionSide(get().sessionSide === side ? null : side),
+  sideWidths: {},
+  setSideWidth: (side, px, save) => {
+    const sideWidths = { ...get().sideWidths }
+    if (px === null) delete sideWidths[side]
+    else sideWidths[side] = Math.round(px)
+    set({ sideWidths })
+    if (save) void window.workbench.setSetting('ui:sideWidths', sideWidths)
+  },
   paneNote: null,
   overlays: 0,
   openedPrs: [],

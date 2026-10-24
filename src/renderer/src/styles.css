@@ -891,10 +891,15 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .pp-option > span:nth-child(2) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pp-option.at { background: var(--accent-bg); color: var(--text); }
 .pp-empty { padding: 3px 6px; }
-.main.with-side > .term { right: calc(400px + 16px); }
-.main.side-pr > .term { right: calc(45% + 16px); }
+/* The sidebar's width: its default here, or the width it was dragged to (--side-w set on .main). */
+.main.side-task { --side-w: clamp(420px, 34vw, 560px); }
+.main.side-pr { --side-w: 45%; }
+.main.with-side > .term { right: calc(var(--side-w) + 16px); }
+.side-resizer { position: absolute; top: 0; bottom: 0; right: var(--side-w); width: 8px; margin-right: -4px; z-index: 6; cursor: col-resize; }
+.side-resizer::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background 0.15s; }
+.side-resizer:hover::after, .side-resizer.dragging::after { background: var(--line-heavy); }
 .main.side-full > .term { visibility: hidden; }
-.pr-side { position: absolute; top: 0; right: 0; bottom: 0; width: 45%; display: flex; flex-direction: column; border-left: 1px solid var(--line-heavy); background: var(--bg); }
+.pr-side { position: absolute; top: 0; right: 0; bottom: 0; width: var(--side-w); display: flex; flex-direction: column; border-left: 1px solid var(--line-heavy); background: var(--bg); }
 .main.side-full > .pr-side { width: 100%; border-left: 0; }
 .pr-side > .ts-tabs { margin: 8px 10px 0; }
 .pr-side > .faint { padding: 18px 14px; }
@@ -910,15 +915,27 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .sbar-status { color: var(--st); }
 .sbar-branch { margin-left: auto; overflow: hidden; text-overflow: ellipsis; }
 .seg-btn.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.task-side { position: absolute; top: 0; right: 0; bottom: 0; width: 400px; overflow-y: auto; padding: 18px 14px 14px; border-left: 1px solid var(--line-heavy); background: var(--bg); }
+.task-side { position: absolute; top: 0; right: 0; bottom: 0; width: var(--side-w); overflow-y: auto; padding: 18px 14px 14px; border-left: 1px solid var(--line-heavy); background: var(--bg); }
 .ts-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .ts-filter { margin: 8px 0 4px; }
 .ts-pick { display: flex; flex-direction: column; max-height: 60vh; overflow-y: auto; }
+/* Room to read: the title without a per-line underline, labels quieter than what they label, sections spaced apart. */
+.task-side .box { padding: 18px 16px 12px; }
+.task-side .peek { gap: 6px; }
+.task-side .peek-parent { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-side .peek-head .peek-title { font-size: 14px; line-height: 1.4; }
+.task-side .peek-head .peek-title a { text-decoration: none; }
+.task-side .peek-head .peek-title a:hover { text-decoration: underline; }
+.task-side .peek-sub, .task-side .peek-links .k, .task-side .peek-sess-head { color: var(--text-3); }
+.task-side .peek-sub { margin-top: 16px; }
+.task-side .box > div.peek-sub:first-of-type { margin-top: 0; }
+.task-side .peek-links { flex-wrap: nowrap; margin-top: 14px; }
+.task-side .peek-links > .peek-pr { flex: 0 1 auto; min-width: 80px; }
+.task-side .peek-summary, .task-side .td-desc { color: var(--text-2); line-height: 1.6; }
 
 /* Bookmark rail: a mark per prompt, Subagent result and question, placed by its line in the whole scrollback. */
 .marks { position: absolute; top: 14px; bottom: 6px; right: 0; width: 16px; z-index: 3; --mk-prompt: #C77DFF; --mk-result: #2CF0D0; --mk-question: #FF9F1C; }
-.main.with-side > .marks { right: 400px; }
-.main.side-pr > .marks { right: 45%; }
+.main.with-side > .marks { right: var(--side-w); }
 .main.side-full > .marks { display: none; }
 .marks-track { position: absolute; inset: 0 0 22px 0; }
 .marks-bar { position: absolute; inset: 0; }

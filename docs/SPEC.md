@@ -229,13 +229,15 @@ Image: `docs/design/current/session.png` (rail), `docs/design/current/session-le
 
 Image: `docs/design/current/session-task-side.png`. Code: `TaskSide.tsx` (TaskSide).
 
-- 400px at the right of the terminal: the task card and Productive box (as in Today). Several linked tasks: chips at the top pick one. No task: a filter and a list of my tasks to link.
+- At the right of the terminal, 34% of the window by default (420–560px): the task card and Productive box (as in Today). Several linked tasks: chips at the top pick one. No task: a filter and a list of my tasks to link.
+- Readability: the title at 14px without the status underline (it shows on hover); the parent on one line; labels (PR, sessions, left off, description, to-dos, comments) in a quieter tone than their content, with space between sections. URLs in descriptions, to-dos and comments read short: a GitHub PR or issue as `repo#n`, others without `https://`; the full URL is the tooltip.
 
 ## Session PR sidebar (⌘⇧I)
 
 Image: `docs/design/current/session-pr-side.png`. Code: `TaskSide.tsx` (PrSide), `GitPane.tsx`.
 
-- 45% wide: the GitHub pane on the session's PR, with chips to pick between several. × closes the sidebar.
+- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. × closes the sidebar.
+- **Width (both sidebars):** drag the left edge to resize (←/→ when it has focus); double-click resets to the default. Each sidebar remembers its width (`ui:sideWidths`), never narrower than 320px or leaving the terminal less than 360px. The GitHub pane waits behind a still while dragging.
 
 ## Link suggestions
 

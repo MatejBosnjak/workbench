@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { MARK_WORD, taskSessions, type LinkedSession } from '@shared/links'
 import { FE_REPO } from '@shared/runpr'
 import { groupByStatus, groupTasks, statusCounts, statusVivid, treeShapes, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
@@ -7,6 +8,7 @@ import { useKeyTarget } from '../keys'
 import { needsBreakdown, needsYou, tomorrowMorning, type NeedItem } from '../needs'
 import { navigate, openInPane, openWorkstream, useStore, type TodayTab } from '../store'
 import { Box } from './Box'
+import { MarkGlyph, NewSessionButton } from './Chips'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { DraftPanel } from './DraftPanel'
 import { GitPane } from './GitPane'
@@ -352,17 +354,11 @@ function Home({
   }
   const [only, setOnly] = useState<string[]>([])
 
-  const bySession = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions])
-  const linksByTask = useMemo(() => {
-    const m = new Map<string, NonNullable<TasksSnapshot>['links']>()
-    for (const l of snapshot?.links ?? []) m.set(l.taskId, [...(m.get(l.taskId) ?? []), l])
+  const sessionsByTask = useMemo(() => {
+    const m = new Map<string, LinkedSession[]>()
+    for (const t of snapshot?.tasks ?? []) m.set(t.id, taskSessions(t.id, snapshot, sessions))
     return m
-  }, [snapshot?.links])
-  const live = (taskId: string) =>
-    (linksByTask.get(taskId) ?? []).some((l) => {
-      const s: Session | undefined = bySession.get(l.sessionId)
-      return s?.alive && (s.state === 'running' || s.state === 'waiting')
-    })
+  }, [snapshot, sessions])
 
   const statuses = useMemo(() => statusCounts(snapshot?.tasks ?? []), [snapshot?.tasks])
   const byId = useMemo(() => new Map((snapshot?.tasks ?? []).map((t) => [t.id, t])), [snapshot?.tasks])
@@ -536,7 +532,7 @@ function Home({
                       <span className="faint">{l.header === 'milestone' ? ' (not assigned to you)' : ' (filtered out)'}</span>
                     </div>
                   )
-                const n = linksByTask.get(t.id)?.length ?? 0
+                const linked = sessionsByTask.get(t.id) ?? []
                 const due = dueLabel(t.dueDate)
                 const sel = peekTask === t.id
                 // A subtask shown without its parent above it names the parent instead of drawing a tree mark.
@@ -561,7 +557,15 @@ function Home({
                     {!!t.myTodos && <span className="task-todos">☐ {t.myTodos === 1 ? '1 to-do' : `${t.myTodos} to-dos`}</span>}
                     <span className="task-status">{(t.statusName || 'No status').toLowerCase()}</span>
                     <span className={`task-due${due?.late ? ' late' : ''}`}>{due?.text ?? ''}</span>
-                    <span className="task-sess">{live(t.id) ? <span className="task-live">{n} live</span> : n ? `▸${n}` : ''}</span>
+                    <span className="task-sess">
+                      {linked[0] ? (
+                        <span title={`${linked.length} session${linked.length > 1 ? 's' : ''} · ${linked[0].title} ${MARK_WORD[linked[0].mark]}`}>
+                          <MarkGlyph mark={linked[0].mark} /> {linked.length}
+                        </span>
+                      ) : (
+                        <NewSessionButton taskId={t.id} short inRow />
+                      )}
+                    </span>
                     <span className="task-who">{!!t.myTodos && <Avatar name={t.assignedTo?.name ?? null} url={t.assignedTo?.avatarUrl} />}</span>
                   </button>
                 )

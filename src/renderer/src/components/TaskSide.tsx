@@ -1,22 +1,19 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { prRef, type Ci, type GitSnapshot } from '@shared/git'
 import type { RunPrSnapshot } from '@shared/runpr'
+import { sessionTaskIds } from '@shared/links'
 import { statusVivid, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
 import { Box } from './Box'
+import { GitHubIcon, NewSessionButton, ProductiveIcon } from './Chips'
 import { GitPane } from './GitPane'
 import { TaskDetails } from './TaskDetails'
 import { TaskPreview } from './TaskPreview'
 
 /** Tasks linked to the session, latest link first. */
-export function sessionTasks(snapshot: TasksSnapshot | null, sessionId: string): string[] {
-  return (snapshot?.links ?? [])
-    .filter((l) => l.sessionId === sessionId)
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .map((l) => l.taskId)
-}
+export const sessionTasks = (snapshot: TasksSnapshot | null, sessionId: string): string[] => sessionTaskIds(snapshot, sessionId)
 
 /** The session's PRs: those linked to its tasks, and the frontend PR its branch belongs to. */
 export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: GitSnapshot | null, runpr: RunPrSnapshot | null): SessionPr[] {
@@ -71,7 +68,7 @@ export function SessionBar({ session }: { session: Session }) {
         {task ? (
           <>
             <span className="sbar-rail" />
-            <span className="muted">Task</span>
+            <ProductiveIcon />
             <span className="sbar-title">{task.title}</span>
             <span className="sbar-status">{(task.statusName || 'no status').toLowerCase()}</span>
           </>
@@ -82,12 +79,14 @@ export function SessionBar({ session }: { session: Session }) {
       </button>
       {pr && (
         <button className={`sbar-btn pad${side === 'pr' ? ' on' : ''}`} aria-pressed={side === 'pr'} title={`${pr.title} (⌘⇧I)`} onClick={() => toggle('pr')}>
-          <span className="muted">PR</span>
+          <GitHubIcon />
+          <span className="sbar-title pr">{pr.title}</span>
           {ci && <span style={{ color: ci[1] }}>● {ci[0]}</span>}
           {prs.length > 1 && <span className="faint">+{prs.length - 1}</span>}
           <span className="faint">⌘⇧I</span>
         </button>
       )}
+      {task && <NewSessionButton taskId={task.id} />}
       {pr?.branch && (
         <span className="sbar-branch faint">
           ⎇ <span className="muted">{pr.branch}</span>
@@ -114,7 +113,7 @@ export function PrSide({ session }: { session: Session }) {
         <div className="ts-tabs">
           {prs.map((p) => (
             <button key={p.url} className={`sb-chip${p.url === current?.url ? ' on' : ''}`} title={p.title} onClick={() => void window.workbench.pane.open(p.url)}>
-              {p.label}
+              {p.title}
             </button>
           ))}
         </div>
@@ -143,7 +142,7 @@ export function TaskSide({ session }: { session: Session }) {
         <div className="ts-tabs">
           {ids.map((t) => (
             <button key={t} className={`sb-chip${t === id ? ' on' : ''}`} onClick={() => setPicked(t)}>
-              #{snapshot?.tasks.find((x) => x.id === t)?.number ?? t}
+              {snapshot?.tasks.find((x) => x.id === t)?.title ?? `#${t}`}
             </button>
           ))}
         </div>

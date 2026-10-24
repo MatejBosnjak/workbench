@@ -131,13 +131,14 @@ Keeps the Mac awake while sessions run.
   - the title, with a milestone or bug icon
   - the task list, shown only when it differs from the parent's
   - the due date
-  - the session count, with a live dot when a session is running
+  - the session count after the best session's mark (see Link marks); a task without a session shows `+ ✻` on the hovered or selected row
 - **Preview.** Clicking a row opens a right-hand peek with:
   - the status, parent and title
-  - where the task lives, its due date, last activity and linked PRs
-  - its linked sessions, with the running one highlighted ("Open tab")
+  - where the task lives, its due date and last activity
+  - **PR** and its PR chips (with ▶ Run app for frontend PRs); across from them "sessions (N)" and **link ✻**, which links an open session by hand
+  - its linked sessions, each with its mark, time and first prompt
   - "Where I left off"
-  - a primary action: Switch to running session, Resume latest, or Start session
+  - on the box's bottom edge, cutting through the border: **+ new ✻** (always a new session) and **⏎ continue**, which switches to the running session, opens the latest one's tab or resumes it; its tooltip names the session, and it's hidden when there is none
 - **Where I left off.** Generated only on demand from a "Summarize" action, which runs `claude -p --model haiku` over the tail of the latest linked transcripts. The result is cached per session.
 
 ### Today › My git and My reviews
@@ -187,10 +188,10 @@ GitHub opens inside Workbench instead of the system browser. It uses an Electron
 - **Draft reply with Claude.** Claude drafts the reply; Workbench scrolls the pane to the thread, opens its reply box and fills in the text. You edit it and post with GitHub's Comment button, which is the confirm.
   - Filling the box is done by a small script injected into the page, which depends on GitHub's page structure.
   - If the script can't find the reply box, Workbench copies the draft to the clipboard and scrolls to the thread instead.
-- **Task and session links** (design: the "1b · GitHub pane C" board). The strip has **Task ▾** and **Session N ▾** at the right, before the navigation buttons:
-  - **Task ▾** lists the PR's tasks: task ids in its branch and Productive task URLs in its description, matched against my tasks. Each shows its status rail, title and status. A click shows it in Today › My tasks; ↗ opens Productive.
-  - **Session ▾** lists the sessions linked to those tasks, plus any session working on this frontend PR. Running and waiting ones come first. A click switches to the session, reopening its tab if it's closed. "+ new session for this task" starts one on the first task.
-  - The button's dot shows the best session's state. Both buttons are hidden when the PR has neither a task nor a session.
+- **Task and session links** (design: the "1b · GitHub pane C" board, marks from "Workbench — Task · PR · Session links"). The strip has a task button and a session button at the right, before the navigation buttons:
+  - **Task button**: the first task's rail, Productive logo and title (`+N` for more), ▾. Its menu lists the PR's tasks: task ids in its branch and Productive task URLs in its description, matched against my tasks. Each shows its status rail, title and status. A click shows it in Today › My tasks; ↗ opens Productive.
+  - **Session button**: the best session's mark and title (`+N` for more), ▾. Its menu lists the sessions linked to those tasks, plus any session working on this frontend PR. Running and waiting ones come first. A click switches to the session, reopening its tab if it's closed. "+ new ✻ for this task" starts one on the first task. With a task but no session yet, the button is **+ new ✻** directly, one click instead of a menu.
+  - Both buttons are hidden when the PR has neither a task nor a session.
   - While a menu is open, the GitHub page is replaced by its still image so the menu isn't hidden behind the native view.
 - **Keyboard.** While the pane has focus, plain keys and Esc go to GitHub. Workbench keeps only ⌘ shortcuts:
 
@@ -217,6 +218,18 @@ GitHub opens inside Workbench instead of the system browser. It uses an Electron
   - the session touched a PR that's linked to the task
 - Every link stores its `via`, which the preview shows ("linked via PR #30227"). Links can be removed or added by hand; a link removed by hand is not re-added by inference.
 - Task ids in paths and branches only count when they match one of my tasks, so other 7–9 digit numbers don't create links. A session touches a PR when it runs on the PR's branch or a prompt contains the PR's URL; the PR's tasks come from a task id in its branch or a task URL in its body.
+
+### Link marks
+
+Design: the "Workbench — Task · PR · Session links" canvas. Wherever a task, a PR and a session point at each other they look and behave the same, and Workbench works the links out once (`src/shared/links.ts`) for every view, so the task row, peek, session bar, GitHub pane and PR lists always agree.
+
+- **Task chip:** a rail in the status colour, the Productive logo, the title. Click shows it in Today › My tasks; ⌘-click opens Productive.
+- **PR chip:** the GitHub logo, the title, a CI dot (passing / running / failing / none). Click opens the GitHub pane; ⌘-click the browser.
+- **Session mark:** the tab's colours: ● running, ● waiting, ● failed, ○ idle (tab open, claude exited), ↺ closed. A chip adds the title and switches to the session, reopening a closed one. Rows that are tight show the best session's mark and the count. "Best" is live (running or waiting) first, then the most recent.
+- Ids are never used to tell tasks and PRs apart; titles are. My PRs and Reviews rows show the task chip ("your task" on Reviews).
+- Needs you cards show the PR's task chips and its best session, or **+ new ✻**.
+- **+ new ✻** (Claude's spark stands for "session" on buttons) always starts a new session on the task: a tab named after it, the prompt prefilled, linked. `s` does the same on a task.
+- **Full title on hover.** A chip whose title is cut short grows into the full title after 120 ms of hover or on keyboard focus: the same chip, 10% larger, with the state in words ("CI failing", "peer review", "running") and a soft accent glow. It's drawn above the page so lists and strips can't clip it, grows leftwards near the right edge, and shrinks back when the pointer leaves. Reduced motion skips the animation.
 
 ### Local services
 
@@ -328,9 +341,10 @@ The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.ht
     - An edge fades out while there are tabs beyond it.
     - A `+N ▾` chip after the strip counts the tabs fully or partly out of view, and is hidden when none are.
 - **Session bar** (design: the "Workbench — Session bar" canvas). A 38px raised bar directly under the TopBar while a Workbench session is on screen; it belongs to that session, so the session's task and PR buttons live here, not in the TopBar.
-  - **Task button:** the linked task's status rail (in its status colour), its title and its status name, then `⌘I`. It opens the task sidebar. With no linked task it reads "link task…" and opens the sidebar's link picker.
-  - **PR button:** "PR" with the PR's CI state (● passing / failing / running), then `⌘⇧I`. It opens the PR sidebar (the GitHub pane), and is hidden when the session has no PR. More than one PR shows `+N`; the sidebar picks between them.
-  - The open sidebar's button is lit (accent outline and tint). The PR's branch sits at the right in faint text.
+  - **Task button:** the linked task's status rail (in its status colour), the Productive logo, its title and its status name, then `⌘I`. It opens the task sidebar. With no linked task it reads "link task…" and opens the sidebar's link picker.
+  - **PR button:** the GitHub logo, the PR's title and its CI state (● passing / failing / running), then `⌘⇧I`. It opens the PR sidebar (the GitHub pane), and is hidden when the session has no PR. More than one PR shows `+N`; the sidebar picks between them.
+  - **+ new ✻** after them starts another session on the same task.
+  - The open sidebar's button is lit (accent outline and tint). The PR's branch sits at the right in faint text. With several tasks or PRs, the sidebars pick between them by title.
   - **Task sidebar:**
     - Comments: the comment box sits above the comments, which run newest first. While not in use it's a single quiet line; focusing it or typing grows it to three lines with its post / "draft with Claude" bar.
     - To-dos: a `+` beside the to-dos heading opens an inline form with the text, an assignee (my Productive colleagues, or unassigned) and "⏎ add". Adding asks first, like every Productive write. Each to-do shows its assignee after its text.

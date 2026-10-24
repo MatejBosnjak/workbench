@@ -414,7 +414,7 @@ button:disabled { cursor: default; opacity: 0.6; }
 .task-pad { color: var(--faint); white-space: pre; }
 .task-due { width: 60px; flex-shrink: 0; color: var(--text-3); }
 .task-due.late { color: var(--bad); }
-.task-sess { width: 70px; flex-shrink: 0; text-align: right; color: var(--warn); }
+.task-sess { width: 70px; flex-shrink: 0; display: flex; justify-content: flex-end; color: var(--text-2); }
 .task-line.ctx { cursor: default; color: var(--faint); gap: 0; }
 /* Status rail: a bar and a faint tint in the status's Productive colour (--st), and its name at the right. */
 /* My tasks rows: quiet hairline rows, a glowing status mark, and tree lines tying subtasks to their parent. */
@@ -434,7 +434,6 @@ button:disabled { cursor: default; opacity: 0.6; }
 /* Someone else's task in my list for a to-do of mine: their avatar; my own tasks leave the column empty. */
 .task-who { flex: none; width: 20px; display: inline-flex; }
 .task-who .avatar { background: var(--line-heavy); color: var(--text-3); }
-.task-live { padding: 0 5px; background: var(--warn); color: var(--bg); font-weight: 700; font-size: 11px; }
 /* One 16px column per tree level; the lines run the full row height so they join across rows. */
 .tree { align-self: stretch; display: flex; flex: none; margin: -1px -4px -1px 2px; }
 .tree-g { position: relative; width: 16px; }
@@ -482,7 +481,7 @@ button:disabled { cursor: default; opacity: 0.6; }
 .peek-session { display: flex; align-items: center; gap: 4px; }
 .peek-session-main { flex: 1; min-width: 0; display: flex; gap: 10px; border: 0; background: transparent; padding: 0; text-align: left; cursor: pointer; color: var(--text-3); white-space: nowrap; }
 .peek-session-main:hover .peek-prompt { color: var(--text); }
-.peek-session.live .peek-when { color: var(--ok); }
+.peek-session.live .peek-when { color: var(--text-2); }
 .peek-when { width: 112px; flex-shrink: 0; white-space: pre; }
 .peek-prompt { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; }
 .unlink { width: 18px; height: 18px; font-size: 13px; visibility: hidden; }
@@ -506,12 +505,12 @@ button:disabled { cursor: default; opacity: 0.6; }
 .pr-wrap.needs { border-left-color: var(--accent); }
 .pr-wrap.focus { background: var(--accent-bg); }
 .pr-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 128px 12px 118px 92px 44px; align-items: center; gap: 12px; min-height: 46px; padding-right: 14px; }
-.pr-row.rev { grid-template-columns: minmax(0, 1fr) 120px 12px 118px 44px; }
+.pr-row.rev { grid-template-columns: minmax(0, 1fr) 260px 12px 118px 44px; }
 /* My PRs: a rail in the stage's colour (--rail), four merge checks under the title, a n/4 score; all-green rows tinted. */
 .pr-wrap.merge { border-left: 3px solid var(--rail); padding-bottom: 6px; }
 .pr-wrap.merge.ready { background: color-mix(in srgb, var(--ok) 7%, transparent); }
 .pr-wrap.merge.focus { background: var(--accent-bg); }
-.pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 64px 118px 44px 44px 36px; min-height: 34px; }
+.pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 220px 118px 44px 44px 36px; min-height: 34px; }
 .pr-checks { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-left: 98px; font-size: 12px; }
 .pr-check { white-space: nowrap; color: var(--faint); }
 .pr-check.ok { color: var(--ok); }
@@ -527,10 +526,9 @@ button:disabled { cursor: default; opacity: 0.6; }
 .pr-title-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pr-title { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pr-branch { font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pr-task { justify-self: start; border: 0; background: transparent; padding: 0; color: var(--link); font-size: 11px; cursor: pointer; }
-.pr-task:hover { color: var(--link-hover); }
+.pr-task { min-width: 0; display: flex; }
 .pr-state { font-size: 12px; white-space: nowrap; }
-.pr-note { font-size: 11px; color: var(--warn); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr-note { min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 11px; white-space: nowrap; }
 .ci-dot { width: 8px; height: 8px; border-radius: 50%; justify-self: center; }
 .ci-pass { background: var(--ok); }
 .ci-fail { background: var(--bad); }
@@ -908,6 +906,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .sbar-btn.on { border-color: var(--accent); background: var(--accent-bg); color: var(--text); }
 .sbar-rail { width: 3px; align-self: stretch; background: var(--st); flex-shrink: 0; }
 .sbar-title { min-width: 0; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
+.sbar-title.pr { max-width: 260px; }
 .sbar-status { color: var(--st); }
 .sbar-branch { margin-left: auto; overflow: hidden; text-overflow: ellipsis; }
 .seg-btn.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -963,3 +962,49 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .prl-ext { padding: 0 8px; }
 .prl-sep { border-top: 1px solid var(--line-heavy); margin: 4px 0; }
 .prl-new { color: var(--link); }
+
+/* Link chips (Chips.tsx): one look for a task (▍status, Productive logo, title), a PR (GitHub logo, title, CI dot) and a
+   session (the tab's state dot, title), wherever one links to another. A cut-off chip grows out to its full title. */
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 0 7px; border: 1px solid var(--line-heavy); background: var(--card); color: var(--text-2); font: inherit; font-size: 11.5px; line-height: 1; white-space: nowrap; cursor: pointer; }
+.chip:hover, .chip:focus-visible { border-color: var(--text-3); color: var(--text); }
+.chip.task { padding-left: 0; }
+.chip-rail { width: 3px; align-self: stretch; background: var(--st); flex-shrink: 0; }
+.chip-icon { flex-shrink: 0; }
+.chip-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.chip-st { color: var(--st); }
+.ci-text-pass { color: var(--ok); }
+.ci-text-fail { color: var(--bad); }
+.ci-text-pending { color: var(--info); }
+.ci-text-none { color: var(--faint); }
+.chip-full { position: fixed; z-index: 45; max-width: none; overflow: hidden; background: var(--raised); color: var(--text); transform-origin: 0 50%; animation: chip-grow 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.chip-full.leftwards { transform-origin: 100% 50%; }
+.chip-full .chip-t { overflow: visible; }
+@keyframes chip-grow {
+  from { max-width: var(--from); transform: scale(1); border-color: var(--line-heavy); box-shadow: none; }
+  to { max-width: 720px; transform: scale(1.1); border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 11px color-mix(in srgb, var(--accent) 30%, transparent), 0 6px 18px var(--shadow); }
+}
+@media (prefers-reduced-motion: reduce) { .chip-full { animation-duration: 1ms; } }
+/* Session marks, in the tab underline colours. */
+.mk-running { color: var(--info); }
+.mk-waiting { color: var(--accent); }
+.mk-failed { color: var(--bad); }
+.mk-idle { color: var(--text-3); }
+.mk-closed { color: var(--faint); }
+/* Claude's spark, its own orange in every theme. */
+.spark { color: #d97757; }
+.new-sess { display: inline-flex; align-items: center; gap: 6px; height: 22px; flex-shrink: 0; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--accent-line); background: var(--accent-bg); color: var(--accent); font: inherit; font-size: 11.5px; line-height: 1; white-space: nowrap; cursor: pointer; }
+.new-sess:hover { border-color: var(--accent); color: var(--text); }
+/* Task peek: the PR row with the sessions header across from it; + new ✻ and ⏎ continue sit on the box's bottom edge. */
+.peek-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; color: var(--text-2); }
+.peek-links .k { color: var(--text-3); }
+.peek-links .peek-pr { gap: 6px; min-width: 0; max-width: 100%; }
+.peek-sess-head { margin-left: auto; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.peek.has-edge { padding-bottom: 20px; margin-bottom: 12px; }
+.peek-edge { position: absolute; right: 12px; bottom: -12px; display: flex; gap: 8px; padding: 0 8px; background: var(--box-bg, var(--bg)); }
+.continue-btn { display: inline-flex; align-items: center; height: 22px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--line-heavy); background: var(--box-bg, var(--bg)); color: var(--text-2); font: inherit; font-size: 11.5px; line-height: 1; white-space: nowrap; cursor: pointer; }
+.continue-btn:hover { border-color: var(--text-3); color: var(--text); }
+.new-sess.in-row { height: 18px; padding: 0 6px; font-size: 11px; visibility: hidden; }
+.task-line:hover .new-sess.in-row, .task-line.sel .new-sess.in-row { visibility: visible; }
+.ts-tabs .sb-chip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kv .peek-prs { align-items: center; min-width: 0; }

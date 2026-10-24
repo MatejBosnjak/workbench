@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@shared/git'
 import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, shortRepo } from '@shared/git'
-import type { Task, TasksSnapshot } from '@shared/tasks'
+import { prTasks } from '@shared/links'
+import type { TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
 import { openInPane, useStore } from '../store'
 import { Box } from './Box'
+import { TaskChip } from './Chips'
 import { RunAppButton, runPr } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -40,7 +42,6 @@ function usePref(key: string, initial: boolean): [boolean, (v: boolean) => void]
 }
 
 /** My tasks a PR refers to (branch or body). */
-const tasksOf = (p: Pr, tasks: TasksSnapshot | null): Task[] => (tasks?.tasks ?? []).filter((t) => !t.context && p.taskRefs.includes(t.id))
 
 export const draftTarget = (p: Pr, c: Conversation): DraftTarget =>
   c.kind === 'thread' ? { kind: 'gh-thread', key: c.key, repo: p.repo, number: p.number, threadId: c.targetId, path: c.path } : { kind: 'gh-pr', key: c.key, repo: p.repo, number: p.number }
@@ -161,21 +162,8 @@ function GroupHead({ title, tone, count }: { title: string; tone: GroupTone; cou
 }
 
 function TaskRef({ p, tasks }: { p: Pr; tasks: TasksSnapshot | null }) {
-  const { setTodayTab, setPeekTask } = useStore(useShallow((s) => ({ setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })))
-  const t = tasksOf(p, tasks)[0]
-  if (!t) return <span className="pr-task" />
-  return (
-    <button
-      className="pr-task mono"
-      title={t.title}
-      onClick={() => {
-        setTodayTab('tasks')
-        setPeekTask(t.id)
-      }}
-    >
-      #{t.number ?? t.id}
-    </button>
-  )
+  const t = prTasks(p, tasks)[0]
+  return <span className="pr-task">{t && <TaskChip task={t} />}</span>
 }
 
 export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot | null }) {
@@ -338,7 +326,7 @@ export function ReviewsView({ git, tasks, aside }: { git: GitSnapshot; tasks: Ta
 
 function ReviewRow({ p, tasks, focused, selected }: { p: Pr; tasks: TasksSnapshot | null; focused: boolean; selected: boolean }) {
   const d = ageDays(p.createdAt)
-  const mine = tasksOf(p, tasks)[0]
+  const mine = prTasks(p, tasks)[0]
   return (
     <div id={`pr-${p.id}`} className={`pr-wrap${focused ? ' focus' : ''}${selected ? ' sel' : ''}`}>
       <div className="pr-row rev">
@@ -352,7 +340,14 @@ function ReviewRow({ p, tasks, focused, selected }: { p: Pr; tasks: TasksSnapsho
             </span>
           </span>
         </button>
-        <span className="pr-note">{mine ? `your task #${mine.number ?? mine.id}` : ''}</span>
+        <span className="pr-note">
+          {mine && (
+            <>
+              <span className="faint">your task</span>
+              <TaskChip task={mine} />
+            </>
+          )}
+        </span>
         <span className={`ci-dot ci-${p.ci}`} role="img" aria-label={CI_LABEL[p.ci]} title={CI_LABEL[p.ci]} />
         <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
         <span className="pr-age mono" style={{ color: d > 14 ? 'var(--bad)' : d > 3 ? 'var(--warn)' : 'var(--faint)' }}>

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { lastMessage, prRef, verb } from '@shared/git'
+import { prSessions, prTasks } from '@shared/links'
 import { FE_REPO } from '@shared/runpr'
 import type { TasksSnapshot } from '@shared/tasks'
 import type { NeedItem } from '../needs'
 import { tomorrowMorning } from '../needs'
 import { useStore } from '../store'
 import { Box } from './Box'
+import { NewSessionButton, SessionChip, TaskChip } from './Chips'
 import { replyInPane } from './GitView'
 import { RunAppButton } from './RunPr'
 
@@ -19,13 +21,14 @@ const when = (iso: string) => {
 
 /** The sidebar card for a PR in Needs you: what's waiting, the latest message, and the ways to act on it. ⏎ again opens it. */
 export function NeedPreview({ item, tasks, onOpen, onClose }: { item: NeedItem; tasks: TasksSnapshot | null; onOpen(): void; onClose(): void }) {
-  const { snooze, setTodayTab, setPeekTask } = useStore()
+  const { snooze, sessions, runpr } = useStore()
   const [drafting, setDrafting] = useState(false)
   const p = item.pr!
   const c = item.conversation
   const last = c ? lastMessage(c) : null
   const [ciText, ciColor] = CI[p.ci]
-  const linked = (tasks?.tasks ?? []).filter((t) => !t.context && p.taskRefs.includes(t.id))
+  const linked = prTasks(p, tasks)
+  const sess = prSessions(p, p.url, tasks, sessions, runpr?.focus ?? {})[0]
 
   return (
     <Box title="PR" className="peek" aside={<button className="icon-btn" aria-label="Close" onClick={onClose}>×</button>}>
@@ -44,19 +47,11 @@ export function NeedPreview({ item, tasks, onOpen, onClose }: { item: NeedItem; 
             <span className="k">task</span>
             <span className="peek-prs">
               {linked.map((t) => (
-                <button
-                  key={t.id}
-                  className="link-btn"
-                  title={t.title}
-                  onClick={() => {
-                    setTodayTab('tasks')
-                    setPeekTask(t.id)
-                  }}
-                >
-                  #{t.number ?? t.id}
-                </button>
+                <TaskChip key={t.id} task={t} />
               ))}
             </span>
+            <span className="k">session</span>
+            <span className="peek-prs">{sess ? <SessionChip s={sess} /> : <NewSessionButton taskId={linked[0]!.id} />}</span>
           </>
         )}
       </div>

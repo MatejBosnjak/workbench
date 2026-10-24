@@ -1,38 +1,26 @@
 import { useState } from 'react'
-import { prRef } from '@shared/git'
+import { isLive, MARK_WORD, markOf, taskPrs, taskSessions, type LinkedSession } from '@shared/links'
 import { FE_REPO } from '@shared/runpr'
-import { statusColors, type Task, type TaskLink, type TasksSnapshot } from '@shared/tasks'
+import { statusColors, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
-import { openPrLink, openWorkstream, useStore, type View } from '../store'
+import { openWorkstream, useStore, type View } from '../store'
 import { Box } from './Box'
+import { goToSession, MarkGlyph, NewSessionButton, PrChip, Spark } from './Chips'
 import { RunAppButton } from './RunPr'
 import { StatusSelect } from './TaskDetails'
 import { ago, dueLabel } from './TodayView'
 import { useShallow } from 'zustand/react/shallow'
 
-type Linked = TaskLink & { live: Session | undefined }
-
-function linkedSessions(task: Task, snapshot: TasksSnapshot, sessions: Session[]): Linked[] {
-  const byId = new Map(sessions.map((s) => [s.id, s]))
-  return snapshot.links
-    .filter((l) => l.taskId === task.id && l.session)
-    .map((l) => ({ ...l, live: byId.get(l.sessionId) }))
-    .sort((a, b) => (b.live?.lastEventAt ?? b.session!.lastEventAt) - (a.live?.lastEventAt ?? a.session!.lastEventAt))
-}
-
-const isLive = (l: Linked) => !!l.live?.alive && (l.live.state === 'running' || l.live.state === 'waiting')
-
 function primaryOf(task: Task, snapshot: TasksSnapshot, sessions: Session[], show: (v: View) => void) {
-  const links = linkedSessions(task, snapshot, sessions)
-  const open = async (l: Linked) => {
-    if (!l.live) await window.workbench.reopenSession(l.sessionId)
-    show({ kind: 'session', id: l.sessionId })
+  const links = taskSessions(task.id, snapshot, sessions)
+  const target = links[0]
+  if (target) {
+    const how = isLive(target) ? 'switch to' : target.open ? 'open the tab of' : 'resume'
+    return { label: `${how} ${target.title}`, target, run: () => goToSession(target) }
   }
-  const running = links.find(isLive)
-  if (running) return { label: 'switch to session', run: () => open(running) }
-  if (links[0]) return { label: links[0].live ? 'open tab' : 'resume latest', run: () => open(links[0]!) }
   return {
-    label: 'start session',
+    label: 'start a session',
+    target: undefined as LinkedSession | undefined,
     run: async () => {
       const s = await window.workbench.tasks.start(task.id)
       if (s) show({ kind: 'session', id: s.id })
@@ -53,15 +41,15 @@ const when = (ms: number) => {
 
 export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
   const { sessions, show, git } = useStore(useShallow((s) => ({ sessions: s.sessions, show: s.show, git: s.git })))
-  const prs = [...(git?.mine ?? []), ...(git?.reviews ?? [])].filter((p) => p.taskRefs.includes(task.id))
+  const prs = taskPrs(task.id, git)
   const [busy, setBusy] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [linking, setLinking] = useState(false)
 
   const parent = task.parentId ? snapshot.tasks.find((t) => t.id === task.parentId) : null
-  const links = linkedSessions(task, snapshot, sessions)
-  const summary = links.map((l) => snapshot.summaries[l.sessionId]).find(Boolean)
-  const linkable = sessions.filter((s) => !links.some((l) => l.sessionId === s.id))
+  const links = taskSessions(task.id, snapshot, sessions)
+  const summary = links.map((l) => snapshot.summaries[l.id]).find(Boolean)
+  const linkable = sessions.filter((s) => !links.some((l) => l.id === s.id))
   const due = dueLabel(task.dueDate)
   const primary = primaryOf(task, snapshot, sessions, show)
 
@@ -78,7 +66,7 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
   }
 
   return (
-    <Box title={`${task.projectName}${task.taskListName ? ` › ${task.taskListName}` : ''}`} className="peek" aside={<button className="icon-btn" aria-label="Close task" onClick={onClose}>×</button>}>
+    <Box title={`${task.projectName}${task.taskListName ? ` › ${task.taskListName}` : ''}`} className="peek has-edge" aside={<button className="icon-btn" aria-label="Close task" onClick={onClose}>×</button>}>
       {parent && (
         <button className="peek-parent" title="Open workstream" onClick={() => openWorkstream(task.id)}>
           {parent.milestone ? '◆' : '◇'} {parent.title}
@@ -102,32 +90,23 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
           <span className="k">active </span>
           {ago(task.lastActivityAt)}
         </span>
-        <span className="peek-prs">
-          <span className="k">links</span>
-          {prs.length === 0 && <span className="faint">no PRs</span>}
-          {prs.map((p) => (
-            <span key={p.id} className="peek-pr">
-              <button
-                className="link-btn"
-                title={p.title}
-                onClick={(e) => openPrLink(p.url, e.metaKey)}
-              >
-                {prRef(p)}
-              </button>
-              {p.repo === FE_REPO && <RunAppButton n={p.number} compact />}
-            </span>
-          ))}
-        </span>
       </div>
 
-      <div className="peek-sub">
-        sessions ({links.length})
-        <button className="link-btn" onClick={() => setLinking(!linking)} disabled={!linkable.length}>
-          link…
-        </button>
-        <button className="square-btn" aria-label={primary.label} title={`⏎ ${primary.label}`} onClick={() => void primary.run()}>
-          ⏎
-        </button>
+      <div className="peek-links">
+        <span className="k">PR</span>
+        {prs.length === 0 && <span className="faint">none</span>}
+        {prs.map((p) => (
+          <span key={p.id} className="peek-pr">
+            <PrChip pr={p} />
+            {p.repo === FE_REPO && <RunAppButton n={p.number} compact />}
+          </span>
+        ))}
+        <span className="peek-sess-head">
+          sessions ({links.length})
+          <button className="link-btn" title="Link an open session to this task" onClick={() => setLinking(!linking)} disabled={!linkable.length}>
+            link <Spark />
+          </button>
+        </span>
       </div>
       {linking && (
         <div className="link-pick">
@@ -140,7 +119,7 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
                 void window.workbench.tasks.link(s.id, task.id)
               }}
             >
-              <span className={`dot-${s.state}`}>●</span>
+              <MarkGlyph mark={markOf(s)} />
               <span className="pop-text">{s.title}</span>
             </button>
           ))}
@@ -148,22 +127,14 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
       )}
       {links.length === 0 && <span className="faint">none yet</span>}
       {links.map((l) => (
-        <div key={l.sessionId} className={`peek-session${isLive(l) ? ' live' : ''}`}>
-          <button
-            className="peek-session-main"
-            title={`linked via ${l.via}`}
-            onClick={async () => {
-              if (!l.live) await window.workbench.reopenSession(l.sessionId)
-              show({ kind: 'session', id: l.sessionId })
-            }}
-          >
+        <div key={l.id} className={`peek-session${isLive(l) ? ' live' : ''}`}>
+          <button className="peek-session-main" title={`${l.title} · ${MARK_WORD[l.mark]} · linked via ${l.via}`} onClick={() => void goToSession(l)}>
             <span className="peek-when">
-              {isLive(l) ? '● ' : '  '}
-              {when(l.live?.lastEventAt ?? l.session!.lastEventAt)}
+              <MarkGlyph mark={l.mark} /> {when(l.at)}
             </span>
-            <span className="peek-prompt">{l.session!.firstPrompt ?? l.live?.title ?? l.session!.title}</span>
+            <span className="peek-prompt">{l.firstPrompt ?? l.title}</span>
           </button>
-          <button className="icon-btn unlink" aria-label="Unlink session" title="Unlink" onClick={() => void window.workbench.tasks.unlink(l.sessionId, task.id)}>
+          <button className="icon-btn unlink" aria-label="Unlink session" title="Unlink" onClick={() => void window.workbench.tasks.unlink(l.id, task.id)}>
             ×
           </button>
         </div>
@@ -182,6 +153,14 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
         </>
       )}
 
+      <span className="peek-edge">
+        <NewSessionButton taskId={task.id} hint />
+        {primary.target && (
+          <button type="button" className="continue-btn" title={`⏎ ${primary.label}`} onClick={() => void primary.run()}>
+            ⏎ continue
+          </button>
+        )}
+      </span>
     </Box>
   )
 }

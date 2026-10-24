@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { itemRepos, repoFromTitle, rootOf, slug, subtree, timeline, treeOrder, type WsPr, type WsTask } from './workstream'
+import { itemRepos, repoFromTitle, withoutRepoPrefix, rootOf, slug, subtree, timeline, treeOrder, type WsPr, type WsTask } from './workstream'
 
 const t = (id: string, parentId: string | null, p: Partial<WsTask> = {}): WsTask => ({
   id,
@@ -102,5 +102,15 @@ describe('itemRepos', () => {
     expect(itemRepos({ kind: 'session', at: 0, taskId: 'C', sessionId: 's' }, ws)).toEqual(['frontend', 'ai-agent'])
     expect(itemRepos({ kind: 'task', at: 0, taskId: 'A1', text: '', chip: 'TASK' }, ws)).toEqual(['api'])
     expect(itemRepos({ kind: 'task', at: 0, taskId: 'B', text: '', chip: 'TASK' }, ws)).toEqual([])
+  })
+})
+
+describe('withoutRepoPrefix', () => {
+  it('drops a repo prefix and keeps other titles whole', () => {
+    expect(withoutRepoPrefix('FE: Service markup in fixed amount')).toBe('Service markup in fixed amount')
+    expect(withoutRepoPrefix('AI agent: proposals skill')).toBe('proposals skill')
+    expect(withoutRepoPrefix('[BE] Public reject API')).toBe('Public reject API')
+    expect(withoutRepoPrefix('PM: confirm own login email')).toBe('PM: confirm own login email')
+    expect(withoutRepoPrefix('Proposals v2')).toBe('Proposals v2')
   })
 })

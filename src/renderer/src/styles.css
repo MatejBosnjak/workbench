@@ -27,7 +27,7 @@ button { font: inherit; color: inherit; }
 
 /* Taskbar (TopBar) */
 .topbar {
-  height: 56px; flex-shrink: 0;
+  height: 44px; flex-shrink: 0;
   display: flex; align-items: center; gap: 6px;
   padding: 0 14px 0 84px; /* room for the traffic lights */
   background: var(--chrome);
@@ -112,7 +112,7 @@ button { font: inherit; color: inherit; }
 .icon-btn:hover { background: var(--raised); color: var(--text); }
 
 .tb-right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding-left: 10px; }
-.kbar { height: 40px; color: var(--text-3); }
+.kbar { height: 32px; color: var(--text-3); }
 .faint { color: var(--faint); }
 
 /* Terminal */
@@ -220,7 +220,7 @@ button:disabled { cursor: default; opacity: 0.6; }
 @keyframes steam { 0% { opacity: 0; transform: translateY(2px); } 40% { opacity: 0.9; } 100% { opacity: 0; transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .steam path { animation: none; } }
 .cafb { position: relative; }
-.cafb-btn { width: 44px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line-heavy); background: transparent; cursor: pointer; padding: 0; }
+.cafb-btn { width: 44px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line-heavy); background: transparent; cursor: pointer; padding: 0; }
 .cafb-btn.caf-on { border-color: #7A5232; background: #2A1C12; }
 .cafb-btn.caf-lid { border-color: #3E6475; background: #0E1C24; }
 .cafb-btn[aria-expanded='true'] { outline: 1px solid var(--accent); }
@@ -749,9 +749,9 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tab.st-failed { --st: var(--bad); }
 .tab.st-idle { --st: var(--faint); }
 .tab[aria-selected='true'] {
-  border-color: var(--text-3); border-bottom-color: transparent;
-  background: var(--raised); color: var(--text); font-weight: 700;
-  box-shadow: inset 0 -3px 0 var(--st);
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line-heavy)); border-bottom-color: transparent;
+  background: color-mix(in srgb, var(--accent) 14%, var(--raised)); color: var(--text); font-weight: 700;
+  box-shadow: inset 0 2px 0 var(--accent), inset 0 -3px 0 var(--st);
 }
 /* A session waiting on you: the one violet tab, at full strength with the bar's only glow. */
 .tab.st-waiting:not([aria-selected='true']) { color: var(--text); border-color: var(--accent-line); box-shadow: inset 0 -2px 0 var(--accent), 0 0 10px color-mix(in srgb, var(--accent) 35%, transparent); }

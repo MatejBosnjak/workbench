@@ -30,7 +30,7 @@ import { openDb } from './store/db'
 import { Repo } from './store/repo'
 import { Suggester } from './suggest'
 import { Workstreams } from './workstreams'
-import { slug } from '@shared/workstream'
+import { slug, withoutRepoPrefix } from '@shared/workstream'
 
 app.setName('Workbench')
 
@@ -58,7 +58,7 @@ function createWindow(): BrowserWindow {
     show: false,
     backgroundColor: '#0E0D12',
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 21 },
+    trafficLightPosition: { x: 16, y: 15 },
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.mjs'),
       sandbox: false,
@@ -363,7 +363,7 @@ void app.whenReady().then(() => {
   const startForTask = (taskId: string, cwd: string | undefined, title?: string) => {
     const task = tasks.tasks.find((t) => t.id === taskId)
     const s = sessions.create({ cwd })
-    if (task ?? title) sessions.setTitle(s.id, task?.title ?? title!)
+    if (task ?? title) sessions.setTitle(s.id, withoutRepoPrefix(task?.title ?? title!))
     linker.link(s.id, taskId, 'started from this task', 'manual')
     // The prompt starts with the task, ready to send or extend; open() types it once claude is up.
     return sessions.get(s.id)
@@ -373,7 +373,7 @@ void app.whenReady().then(() => {
     if (!taskId) return null
     const task = tasks.tasks.find((t) => t.id === taskId)
     const url = task?.url ?? workstreams.url(taskId)
-    return url ? { prompt: `lets look at this task ${url} `, title: task?.title ?? workstreams.title(taskId) ?? 'Task' } : null
+    return url ? { prompt: `lets look at this task ${url} `, title: withoutRepoPrefix(task?.title ?? workstreams.title(taskId) ?? 'Task') } : null
   }
 
   const signals = startSignalServer(socketPath(), (sig) => sessions.handleSignal(sig))

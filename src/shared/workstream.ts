@@ -147,6 +147,11 @@ export function repoFromTitle(title: string): string | null {
   return m ? (PREFIX_REPO[m] ?? null) : null
 }
 
+/** A task title without its repo prefix (FE:, BE:, AI agent:, [API] …): what a session tab started from it shows. */
+export function withoutRepoPrefix(title: string): string {
+  return title.replace(/^\s*\[?(fe|be|ai[ -]?agent|ai|api|frontend|backend|e2e|e)\]?\s*[:\]]\s*/i, '').trim() || title
+}
+
 /**
  * The repos a timeline item belongs to: a PR event's own repo; for a session or task event, the repos of its task's
  * PRs, else the repo its title prefix names, else the nearest parent's. The root's own PRs don't count (a milestone's

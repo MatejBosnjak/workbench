@@ -49,3 +49,16 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 ## Open / Deferred
 - **Lid-closed keep-awake on battery or without an external display** — verify what `caffeinate -s` actually allows
 - **Quiet hours** — none for now
+
+## Added 2026-10-24
+- **Current state lives in `docs/SPEC.md` and `docs/design/current/*.png`** — the screenshots come from the real app (`pnpm snap`, scratch profile, live data), so they can't drift; mocks in `docs/design/explore/` and the canvas are history *(sessions kept building from stale pre-TUI mocks)*
+- **Live GitHub views: 2, not 3** *(each loaded page is ~85 MB)*
+- **GitHub login** — at Google's passkey step pick "Try another way" *(passkeys don't work in an embedded Electron view; spike 2026-10-23)*
+- **Pane fill** — drafts are put into GitHub's reply box by an injected script that depends on GitHub's DOM; when it can't find the box, the draft goes to the clipboard
+- **Run PR worktree match** — branch, then upstream, then head commit *(branches get renamed: fe #30227 is on `21071355-…`, its worktree on `20360127-…`)*
+- **Run PR on the base checkout rebuilds lib, ui, form and prosemirror** *(a fresh checkout doesn't compile without them)*
+- **A port held by a process Workbench didn't start stops the run** rather than starting a second server
+- **Lid closed** — `sudo pmset disablesleep 1` rejected *(needs root, unreliable on Apple Silicon, disables sleep everywhere including on battery)*
+- **Link suggestions are rules only, no tokens** — a bare 7–9 digit id in a prompt; a PR counts as the session's when printed in a turn that ran `gh pr create`, or when it's mine and under 15 minutes old; a URL pasted into the prompt never counts
+- **My tasks rows** — version A: quiet rows, glowing status dots, tree lines; tasks there only for a to-do of mine show the assignee's avatar and a to-do chip, my own rows show nothing extra
+- **Workstream tree** — option B: an avatar on every row, mine ringed violet

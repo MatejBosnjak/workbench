@@ -11,9 +11,10 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
-    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper",
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && git config core.hooksPath .githooks",
     "dist": "electron-vite build && electron-builder --mac dir",
-    "install-app": "pnpm dist && rm -rf /Applications/Workbench.app && ditto dist/mac-arm64/Workbench.app /Applications/Workbench.app"
+    "install-app": "pnpm dist && rm -rf /Applications/Workbench.app && ditto dist/mac-arm64/Workbench.app /Applications/Workbench.app",
+    "snap": "electron-vite build && node scripts/snap.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -39,6 +40,7 @@
     "electron": "^45.0.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^6.0.0",
+    "playwright-core": "1.64.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"

@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import type { CaffeinateState } from '@shared/types'
 
-/** A porcelain espresso cup on a saucer (docs/design/CaffeinateButton.dc.html): empty when off, coffee and steam when awake, a laptop badge for lid closed. */
+/** A porcelain espresso cup on a saucer (docs/design/explore/CaffeinateButton.dc.html): empty when off, coffee and steam when awake, a laptop badge for lid closed. */
 export function Cup({ mode, size, label }: { mode: CaffeinateState['mode']; size: number; label?: string }) {
   const id = useId().replace(/:/g, '')
   const on = mode !== 'off'

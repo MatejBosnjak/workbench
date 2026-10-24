@@ -1,6 +1,6 @@
 @import './theme.css';
 
-/* TUI style (docs/design/StyleTui.dc.html): one monospace face, square boxes. Colours stay Dusk. */
+/* TUI style (docs/design/explore/StyleTui.dc.html): one monospace face, square boxes. Colours stay Dusk. */
 :root {
   --sans: var(--mono);
   --display: var(--mono);

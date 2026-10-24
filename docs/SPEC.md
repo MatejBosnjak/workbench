@@ -1,409 +1,311 @@
 # Workbench — spec
 
-**Status:** draft · **Owner:** Matej Bošnjak · **Updated:** 2026-10-22
-**Design:** https://claude.ai/artifact/2KN1pTQZj99QBCqf6RDmMx (base: C · Focus, theme Dusk)
-**Decision log:** [decisions.md](./decisions.md)
+**What this is:** the app as it is built now, screen by screen. Each section names its screenshot (`docs/design/current/*.png`, regenerated from the real app) and its code. When a change lands, its section here and its screenshot change in the same commit.
+**Why things are this way:** [decisions.md](./decisions.md). **Explorations and variants:** `docs/design/explore/` and the design canvas; history, not the current state.
+**Owner:** Matej Bošnjak · **Updated:** 2026-10-24
 
 ## Problem
 
-Day-to-day work happens across many separate places:
-- several `claude` sessions in terminal tabs
-- the `prd` tmux script running the local stack
-- `wt` for switching frontend worktrees
-- Productive for tasks
-- GitHub for PRs and review requests, where replies to my comments are easy to miss
-
-Switching context means re-finding the right session, worktree and PR for a task by hand.
+Day-to-day work is spread across several `claude` sessions in terminal tabs, the `prd` tmux script for the local stack, `wt` for frontend worktrees, Productive for tasks, and GitHub for PRs and reviews, where replies to my comments are easy to miss. Switching context means re-finding the right session, worktree and PR for a task by hand.
 
 ## Goal
 
-One personal desktop app that:
-
-1. **Hosts Claude Code sessions** as tabs, showing each session's state, context use and plan limits at a glance.
-2. **Runs and switches the local stack**, replacing `prd` and `wt`.
-3. **Starts the day from one Today screen**, with My tasks, My git and My reviews.
-4. **Links sessions to tasks**, so a task opens straight into its sessions, the running one, and "where I left off".
+One personal desktop app that hosts Claude Code sessions as tabs, runs and switches the local stack, starts the day from one Today screen (Needs you, My tasks, My PRs, Reviews), and links tasks, PRs and sessions so each opens straight into the others.
 
 ## Non-goals
 
-- No chat UI of its own. The real `claude` CLI runs in a terminal.
-- No Codex in v1. The agent model leaves room for it later.
-- Not for the team. There's no multi-user support, no Productive branding, and no distribution beyond my own machine.
-- No auto-update and no signed builds.
-- Nothing is posted to GitHub or Productive without an explicit confirm.
+- No chat UI of its own: the real `claude` CLI runs in a terminal.
+- Claude Code only; the agent model leaves room for Codex later.
+- Just for me: no multi-user support, no distribution, no auto-update, no signed builds.
+- Nothing is posted to GitHub, Productive or Slack without an explicit confirm.
 
 ## Architecture
 
 ```
-Electron main (Node)
-├─ pty-host        node-pty processes: claude sessions + local services
-├─ signal-server   local unix socket; receives hook + statusline events
-├─ pollers         Productive REST (2 min) · gh GraphQL (2 min)
-├─ linker          session ↔ task inference
-├─ store           SQLite: sessions, links, seen-state, drafts, summaries, settings
-└─ services        process supervision, health checks, worktree ops (~/.wtrc.json)
+Electron main (Node)                                  src/main
+├─ sessions + pty-host   claude in node-pty; replay history; prefill    sessions.ts, pty-host.ts
+├─ signal-server         unix socket; hook + statusline events         signal-server.ts, hooks-install.ts, state.ts
+├─ TasksPoller           Productive REST, every 2 min                  productive/
+├─ GitPoller             gh GraphQL, every 2 min                       github/poller.ts
+├─ Linker                session ↔ task links, Summarize               linker.ts
+├─ Suggester             link suggestions (rules only, no model)       suggest.ts
+├─ FocusTracker, RunPr   a session's frontend PR; run it in `app`      focus-pr.ts, local/run-pr.ts
+├─ Supervisor            local services, panes, worktrees, brew infra  local/
+├─ GitHubPane            WebContentsView pool for github.com           github/pane.ts
+├─ Workstreams           milestone/parent trees, on demand             workstreams.ts
+├─ Caffeinate            powerSaveBlocker, Amphetamine, clamshell      caffeinate.ts, amphetamine.ts
+├─ MemoryMonitor         ps sampling for ▌wb                           memory.ts
+├─ Notifier, Drafts      native notifications; Claude-written drafts   notify.ts, drafts.ts
+└─ Repo                  SQLite (better-sqlite3), append-only migrations   store/
 
-Renderer (web UI)
-├─ TopBar          Today · Local │ session tabs │ ⌘K
-├─ Today           My tasks · My git · My reviews, task preview
-├─ Session view    xterm.js bound to a pty
-├─ Local           service list, split/resizable panes, worktree switcher
-└─ StatusBar       context %, 5h / week limits, model · effort · permissions picker
+Preload                  window.workbench IPC API                      src/preload/index.ts
+Renderer (React 19 + Zustand)                                          src/renderer/src
+├─ App, store, keys      views: today · local · session · workstream
+└─ components/           one file per surface (below)
+Shared (pure, tested)    src/shared: tasks, git, links, marks, runpr, pane, memory, workstream, agent
 ```
 
-### Sessions
+- **Hooks.** Settings → Install hooks backs up `~/.claude/settings.json`, adds only Workbench's marked entries for SessionStart, UserPromptSubmit, PostToolUse, Notification, Stop and SessionEnd, and offers Uninstall. Each entry runs a tiny client that sends `<kind> <wbId>` plus the JSON payload to the socket; with no socket it exits at once, silently. `WORKBENCH_SESSION_ID` tells Workbench's own tabs apart from external sessions.
+- **Statusline.** The statusline becomes a wrapper that forwards the JSON (context %, 5h / week limits, model, effort) to the socket, then runs the previous statusline command unchanged. Uninstall restores it.
+- **Tab state** from hook events: running (prompt submitted, or PostToolUse after a permission prompt), waiting (Notification), failed (non-zero exit), idle (Stop / not running).
+- **Data.** `~/Library/Application Support/Workbench/workbench.db`, migrations append-only with `user_version` (7 now):
 
-- **Spawning.** A session is `claude` (or `claude --resume <id>`) started in a pty. The working directory is the task's worktree when there is one, otherwise the work repo root, matching what `cc` does today.
-- **Hooks.** Workbench installs them itself via Settings → Install hooks. It backs up `~/.claude/settings.json` first, adds only its own entries (marked so they can be found), and has an Uninstall action. The entries are global hooks (Notification, Stop, SessionStart, SessionEnd, UserPromptSubmit). Each one runs a tiny client that writes `{event, session_id, cwd, transcript_path, …}` to the Workbench socket. If the socket is missing, the client exits right away, in under 50ms, and prints nothing.
-- **Statusline.** The configured statusline becomes a wrapper. It forwards the statusline JSON to the socket (`context_window.used_percentage`, `rate_limits.five_hour`, model, effort) and then runs the currently configured statusline command (`~/.claude/statusline-command.sh`), so terminal output stays exactly as it is now.
-- **Tab states:**
-
-  | State | Colour | Shown when |
-  |---|---|---|
-  | running | blue `--info` | a prompt was submitted and no Stop has arrived |
-  | waiting for you | purple `--accent` | a Notification arrived, e.g. a permission prompt or idle input |
-  | failed | red `--bad` | the process exited non-zero |
-  | idle | grey `--faint` | the session is stopped |
-
-  Tabs show the state as a bar along their bottom edge (see TopBar under Shell chrome).
-- **External sessions.** Sessions started in a normal terminal report through the same hooks. They appear as read-only "external" tabs. "Take over" waits for the terminal copy to exit, then resumes the session inside Workbench.
-- **PR links in terminal output.** An xterm link provider recognises `github.com/<org>/<repo>/pull/<n>`. A click opens the PR's row in My git or My reviews (GitHub when it's in neither), and ⌘-click opens GitHub. Hovering shows a card with the PR's state and CI status.
-- **Pickers.** The picker lives in the StatusBar (toolbar).
-  - New sessions start with `--model`, `--effort` and `--permission-mode` from the picker. The defaults are stored in settings.
-  - A change to a running session restarts it in place with `claude --resume <id>` and the new flags. If a turn is in progress, the restart waits for its Stop.
-  - Typing `/model` or `/effort` into the session is not used: claude saves those as the global default in `~/.claude/settings.json` (`model`, `modelSettings.*.effortLevel`), which would change every other session. Permission mode is only reported in hook payloads, so it can't be confirmed live either.
-
-### Caffeinate
-
-Keeps the Mac awake while sessions run.
-
-- **Control.** A cup button in the **TopBar**, right of the session tabs and before ⌘K (design: `docs/design/CaffeinateButton.dc.html`).
-  - It's a fixed 44px, so it never takes room from the tabs. The cup and the button's glow show the state.
-  - Click it, or press `c`, to open a popover with the three states, each with a one-line description and a key (`o` / `a` / `l`), plus an "applies to: this session / all" switch. Esc closes it.
-  - The states:
-
-  | State | What it does |
+  | table | what |
   |---|---|
-  | Off | the Mac sleeps as usual |
-  | Awake | stays awake while the session(s) run, using Electron `powerSaveBlocker('prevent-app-suspension')` |
-  | Awake, lid closed | keeps running with the lid shut; needs power |
+  | `sessions` | id, cwd, transcript_path, started_at, last_event_at, state, external, title, tab_order (NULL = closed), claude_id, model, effort, permission_mode, first_prompt, fork_from, title_locked |
+  | `links` | session_id, task_id, via, created_by (auto / manual), created_at |
+  | `link_tombstones` | links removed by hand; inference never re-adds them |
+  | `summaries` | "where I left off" per session |
+  | `seen` | conversation key → last message seen |
+  | `drafts` | target, body, status, error |
+  | `notes` | free-text note per workstream |
+  | `session_prs` | PRs connected to a session by hand (link suggestion) |
+  | `pr_tasks` | PRs connected to a task by hand, even when branch and body don't name it |
+  | `suggest_dismissed` | link suggestions turned down, per session |
+  | `settings` | JSON values: `productive:account`, `tasks:cache`, `sessionDefaults`, `defaultCwd`, `ui:*` (sidebar, snoozed, …) |
 
-- **Auto-off.** "Awake" turns itself off when the scoped session(s) stop.
-- **Lid closed.** `caffeinate` can't stop lid-close sleep on Apple Silicon, so this mode drives **Amphetamine** (installed) through its AppleScript dictionary (checked with `sdef /Applications/Amphetamine.app`), run via `osascript`:
-  - Start: `start new session with options {duration:0, interval:0, displaySleepAllowed:true}`, then `enable closed display mode`.
-  - Stop: `end session`, but only for a session Workbench started. Workbench records that it started it, and reads `session is active` to keep its state in sync.
-  - `start new session` ends any running Amphetamine session, Trigger sessions included. If one that Workbench didn't start is already running, Workbench asks before replacing it.
-  - **One-time setup:**
-    - Install Amphetamine's **Power Protect** helper (needed on Apple Silicon, otherwise every session asks for Touch ID or a password).
-    - Dismiss the closed-display warning once with "Do Not Show This Message Again" (Preferences → Sessions).
+- **Packaging.** `pnpm install-app`: electron-builder `--mac dir`, copied to `/Applications/Workbench.app`. Unsigned, no auto-update; rebuild after pulling.
 
-    Workbench checks that Amphetamine is installed and that Power Protect is (it installs `~/Library/Application Scripts/com.if.Amphetamine/powerProtect.scpt`). If either is missing, "Lid closed" shows as unavailable and says what's missing. Scripting access is checked on first use, when macOS asks once for Automation permission.
-  - **Power.** If power is unplugged, the mode falls back to Awake and sends a notification.
-  - **To verify by hand:** that `enable closed display mode` really keeps the Mac running with the lid shut. Its dictionary notes mention the "Allow system to sleep when display is closed" preference, so the meaning could be inverted.
-  - **Rejected:** `sudo pmset disablesleep 1`. It needs root, reports disagree on whether it works on Apple Silicon, and it disables sleep everywhere, battery included.
-- **Icon.** A realistic espresso cup on a saucer: white porcelain, brown coffee with crema, steam rising.
-  - **Off:** an empty grey cup with no steam, and the button has no glow.
-  - **Awake:** coffee in the cup with animated steam, a warm coffee-coloured border and glow (`#C98D55`).
-  - **Lid closed:** the Awake cup plus a cyan shut-laptop badge, with a cyan border and glow (`#6FC3E0`).
-  - The steam stops if Reduce Motion is on.
-- **Tabs.** Caffeinated session tabs show the icon at 13px after the title.
-- **Lid closed availability.** The option is enabled on AC power when the Amphetamine setup check passes; no external display is needed. Without Amphetamine, it is enabled only in Apple's clamshell mode (AC power plus an external display).
+## Visual style
 
-### Today › My tasks
+Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 
-- **Source.** The Productive REST API, using the token from the macOS keychain. The filter is the saved "List view" filter, read once from the API's saved filters (`/filters`, creator = me) and stored in settings with the org and person ids.
-- **Status strip** (design: the "1b · Task status — D rail + label" board). Above the list:
-  - a bar showing the mix of statuses among my tasks;
-  - one chip per status with its count, in the status's Productive colour. Clicking chips filters the list (several can be picked; "clear" resets). The bar dims the statuses filtered out.
-  - a **group by: project / status** switch, remembered per machine.
-  - **Status colours** (design: the "1b · Task status colours" board, option C) map each of Productive's 17 status colours to a bright stand-in tuned for the dark theme, so a status keeps its Productive identity but reads clearly. They're used for rails, status labels, the strip, chips and status glyphs; Productive's own pastel pairs stay for tag-style badges (the task card's status button).
-  - Statuses are the real Productive status names, ordered nearest-done first: started before not started, then later in the workflow (the status's `position`) first. Statuses from different workflows that share a name count as one.
-- **Shape.** By default tasks are grouped by project, with Bugs pinned first, then Product: CRM, then the rest alphabetically. Inside a project they're ordered by placement and nested under their parent or milestone.
-  - **Grouped by status:** one box per status in strip order, titled in the status colour; rows are flat, in their project order.
-  - A subtask shown without its parent above it (status grouping, or the parent filtered out) names the parent in faint text after its title instead of drawing a tree mark.
-  - A milestone that isn't mine gets a muted header.
-  - A parent hidden by a filter shows as "filtered out".
-  - Subtasks don't repeat the parent's task list.
-- **Row.** Each row shows:
-  - a 3px rail on the left and a faint background tint in the status colour (no tint for not-started statuses)
-  - the status name at the right, in its colour, in a fixed-width column so it lines up across rows
-  - a background tint for bug priority (not shown yet: none of the current bug tasks carry a priority field)
-  - the title, with a milestone or bug icon
-  - the task list, shown only when it differs from the parent's
-  - the due date
-  - the session count after the best session's mark (see Link marks); a task without a session shows `+ ✻` on the hovered or selected row
-- **Preview.** Clicking a row opens a right-hand peek with:
-  - the status, parent and title
-  - where the task lives, its due date and last activity
-  - **PR** and its PR chips (with ▶ Run app for frontend PRs); across from them "sessions (N)" and **link ✻**, which links an open session by hand
-  - its linked sessions, each with its mark, time and first prompt
-  - "Where I left off"
-  - on the box's bottom edge, cutting through the border: **+ new ✻** (always a new session) and **⏎ continue**, which switches to the running session, opens the latest one's tab or resumes it; its tooltip names the session, and it's hidden when there is none
-- **Where I left off.** Generated only on demand from a "Summarize" action, which runs `claude -p --model haiku` over the tail of the latest linked transcripts. The result is cached per session.
+- TUI look: JetBrains Mono 12.5px with tabular numbers; 1px square boxes with the title set into the top border; the active box's border and title in the accent.
+- Selected rows are filled with the accent, text in `--on-accent`.
+- Theme **Dusk** only (muted synthwave on graphite, purple accent). Colours are CSS tokens.
+- **Status colours.** Productive's 17 status colours each map to a bright stand-in (`statusVivid`) for marks, labels, the strip and chips; Productive's own pastel pairs (`statusColors`) stay for tag-style badges such as the status button.
+- Shortcuts are never printed in the UI except in the ⌨ popover and tooltips.
 
-### Today › My git and My reviews
+## Shell: TopBar, StatusBar, keys
 
-- **Source.** `gh api graphql` every 2 minutes. It fetches my open PRs (review decision, CI rollup, mergeable state, draft flag, head branch), review requests made to me directly (`user-review-requested:@me`; requests to a team I'm in, like platform, don't count), review threads and comments.
-- **Needs reply.** A thread or review needs a reply when its last message isn't mine and I haven't marked it seen. Seen state is stored locally. A conversation is an unresolved review thread, or the PR's own conversation (comments plus review bodies). Bots and bare approvals don't count as messages.
-  - They show in Needs you with a quoted excerpt and "Draft reply with Claude", "Open on GitHub" and "Mark as seen"; My git only marks the PR with `↩ N`.
-- **Groups:**
-  - My git (design: the "1b · My PRs — merge readiness, grouped by stage" board): grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. Filter by repo, with a Hide drafts toggle.
-    - Each row has a rail in its stage's colour and, under the title, four merge checks: CI (a repo without CI counts as passing), reviews, conflicts, open review threads. Each is ✓ / ✕ / · (pending), with an n/4 score at the right. A 4/4 row gets a faint green tint. Within a stage, the highest score comes first, then the most recently updated.
-    - Replies waiting on me aren't repeated here (they're in Needs you): a row shows `↩ N`, which opens the first of them in Needs you.
-  - My reviews: two boxes. **Reviews** holds the PRs waiting on my review (requested from me, or re-requested after I asked for changes), grouped New this week and Waiting longer (oldest first). Under it, **You asked for changes** lists PRs where my latest review asked for changes and the author hasn't requested me again: their move, latest first. The repo filter and Hide bots (on by default) apply to both. The Today counter counts only the first box.
-- **Drafts.** "Draft reply with Claude" runs a headless `claude -p --model sonnet` with the thread as context (read-only tools, in my checkout of the PR's branch when there is one) and puts the result in an editable draft. Sending goes through a native confirm that shows the exact text and target. The same flow covers Productive comments ("Comment…" in the task preview). Productive status changes are not built yet.
-  - **GitHub replies change in phase 8.** The draft goes into GitHub's own reply box in the GitHub pane, and you post it with GitHub's Comment button. Workbench never posts GitHub replies itself. The native-confirm flow stays for Productive comments.
-- **Notifications.** A native macOS notification for each of:
-  - a new reply or comment on my PR
-  - changes requested
-  - CI failed on my PR
-  - a session waiting for me (permission prompt or finished)
-  - a new review request
+Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear in every image. Code: `TopBar.tsx`, `StatusBar.tsx`, `keys.ts`, `App.tsx`.
 
-  Each notification opens the matching row or tab. The first poll on a fresh install only records what's there; more than four new items at once become one summary notification. Session notifications are skipped while that tab is on screen.
+- **TopBar** (56px, chrome background, 2px accent line below): `▌wb` memory button, places `1 Today` and `2 Local up/n`, a temporary workstream place when one is open (× closes it), a divider, session tabs `3…n`, `+` new session, then the caffeinate cup and ⌘K.
+  - The current place or tab is filled/outlined in the accent.
+  - **Session tabs** carry their state as a bar along the bottom edge: 2px at 45% on other tabs, 3px full on the current one. The current tab is a purple-tinted box, outlined top/left/right, with a 2px accent top line. A waiting tab that isn't current shows only the muted purple bar.
+  - Tabs: double-click renames (a manual name sticks over claude's terminal title; clearing it unlocks), drag to reorder, middle-click closes, hover shows state, title and cwd. Caffeinated tabs show the cup at 13px.
+  - **Overflow:** tabs never wrap or shrink; the strip scrolls sideways with no scrollbar. Hovering within 56px of an edge scrolls that way (faster nearer the edge; the cursor shows the direction only while there's more), the vertical wheel scrolls it, edges fade while tabs hide beyond them, and a `+N ▾` menu lists tabs out of view. The current tab always scrolls fully into view.
+- **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot, name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks or the statusline aren't installed (click installs); then the meters and the picker.
+  - **ctx** (green, full-strength gradient; amber ≥ 60% with a `/compact` button that runs it, red ≥ 75%), **5h** (purple, `↻HH:MM` reset), **wk** (blue). 48px bars; the gradient's strength ranks them. Until a first value arrives the track shows a faint sweep and the value reads `—`. Hover shows the full text.
+- **Keys** (only when no terminal or text field has focus):
 
-### GitHub pane (phase 8)
-
-GitHub opens inside Workbench instead of the system browser. It uses an Electron `WebContentsView`, which is not an iframe, so GitHub's frame blocking doesn't apply. Decisions: `docs/decisions.md` › GitHub pane.
-
-- **Layout.** In My git and My reviews, the right-hand panel becomes the GitHub page, with a resizable divider and the list on the left.
-  - Above the page is a thin strip: PR ref, state, CI, a reply badge, ▶ Run app for frontend PRs, ⌘↩ open in browser, and close.
-  - A ⤢ button switches to full width and back.
-- **Opening.**
-  - A click or ⏎ on a PR row opens that PR in the pane; j/k in the list moves to the next PR.
-  - A PR link anywhere else (terminal, task preview, Run PR card, workstream) switches to Today › My git with that PR selected and open.
-  - A PR that isn't in your lists gets a temporary "opened" group in My git.
-  - ⌘-click always opens the system browser.
-- **Scope.** Every `github.com/productiveio/*` page stays in the pane: PRs, files, checks, Actions, issues, commits. Other orgs, other sites and new-window links open in the system browser.
-- **Views.** The 3 most recently opened PRs stay live, evicting the oldest first (about 150–200 MB each), so switching between them is instant and keeps scroll position and unsent comment text.
-  - Before evicting a page with text I typed and haven't sent, Workbench asks first. Only a visible text box whose text differs from what the page loaded with counts, so GitHub's own prefilled boxes (the merge commit message) don't trigger it.
-- **Login.** The pane uses its own persistent session (`partition: 'persist:github'`), separate from the app, so you log in once.
-  - Login is GitHub's own login page inside the pane. The account signs in with Google (personal Google account), then GitHub's authenticator-app code. `productiveio` has no SAML SSO (`/orgs/productiveio/sso` returns 404).
-  - Passkeys don't work in an embedded Electron view (no macOS passkey prompt), so on Google's passkey step choose "Try another way" (password plus the phone prompt). Verified in the spike, 2026-10-23.
-  - Google's sign-in pages are allowed in the pane only as part of that login flow.
-  - Settings has "Sign out of GitHub", which clears that partition.
-  - The pane runs with no Node integration and context isolation on.
-- **Reply state.** Opening a PR never clears "reply needed". It clears when your reply is the last message, or when you press `m`.
-  - Workbench re-fetches the pane's PR when the page navigates and after a comment is submitted.
-- **Draft reply with Claude.** Claude drafts the reply; Workbench scrolls the pane to the thread, opens its reply box and fills in the text. You edit it and post with GitHub's Comment button, which is the confirm.
-  - Filling the box is done by a small script injected into the page, which depends on GitHub's page structure.
-  - If the script can't find the reply box, Workbench copies the draft to the clipboard and scrolls to the thread instead.
-- **Task and session links** (design: the "1b · GitHub pane C" board, marks from "Workbench — Task · PR · Session links"). The strip has a task button and a session button at the right, before the navigation buttons:
-  - **Task button**: the first task's rail, Productive logo and title (`+N` for more), ▾. Its menu lists the PR's tasks: task ids in its branch and Productive task URLs in its description, matched against my tasks. Each shows its status rail, title and status. A click shows it in Today › My tasks; ↗ opens Productive.
-  - **Session button**: the best session's mark and title (`+N` for more), ▾. Its menu lists the sessions linked to those tasks, plus any session working on this frontend PR. Running and waiting ones come first. A click switches to the session, reopening its tab if it's closed. "+ new ✻ for this task" starts one on the first task. With a task but no session yet, the button is **+ new ✻** directly, one click instead of a menu.
-  - Both buttons are hidden when the PR has neither a task nor a session.
-  - While a menu is open, the GitHub page is replaced by its still image so the menu isn't hidden behind the native view.
-- **Keyboard.** While the pane has focus, plain keys and Esc go to GitHub. Workbench keeps only ⌘ shortcuts:
-
-  | Shortcut | Action |
+  | Key | Action |
   |---|---|
-  | `⌘J` | back to the list (also leaves full width) |
-  | `⌘[` / `⌘]` | back / forward |
-  | `⌘R` | reload |
-  | `⌘L` | copy URL |
-  | `⌘↩` | open in browser |
-  | `⌘K`, `⌘1–9` | as everywhere else |
-  | `⌘=` / `⌘-` / `⌘0` | GitHub zoom in / out / reset |
+  | j / k, ↑ / ↓ | move |
+  | ⏎ | open |
+  | tab | next pane (Today: Needs you → My tasks → My PRs → Reviews) |
+  | r | run the selected frontend PR in the app |
+  | s | new session (on the selected task in My tasks) |
+  | / | filter (My tasks), else ⌘K |
+  | g / v | My PRs / Reviews |
+  | 1–9 | 1 Today, 2 Local, 3… sessions |
+  | c | caffeinate popover |
+  | z | sleep a Needs you item until tomorrow 08:00 |
+  | m | mark the selected PR's replies seen (My PRs) |
+  | ? | shortcuts popover |
 
-  GitHub pages are zoomed on top of the app's own zoom, by 115% by default (github.com's text reads small next to the app). ⌘= / ⌘- change that in 10% steps (70–200%); it's remembered across restarts.
+  ⌘ shortcuts (menu): ⌘T new session, ⇧⌘T new session in folder…, ⌘W close tab, ⌘K switch or run, ⌘I task sidebar, ⇧⌘I PR sidebar, ⇧⌘[ / ⇧⌘] previous / next tab, ⌘[ / ⌘] previous / next bookmark, ⌘1–9 places and tabs.
 
-- **Spike (done 2026-10-23):** login works in the embedded view (Google sign-in without the passkey, then the GitHub authenticator code). The reply-box fill works on a real PR thread: open the thread's URL (`#discussion_r…`), click its "Reply…" button, then set the visible `comment[body]` textarea through the native value setter and fire an `input` event; GitHub enables its Comment button.
+## ⌘K palette
 
-### Session ↔ task linking
+Image: `docs/design/current/palette.png`. Code: `Palette.tsx`.
 
-- **Explicit.** A session started from a task, or linked by hand.
-- **Inferred.** Strong signals only:
-  - a Productive task URL in the first user prompts
-  - a task id in the cwd or worktree name, or in the branch name
-  - the session touched a PR that's linked to the task
-- Every link stores its `via`, which the preview shows ("linked via PR #30227"). Links can be removed or added by hand; a link removed by hand is not re-added by inference.
-- Task ids in paths and branches only count when they match one of my tasks, so other 7–9 digit numbers don't create links. A session touches a PR when it runs on the PR's branch or a prompt contains the PR's URL; the PR's tasks come from a task id in its branch or a task URL in its body.
+- Groups: Sessions, Recently closed, Actions (new session, new session in folder…). Typing also searches Workstreams, Tasks and PRs (mine and reviews, bots excluded); every query word must match.
+- `/command` runs a slash command in the current running session. `/model` and `/effort` are refused there (they rewrite the global defaults); the picker covers them.
 
-### Link marks
+## Today › Needs you
 
-Design: the "Workbench — Task · PR · Session links" canvas. Wherever a task, a PR and a session point at each other they look and behave the same, and Workbench works the links out once (`src/shared/links.ts`) for every view, so the task row, peek, session bar, GitHub pane and PR lists always agree.
+Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek), `needs.ts`, `NeedPreview.tsx`.
 
-- **Task chip:** a rail in the status colour, the Productive logo, the title. Click shows it in Today › My tasks; ⌘-click opens Productive.
-- **PR chip:** the GitHub logo, the title, a CI dot (passing / running / failing / none). Click opens the GitHub pane; ⌘-click the browser.
-- **Session mark:** the tab's colours: ● running, ● waiting, ● failed, ○ idle (tab open, claude exited), ↺ closed. A chip adds the title and switches to the session, reopening a closed one. Rows that are tight show the best session's mark and the count. "Best" is live (running or waiting) first, then the most recent.
-- Ids are never used to tell tasks and PRs apart; titles are. My PRs and Reviews rows show the task chip ("your task" on Reviews).
-- Needs you cards show the PR's task chips and its best session, or **+ new ✻**.
-- **+ new ✻** (Claude's spark stands for "session" on buttons) always starts a new session on the task: a tab named after it, the prompt prefilled, linked. `s` does the same on a task.
-- **Full title on hover.** A chip whose title is cut short grows into the full title after 120 ms of hover or on keyboard focus: the same chip, 10% larger, with the state in words ("CI failing", "peer review", "running") and a soft accent glow. It's drawn above the page so lists and strips can't clip it, grows leftwards near the right edge, and shrinks back when the pointer leaves. Reduced motion skips the animation.
+- **Counters** under the TopBar on every Today tab: Needs you, My tasks, My PRs, Reviews, 5h limit. Each has a big number with its breakdown stacked at the right (e.g. `2 PRs · 1 thread · 1 task`, `7 working · 10 in review`, `3 need a reply · 13 drafts`, `N waiting on authors · 11 bot PRs hidden`, `resets 16:00`). The active one (the tab shown) has a larger, glowing number and a near-white outline; switching eases over 0.25s. Clicking a counter switches tab; 5h isn't a tab.
+- **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), and overdue tasks. Each row: kind, ref, text, detail, and `zz`.
+  - `zz` / `z` sleeps an item until tomorrow 08:00; it wakes sooner if the item changes (a new message, push or due date). Sleeping items sit in a **Sleeping** box with "wake".
+  - **Threads** box: up to six reply-needed conversations with the last message quoted; more link to My PRs.
+- **Needs reply:** a conversation (an unresolved review thread, or the PR's own conversation of comments plus review bodies) whose last message isn't mine and isn't marked seen. Bots and bare approvals don't count.
+- Click or ⏎ shows the item in the right sidebar; ⏎ again or a double-click opens it (a PR in the GitHub pane at its last message; a task into its session).
+- **PR card** (sidebar): kind, ref with CI, title, branch, updated, the PR's task chips and best session (or `+ new ✻`), the latest message; ⏎ open, **draft reply with Claude**, ▶ Run app (frontend), sleep, open in browser.
+- **Notifications** (native): a new reply or comment on my PR, changes requested, CI failed (not on drafts), a new review request, and a session waiting or finished (skipped while that tab is on screen and the window focused). Each opens its row or tab. The first poll only records what's there; more than four at once become one summary.
 
-### Local services
+## Today › My tasks
 
-- **Config.** Services are ported from `prd`:
+Image: `docs/design/current/today-tasks.png`. Code: `TodayView.tsx` (Home, TaskStrip), `src/shared/tasks.ts`, `src/main/productive/tasks.ts`.
 
-  | Service | Command |
-  |---|---|
-  | app | `pnpm start` |
-  | api | `bundle exec sidekiq` |
-  | e2e-tests | `npm run cli` |
-  | exporter | `npm run start` |
-  | pdf-generator | `npm run start` |
-  | pdf-viewer | `npm run start` |
-  | AI | `DEV_API_ENV=production pnpm start` |
+- **Source.** Productive REST with the keychain token, every 2 min plus refresh. The filter is my saved "List view" filter, discovered once from `/filters` and stored with org and person in `productive:account` (fallback: assigned to me, not started or started). The last result is cached so Today has something before the first fetch.
+- Productive's assignee filter also returns tasks assigned to someone else where an open to-do is mine; a second call (`/todos`, mine, open, `include=task`) counts those to-dos per task.
+- **Strip** above the list: a bar of the status mix, one chip per status with its count (click to filter, several allowed, "clear"), and **group by project / status** (remembered). Statuses are ordered nearest-done first; same-named statuses across workflows count as one.
+- **Group by project** (default): Bugs first, then Product: CRM, then A–Z; within a project, placement order, nested under parent or milestone. Box titles `My tasks › <project> (n)`.
+- **Group by status:** one box per status in strip order, titled in its colour; rows flat in project order.
+- **Rows** (quiet, hairline-separated, no tint):
+  - tree lines from parent to children (a continuous guide per level, `├` / `└` joints);
+  - a glowing status dot in the status colour (a ring for not started, a diamond for a milestone);
+  - the title exactly as in Productive; a parent is bold with its child count; a subtask shown without its parent names it in faint text;
+  - the status name in its colour, due date (red when late), and the best session's mark plus count, or `+ ✻` on hover/selection to start one;
+  - a context header (hollow diamond) for a parent that isn't mine ("not assigned to you") or is filtered out; click opens its workstream.
+- **To-do-only rows** (assigned to someone else, in my list for my open to-dos): a `☐ N to-do(s)` chip and the assignee's avatar at the row end; my own rows have no avatar.
+- `/` opens a title filter; j / k select; ⏎ or double-click continues the task (below); `s` starts a new session on it; `r` runs its frontend PR.
 
-  Each service has a cwd (`~/Productive/<service>`, `~/Productive/ai-agent` for AI), a command, a health port where known, extra shell panes, and profile tags (prd · full, Frontend only, AI work, Exports & PDF). The config is a JSON file in Workbench's data folder, seeded from `prd`.
-- **Supervision.** Workbench spawns each service in a pty and handles start, stop and restart, the logs and a health check. Services run inside the app, so quitting Workbench stops them (it asks first while any are running).
-- **Infra.** mysql, redis, memcached, meilisearch and nginx run as Homebrew services on this machine, not Docker. Status chips come from `brew services list`, and a stopped one can be started with `brew services start`.
-- **Panes.** Panes split and resize like tmux. The header shows only the branch, worktree path and how far it is behind develop.
-- **Worktrees.** Reads `~/.wtrc.json`.
-  - The list is ordered by recency, with badges for merged / gone / dirty / unmerged and the same keys as `wt`.
-  - Switching restarts `app` in the new worktree.
-  - "Run alongside" starts a second app instance on the next free port.
+## Task card (Today sidebar and session task sidebar)
 
-### Run PR in app
+Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `TaskDetails.tsx`, `Chips.tsx`.
 
-One click runs the frontend PR you're working on or reviewing in the `app` service. No more going back to a terminal to find the worktree or switch branches. Design: `docs/design/RunPR.dc.html`.
+- **Card** (box titled `<project> › <task list>`): the parent (opens its workstream), the title (links to Productive, underlined in the status colour) with the **status button** (Productive's pastel tag; ▾ menu of the workflow's statuses, keyboard-navigable; a pick applies at once, no confirm), due and last activity.
+- **PR** row: PR chips (▶ Run app on frontend ones); **sessions (N)** with **link ✻** to link an open session by hand.
+- Linked sessions: mark, time, first prompt; × unlinks. **left off**: Summarize / refresh runs `claude -p --model haiku` over the latest linked transcript's tail; cached per session.
+- On the box's bottom edge: **+ new ✻** (always a new session) and **⏎ continue** (switch to the live session, open the latest tab, or resume it; hidden with no session).
+- **Productive box** below it: description (URLs clickable); **to-dos** with done count, `+` add form (text, assignee from my colleagues or unassigned), hide/show done; each to-do has a checkbox and an assignee avatar with a searchable people picker. On someone else's task, my open to-dos are highlighted. **comments** newest first under a composer that's one quiet line until focused, then three lines with `@` tagging (tags notify), post, and **draft with Claude**.
+- Writes: comments, adding a to-do and ticking a to-do ask first with a native confirm showing the exact text and target. Status picks and to-do assignee picks apply directly (the pick is the approval).
 
-- **Focus PR.** Each session gets a focus PR from these signals, strongest first:
-  1. its cwd is a frontend worktree whose branch belongs to an open PR
-  2. a frontend PR URL or `#n` in its prompts (UserPromptSubmit) or terminal output (link provider)
-  3. a frontend PR linked to the session's task
-  4. a `gh pr view/checkout/diff <n>` it ran
+## Today › My PRs
 
-  The newest strong signal wins.
-- **Mismatch chip.** Local knows which branch `app` runs. When the active session's focus PR differs, the StatusBar shows "App · <branch> → Session · fe #<n> [▶ Run]". When they match it shows "✓ App on fe #<n> · localhost:4200".
-- **Entry points.** ▶ Run app appears on:
-  - frontend rows in My git and My reviews, with a hint under the button: "worktree · <name>" or "base checkout · fetch first". The PR already in the app gets an "In app" badge instead.
-  - linked PRs in the task preview
-  - the PR hover card in terminals
-  - the mismatch chip
-- **Resolve the PR to a worktree.** Use `git worktree list --porcelain`, only inside the `worktreesDir` folders from `~/.wtrc.json`. Match the PR on, in order:
-  1. branch name equals `headRefName`
-  2. the branch's upstream equals `origin/<headRefName>`
-  3. the worktree HEAD contains `headRefOid`
+Image: `docs/design/current/today-prs.png`. Code: `GitView.tsx` (GitView, PrRow), `src/shared/git.ts`, `src/main/github/poller.ts`.
 
-  Branches get renamed, as with fe #30227 (`21071355-…`) and the worktree on `20360127-…`, so name matching alone isn't enough.
-- **Worktree found:**
-  1. stop `app`
-  2. run the per-repo command from `~/.wtrc.json` (`pnpm i && pnpm start`) in that worktree
-- **No worktree** (typically a review): use the base checkout, the folder the `app` service is configured with in `services.json` (`~/Productive/app`, the clone the app runs from day to day). Never touch `~/Productive/work/repos/frontend`, which is the read-only reference clone.
-  1. **Dirty check.** If the tree has uncommitted changes, ask: Stash and continue (stash named `workbench: before fe #<n>`) / Run alongside / Cancel.
-  2. `git fetch origin <headRefName>`. For a fork PR, `git fetch origin pull/<n>/head:pr-<n>`.
-  3. `git checkout` that branch, after saving the previous branch or detached HEAD and any stash, for ↩ Back.
-  4. `pnpm i`, skipped when `pnpm-lock.yaml` is unchanged since the last install in that checkout.
-  5. Build the workspace packages (lib, ui, form, prosemirror) when their sources changed. A fresh checkout doesn't compile without them.
-  6. Restart `app`.
-- **Run alongside.** Starts a second `app` on the next free port instead of replacing the running one. A PR with a worktree runs from it; one without gets a detached review worktree `<worktrees>/frontend-review-<n>`, since the base checkout is where the main `app` runs.
-- **Port in use.** If the app's port is held by a process Workbench didn't start (e.g. the `prd` tmux session), the run stops with that message instead of starting a second server on the same port.
-- **Run panel.** The run shows as a job in Local and in a popover from the chip: each step with done, running, skipped or pending; a live log tail; Cancel; and Run alongside instead.
-- **Back.** After a base-checkout run, the chip offers "↩ Back to <previous>". It restores the branch, pops the stash and restarts `app`.
+- **Source.** `gh api graphql` every 2 min: my open PRs (review decision, CI rollup, mergeable state, draft, head branch), review requests made to me directly (team requests don't count), threads and comments.
+- Left list, right the GitHub pane (resizable split, remembered).
+- Repo chips and **Hide drafts**. Grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. A PR opened from a link that isn't in my lists gets a temporary **Opened** group.
+- **Row:** a rail in the stage colour; ref and title; the task chip; ▶ Run app (frontend); `↩ N` when replies wait on me (opens the first in Needs you); age; an `n/4` score. Under it four checks, each ✓ / ✕ / ·: CI (no CI counts as passing), reviews, conflicts, open threads. 4/4 rows get a faint green tint. Within a stage: highest score, then most recently updated.
+- ⏎ / click opens in the pane, ⌘-click the browser, `m` marks replies seen.
 
-### Visual style (TUI)
+## Today › Reviews
 
-The whole app uses a terminal-style look. Reference: `docs/design/StyleTui.dc.html` (direction "1b" on the design canvas).
+Image: `docs/design/current/today-reviews.png`. Code: `GitView.tsx` (ReviewsView, ReviewRow).
 
-- **Type.** Everything is in JetBrains Mono at 12.5px, with tabular numbers.
-- **Panels.** Panels are 1px boxes with square corners. Each panel's title sits inside its top border; the active panel's border and title are in the accent colour.
-- **Rows.**
-  - The selected row is filled with the accent colour, with text in `--on-accent`.
-  - Status is a coloured `●` for started statuses or `○` for not-started ones.
-  - Subtasks are indented with `└`, a milestone row starts with `◆`, and bug priority is shown as `!` or `!!`.
-- **Counters.** A row of five boxed counters sits under the TopBar on Today. Each has a 38px number with its breakdown beside it, not under it: one part per line, stacked against the box's right edge (right-aligned) and aligned to the top of the number, in a faint 11.5px with tight line height so three lines fit the number's height. The active counter (the one whose list is shown; Needs you by default) has a larger number, 44px instead of 38px, with a soft glow in its own colour, and its box gets a near-white outline (`--text-2`) and a brighter title. The number sits on a fixed 48px line, so the box never changes height. Switching counters eases the size, glow and outline together over 0.25s, with the glow growing alongside the size rather than after it (no animation with reduced motion). The `·` in the examples below separates the breakdown lines:
+- **Reviews** box: PRs waiting on my review (requested, or re-requested after I asked for changes), in **New this week** and **Waiting longer** (oldest first). Repo chips and **Hide bots** (on by default) apply to both boxes. The counter counts only this box.
+- **You asked for changes** box: PRs where my latest review asked for changes and I haven't been re-requested; latest first.
+- **Row:** ref, title, author (· bot), "your task" chip when it names one of my tasks, CI dot, ▶ Run app, age (amber after 3 days, red after 14).
 
-  | Counter | Breakdown |
-  |---|---|
-  | Needs you | e.g. 2 PRs · 1 thread · 1 task |
-  | My tasks | e.g. 7 working · 10 in review |
-  | My PRs | e.g. 3 need a reply · 13 drafts |
-  | Reviews | e.g. 11 bot PRs hidden |
-  | 5h limit | percentage, with the reset time |
+## GitHub pane
 
-- **Keyboard.** ⌘1–⌘9 follow the taskbar numbers too (⌘1 Today, ⌘2 Local, ⌘3… sessions, ⌘9 the last session). The app is keyboard-first (j/k move, ⏎ open, tab next pane, r run app, s new session, / filter, g my git, v my reviews, 1–6 switch tab, c caffeinate). Shortcuts are not printed in the UI. A ⌨ icon at the left of the StatusBar shows them all in a popover on hover or focus.
-- **Theme.** Dusk tokens are unchanged; only the shapes and type change.
+Image: `docs/design/current/github-pane.png`. Code: `GitPane.tsx`, `PrLinks.tsx`, `src/main/github/pane.ts`, `src/shared/pane.ts`.
 
-### Shell chrome
+- An Electron `WebContentsView` (not an iframe) drawn over the right panel of My PRs / Reviews, or full width (⤢), or in a session's PR sidebar. One native view is shared; a still image stands in while an overlay or menu covers it.
+- **Strip:** ref, state, CI, `N reply needed`, the **Task ▾** and **Session ▾** buttons, ▶ Run app (frontend), ‹ › history, `⌘↩ browser`, ⤢, ×.
+  - **Task ▾**: the first task's rail, Productive logo and title (`+N`); the menu lists the PR's tasks with status. Click shows it in My tasks; ↗ opens Productive.
+  - **Session ▾**: the best session's mark and title (`+N`); the menu lists sessions linked to those tasks plus any session working on this frontend PR, live first. Click switches (reopening a closed tab); "+ new ✻ for this task". With a task but no session, the button is `+ new ✻` directly. Hidden with neither.
+- **Opening.** A click or ⏎ on a PR row. Any productiveio PR link elsewhere (terminal, cards, workstream) switches to My PRs or Reviews with it selected. ⌘-click always opens the browser. All of `github.com/productiveio/*` stays in the pane; other sites and new windows go to the browser.
+- **Live views:** the 2 most recent PRs stay loaded (instant switch, scroll and typed text kept), least recent evicted first. Before evicting a page with text I typed and haven't sent, it asks; GitHub's prefilled boxes don't count.
+- **Login:** its own persistent partition (`persist:github`): GitHub login with Google (choose "Try another way" at the passkey step), then the authenticator code. Google sign-in pages are allowed only within that flow. Settings → Sign Out of GitHub clears it. No Node integration, context isolation on.
+- **Replies:** opening a PR never clears "reply needed"; my reply being last, or `m`, does. The PR is re-fetched when the page navigates and after a comment is submitted.
+- **Draft reply with Claude:** `claude -p --model sonnet` writes the reply (read-only tools in my checkout of the PR's branch, else no tools); Workbench opens the thread, clicks Reply and fills GitHub's box. I post with GitHub's Comment button. If the box can't be found, the draft goes to the clipboard and the pane scrolls to the thread.
+- **Keys** while it has focus: plain keys and Esc go to GitHub; ⌘J back to the list (leaves full width), ⌘[ / ⌘] back / forward, ⌘R reload, ⌘L copy URL, ⌘↩ browser, ⌘= / ⌘- / ⌘0 zoom (on top of the app zoom, default 115%, 70–200%, remembered), ⌘K and ⌘1–9 as everywhere.
 
-- **TopBar.** A separate 56px bar with the chrome background, a 2px accent line along the bottom and a shadow over the content. All items are boxed segments with no wrapping; long session names are truncated.
-  - Left to right: `▌wb`, then the fixed places `1 Today` and `2 Local 6/8`, a divider, the session tabs `3…n`, and on the right the caffeinate cup and ⌘K.
-  - **Memory (`▌wb`).** `▌wb` is a button showing the total memory in use, e.g. `▌wb 2.4G` (design: the "1b · Memory" board).
-    - **Total:** Workbench's own processes, plus every session's process tree (claude and whatever it started: MCP servers, test runners), plus local services.
-    - **Glyph colour:** the `▌` blends light purple → purple → dark purple → dark red → bright red. Each step is 1/12 of the Mac's RAM, with red from a third (1.5 / 3 / 4.5 / 6 GB on an 18 GB Mac). Between steps the colour blends in OKLab and eases over 0.8s, so it never jumps at a threshold. macOS memory pressure "critical" forces bright red.
-    - **Popover:** click opens it; Esc or a click outside closes it. It has:
-      - the total, with the Mac's RAM and memory pressure;
-      - a 30-minute sparkline with the change over that time;
-      - a bar split into Workbench / Sessions / Local services;
-      - three boxed sections:
-        - **Workbench:** app window (with terminals mounted), main process (with terminal history), loaded GitHub pages (with "close idle"), GPU, helpers, and any headless claude run.
-        - **Sessions:** each tab's process tree by size, with a breakdown like `claude 312 · node ×2 96`; ↗ marks growth of 30 MB+ over 10 minutes; a click opens the session.
-        - **Local services:** each service, plus shell panes.
-    - **Sampling:** one `ps` call plus `sysctl kern.memorystatus_vm_pressure_level`, every 30s in the background (enough for the colour and the trend) and every 5s while the popover is open.
-  - The current screen is filled with the accent colour.
-  - Session tabs have no state dot. Every tab carries its state colour as a bar along its bottom edge: 2px at 45% strength on unfocused tabs, so they stay quiet, and 3px at full strength on the current session. The current session is also a purple-tinted box (accent at 14% over `--raised`) with bright bold text, outlined on top, left and right in the accent at 70% plus a 2px accent line along the top, its bottom edge left to the state bar. An exited session's title stays at full strength while it's current. A waiting session that isn't current only ever shows the muted purple bar, so "needs you" and "current" never look alike. Hovering a tab shows its state as a tooltip.
-  - **Overflow.** The session tabs take the free width between the divider and the cup and never wrap or shrink below their width. When they don't fit, the strip scrolls horizontally with no visible scrollbar:
-    - Hovering within 56px of either edge scrolls that way, faster the closer the pointer is to the edge. It stops at the end of the strip.
-    - In an edge zone the cursor is `w-resize` / `e-resize`, but only while there is more to scroll that way; otherwise it's the normal pointer.
-    - Edge hover never blocks clicks. The strip tracks the pointer itself rather than laying a zone over the tabs, so a click in an edge zone still selects the tab under it.
-    - A vertical mouse wheel over the strip scrolls it sideways.
-    - An edge fades out while there are tabs beyond it.
-    - A `+N ▾` chip after the strip counts the tabs fully or partly out of view, and is hidden when none are.
-- **Session bar** (design: the "Workbench — Session bar" canvas). A 38px raised bar directly under the TopBar while a Workbench session is on screen; it belongs to that session, so the session's task and PR buttons live here, not in the TopBar.
-  - **Task button:** the linked task's status rail (in its status colour), the Productive logo, its title and its status name, then `⌘I`. It opens the task sidebar. With no linked task it reads "link task…" and opens the sidebar's link picker.
-  - **PR button:** the GitHub logo, the PR's title and its CI state (● passing / failing / running), then `⌘⇧I`. It opens the PR sidebar (the GitHub pane), and is hidden when the session has no PR. More than one PR shows `+N`; the sidebar picks between them.
-  - **+ new ✻** after them starts another session on the same task.
-  - The open sidebar's button is lit (accent outline and tint). The PR's branch sits at the right in faint text. With several tasks or PRs, the sidebars pick between them by title.
-  - **Task sidebar:**
-    - Comments: the comment box sits above the comments, which run newest first. While not in use it's a single quiet line; focusing it or typing grows it to three lines with its post / "draft with Claude" bar.
-    - To-dos: a `+` beside the to-dos heading opens an inline form with the text, an assignee (my Productive colleagues, or unassigned) and "⏎ add". Adding asks first, like every Productive write. Each to-do shows its assignee after its text.
-- **⌘K.** Searches sessions, workstreams, PRs and Productive tasks, and runs a slash command in the current session (`/model` and `/effort` are refused there because they rewrite the global defaults; the picker covers them).
-- **StatusBar.** Always visible, 38px, with a chrome background and a 2px top border. Every cell has a fixed width, so a value or state change never moves anything.
-  - **Left:** the ⌨ shortcuts button, then the active session's name and duration.
-  - **Right**, grouped next to the picker:
-    - **ctx**: a 48px bar plus the percentage. `/compact` is suggested at 60% or more, and the bar turns red at 75% or more.
-    - **5h**: a 48px bar, the percentage and `↻16:00`
-    - **wk**: a 48px bar and the percentage
-    - the model · effort · permissions picker at the right edge
-  - **Bar tracks** use the lighter `--line-heavy` token, so an empty bar is still visible.
-  - **Bar colours follow importance.** Each meter keeps its own hue (ctx green `--ok`, 5h purple `--accent`, wk blue `--info`), drawn as a gradient that brightens toward the fill's leading edge. How strong the gradient gets sets the rank: ctx goes from 35% to full strength, 5h from 30% to 80%, wk from 25% to 60%. ctx still switches hue with its value (amber `--warn` at 60%, red `--bad` at 75%) on the same full-strength gradient.
-  - **Loading.** Until a meter's first value arrives, its track shows a faint highlight sweeping left to right (about 1.8s, low opacity) and the percentage reads `—`. With reduced motion the sweep is off. When the value arrives or changes, the fill eases to its new width over 0.6s.
+## Links: tasks, PRs, sessions
 
-  Hovering a meter shows its full text.
-- **Theme.** v1 ships **Dusk** only: muted synthwave on a graphite base, with a purple accent. Colours are CSS variable tokens, so more themes can be added later; the design also explores Graphite, Midnight, Forest and Synthwave.
+Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `session.png`. Code: `src/shared/links.ts`, `Chips.tsx`, `linker.ts`.
 
-### Task workstream (v1.1)
+- Worked out once in `links.ts` for every view (task row, card, session bar, GitHub pane, PR lists, Needs you), so they always agree.
+- **Task chip:** status rail, Productive logo, title. Click shows it in My tasks; ⌘-click opens Productive.
+- **PR chip:** GitHub logo, title, CI dot. Click opens the pane; ⌘-click the browser.
+- **Session mark:** ● running / ● waiting / ● failed in the tab colours, ○ idle (tab open, claude exited), ↺ closed (resume). "Best" session = live first, then most recent.
+- Chips cut short grow into the full title after 120ms hover or on focus (10% larger, state in words, accent glow, drawn above everything, growing leftwards near the right edge); no animation with reduced motion.
+- **+ new ✻** (the spark means "session") always starts a new session on the task: tab named after it, linked "started from this task", in the task's worktree if one exists, and its first prompt prefilled (`lets look at this task <url> `) once claude's input box is up. A task session that never got a prompt gets the prompt again whenever it starts fresh.
+- **Session ↔ task links:**
+  - explicit: started from the task, linked by hand, or a link suggestion accepted;
+  - inferred (strong signals only): a Productive task URL in the first 3 prompts; a task id in the cwd/worktree or branch name (only ids of my tasks); a PR the session touches (its branch, or its URL in a prompt) whose branch or body names the task.
+  - Every link keeps its `via`, shown on hover. A link removed by hand is never re-added by inference.
+- **A PR's tasks:** task ids in its branch, Productive task URLs in its body, plus tasks connected by hand (`pr_tasks`).
 
-- **What.** One screen per milestone or parent task with all its subtasks. It opens from the task preview ("Workstream"), a context header in My tasks, or ⌘K, and shows as a temporary place in the TopBar until closed.
-- **Data.** Loaded when opened and on Refresh, never polled. The tree (root plus 3 levels, including other people's and closed subtasks) and its history (subtasks created, status changes) come from Productive. PRs come from a GitHub search in the `productiveio` org for the tree's task ids; release-style PRs that mention many tasks are skipped unless their branch names the task. Session cards read line counts and duration from the transcripts.
-- **Timeline.** Sessions, PR events (opened, merged, closed) and task events in time order, filterable by subtask. Closed subtasks that aren't mine and have no sessions or PRs stay out of it.
-- **Sessions.** Resume, or Fork with context: a new tab started with `claude --resume <id> --fork-session`, linked to the same tasks.
-- **Structure.** The tree with status, PR, worktree and session chips; closed subtasks are folded.
-- **Start work.** Per open subtask of mine: switch to its running session, or start one in its worktree. Without a worktree, pick a repo and Workbench runs `git fetch` + `git worktree add -b feature/<taskId>-<slug> <worktrees>/<repo>-<taskId>-<slug> origin/<default>` after a confirm that shows the exact commands.
-- **Where I left off, Notes.** Summaries of the latest sessions (Summarize on demand) and a local free-text note per workstream.
-- **Post update to task** uses the Productive comment draft and its confirm.
+## Session view
 
-## Data model (SQLite)
+Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, `TaskSide.tsx` (SessionBar), `ExternalPanel.tsx`, `PrCard.tsx`, `src/main/sessions.ts`, `pty-host.ts`.
 
-| table | columns |
-|---|---|
-| `sessions` | id, cwd, transcript_path, started_at, last_event_at, state, external, title, tab_order, claude_id, model, effort, permission_mode, first_prompt, fork_from |
-| `links` | session_id, task_id, via, created_by (auto/manual), created_at |
-| `link_tombstones` | session_id, task_id (links removed by hand) |
-| `seen` | thread_key, last_seen_message_id, seen_at |
-| `drafts` | id, target (gh thread / productive task), body, status, created_at |
-| `summaries` | session_id, text, model, created_at |
-| `notes` | workstream_id, body, updated_at |
-| `settings` | key, value |
+- **Spawning.** `claude` (or `claude --resume <id>`) in a pty, with `--model` / `--effort` / `--permission-mode` from the session's settings. Default cwd `~/Productive/work` (setting `defaultCwd`); a task session starts in the task's worktree when there is one. Fork (from a workstream) starts `--resume <id> --fork-session` in a new tab.
+- **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws. Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
+- **Session bar** (38px, raised, under the TopBar, only for Workbench sessions):
+  - **Task button:** status rail, Productive logo, title, status, `⌘I` → task sidebar. No task: "link task…".
+  - **PR button:** GitHub logo, title, CI state, `+N`, `⌘⇧I` → PR sidebar; hidden with no PR. The session's PRs, in order: connected by hand, the frontend PR its branch is on, PRs of its tasks.
+  - `+ new ✻` for the same task; the branch (⎇) at the right. The open sidebar's button is lit.
+- **External sessions** (started in another terminal, reported through the same hooks) are read-only tabs showing state and cwd, with **Take over**: waits for the terminal copy to exit, then resumes it here.
 
-## Phases
+## Session bookmarks
 
-Each phase must be usable daily before the next one starts.
+Image: `docs/design/current/session.png` (rail), `docs/design/current/session-legend.png`. Code: `Marks.tsx`, `src/shared/marks.ts`, `src/main/marks.ts`.
 
-1. **Shell + sessions.** Electron app, TopBar, PTY tabs, hooks + statusline wrapper, StatusBar, pickers, caffeinate, ⌘K (sessions only), external tabs, PR link provider. *Replaces the terminal and `cc`.*
-2. **Local.** Service supervision, split panes, worktree switcher, run alongside. *Replaces `prd` and `wt`.*
-3. **My tasks.** Productive poller, grouping, preview, linking, Summarize.
-4. **My git / My reviews.** gh poller, needs-reply detection, notifications, drafts with confirm.
-5. **v1.1.** Task workstream screen: milestone timeline, structure tree, Start work.
-6. **Run PR + lid closed.** Focus-PR detection, mismatch chip, ▶ Run app entry points, worktree / base-checkout run jobs with dirty guard and ↩ Back, Run alongside; Amphetamine-backed lid-closed caffeinate with its setup check.
-7. **TUI restyle.** Apply the visual style above across all screens: TopBar and StatusBar layout, the Today counters, the caffeinate cup button and popover, and the shortcuts popover.
-8. **GitHub pane.** In-app GitHub as described above: split pane with a strip, opening from rows and links, `productiveio` scope, a pool of 2 live views (each loaded page costs about 85 MB), a persistent login partition, reply-state rules, Claude drafts filled into GitHub's reply box, ⌘-only keys. Starts with the login and reply-box spike.
+- A 16px rail at the terminal's right edge with one mark per **prompt** (violet circle), **Subagent result** (teal diamond) and **question for you** (orange triangle), each glowing, placed at its position in the scrollback.
+- Marks come from the transcript (read incrementally by offset; refetched every 2s while output flows) and are matched to the terminal buffer (`❯` prompts, `⏺` results, `⎿ ·` questions), newest first.
+- Hover or focus shows the text, kind and time. Click jumps there with a short soft scroll and briefly outlines the line, then hands focus back to the terminal. ⌘[ / ⌘] step to the previous / next mark; arrows, Home and End move within the rail.
+- `+N` at the top counts marks older than the scrollback (tooltip lists them). `?` at the foot opens the legend (Esc or click outside closes). Below 28rem width the rail hides; ⌘[ / ⌘] still work.
 
-## Packaging
+## Session task sidebar (⌘I)
 
-`electron-builder` builds `/Applications/Workbench.app` locally, and I rebuild after pulling. The build is unsigned, so the first launch needs right-click → Open. No auto-update.
+Image: `docs/design/current/session-task-side.png`. Code: `TaskSide.tsx` (TaskSide).
+
+- 400px at the right of the terminal: the task card and Productive box (as in Today). Several linked tasks: chips at the top pick one. No task: a filter and a list of my tasks to link.
+
+## Session PR sidebar (⌘⇧I)
+
+Image: `docs/design/current/session-pr-side.png`. Code: `TaskSide.tsx` (PrSide), `GitPane.tsx`.
+
+- 45% wide: the GitHub pane on the session's PR, with chips to pick between several. × closes the sidebar.
+
+## Link suggestions
+
+Image: `docs/design/current/session-suggest.png`. Code: `LinkSuggest.tsx`, `src/main/suggest.ts`.
+
+- Rule-based, no model. A card under the session bar, one at a time (`+N more` waits behind it); × means "not this" and is remembered for the session (`suggest_dismissed`). Needs hooks.
+- **Task id in a prompt:** a bare 7–9 digit number (not in a URL or path; at most 3 per prompt) that is a Productive task (my list first, else one cached lookup) and not already linked. Card: "Link task?", status dot, title, area, status; **Link** stores a manual link.
+- **PR opened by the session:** a PR URL printed in its output that it opened: printed in a turn that ran `gh pr create`, or my own PR under 15 minutes old. A URL pasted in the prompt doesn't count. Card "New PR":
+  - session has a task → **Connect** (PR to session and task) or **+ add PR to-do in Productive** (also a `PR: <url>` to-do, after a confirm);
+  - no task but the PR's branch or body names one → **Connect both** or **PR only**;
+  - no task → **Connect to session** or **+ pick a task…** (also opens the task sidebar).
+- Connected PRs are stored (`session_prs`, `pr_tasks`) and show everywhere a task's or session's PRs do.
+
+## Picker
+
+Image: `docs/design/current/picker.png`. Code: `Picker.tsx`, `src/shared/agent.ts`.
+
+- At the StatusBar's right edge: agent (Claude Code; Codex disabled), model (Opus 5.5 1M, Opus 5.5 200K, Sonnet 5.5, Haiku 5.5, Fable 5.1), effort, permissions (ask, auto, accept edits, plan, bypass). It shows what's in effect: live statusline/hook data, then the session's flags, then defaults; "no flag" shows what claude resolves it to.
+- With no session it sets the defaults for new sessions (default permission mode: bypass). On a running session it saves the flags and restarts it in place with `--resume`; mid-turn, after the turn's Stop.
+
+## Caffeinate
+
+Image: `docs/design/current/caffeinate.png`. Code: `CaffeinateControl.tsx`, `Cup.tsx`, `src/main/caffeinate.ts`, `amphetamine.ts`.
+
+- A 44px espresso cup in the TopBar: empty grey (Off), coffee with animated steam and a coffee glow (Awake), plus a cyan shut-laptop badge and glow (Lid closed). Steam stops with Reduce Motion.
+- Click or `c` opens the popover: Off / Awake / Lid closed (`o` / `a` / `l`), each with a note, and **applies to: this session / all**. Esc closes.
+- **Awake:** `powerSaveBlocker('prevent-app-suspension')`; turns itself off when the scoped sessions stop.
+- **Lid closed:** on AC power, via Amphetamine's AppleScript (`start new session` indefinite + `enable closed display mode`; `end session` only for a session Workbench started, remembered across crashes; asks before replacing one it didn't start). Needs Amphetamine's Power Protect helper; otherwise unavailable with the reason shown. Without Amphetamine, available only in clamshell mode (AC + external display) via `caffeinate -s`. Unplugging falls back to Awake with a notification.
+
+## Memory (`▌wb`)
+
+Image: `docs/design/current/memory.png`. Code: `Memory.tsx`, `src/main/memory.ts`, `src/shared/memory.ts`.
+
+- `▌wb 2.4G`: total of Workbench's processes, every session's process tree, and local services. The `▌` blends light purple → purple → dark purple → dark red → bright red in steps of 1/12 of RAM (OKLab, eased 0.8s); critical memory pressure forces bright red.
+- Click opens the popover (Esc / outside closes): total with RAM and pressure, a 30-minute sparkline and change, a bar split Workbench / Sessions / Local services, and three sections: **Workbench** (window, main, GitHub pages with "close idle", GPU, helpers, headless claude runs), **Sessions** (each tab's tree by size, e.g. `claude 312 · node ×2 96`, ↗ for 30 MB+ growth over 10 min, click opens it), **Local services** (each service and its shell panes).
+- Sampling: one `ps` plus the pressure sysctl every 30s, every 5s while open.
+
+## Workstream
+
+Image: `docs/design/current/workstream.png`. Code: `WorkstreamView.tsx`, `src/main/workstreams.ts`, `src/shared/workstream.ts`.
+
+- One screen per milestone or parent task, opened from a task's parent, a context header, or ⌘K; it shows as a temporary TopBar place until closed.
+- Loaded on open and Refresh, never polled: the Productive tree (root plus 3 levels, including others' and closed subtasks) and history; PRs from a GitHub search in productiveio for the tree's task ids (rollup PRs mentioning many tasks are skipped unless their branch names the task); transcript line counts and durations.
+- Header: title, status, **Post update to task** (Productive comment draft with confirm), **Resume last session**. Tabs: **Timeline** (sessions, PR events, task events in time order, filterable by subtask), **Sessions · N** (Open tab / Resume, Fork with context), **PRs · N**, **Notes** (local).
+- Side: **Structure** tree with status, PR, worktree and session chips; every row ends with the assignee's avatar (mine ringed violet, unassigned a dashed ring); closed subtasks folded behind "show N closed". **Start work** per open subtask of mine: switch to its running session, or start one in its worktree; without one, pick a repo and Workbench creates `feature/<taskId>-<slug>` in `<worktrees>/<repo>-<taskId>-<slug>` from `origin/<default>` after a confirm showing the commands (or "No worktree · default folder"). **Where I left off** with Summarize latest.
+
+## Local
+
+Image: `docs/design/current/local.png`. Code: `LocalView.tsx`, `Panes.tsx`, `WorktreeSwitcher.tsx`, `src/main/local/`.
+
+- **Config** (`services.json` in the data folder, seeded from `prd`): app (`pnpm start`, port 4201, 2 panes), api (`bundle exec sidekiq`), e2e-tests (`npm run cli`), exporter, pdf-generator, pdf-viewer (`npm run start`), AI (`DEV_API_ENV=production pnpm start` in `ai-agent`). Profiles: prd · full, Frontend only, AI work, Exports & PDF.
+- Header: profile switch, **Stop all**, **Start missing (n)**. A Run PR job shows inline here while it runs.
+- Left: services in the profile with status dot, uptime and state; **Infra · brew services** chips (mysql, redis, memcached, meilisearch, nginx), a stopped one starts on click.
+- Right: the branch button (opens the worktree switcher), path and how far behind its base, Open in browser, Start / Restart / Stop, and split, resizable terminal panes (service log plus shells; layout saved per service).
+- Services run inside the app: quitting stops them, after a confirm while any run.
+- **Worktree switcher** (from `~/.wtrc.json`): filter, recency order, badges (● dirty, ✓ merged, ⬆ gone, ⚠ unmerged). ⏎ switch and run, ⌘O switch, ⌘. open in editor, ⌘⌫ remove, **Run alongside on new port**.
+
+## Run PR in app
+
+Image: chip in the StatusBar of `session.png`. Code: `RunPr.tsx`, `src/main/focus-pr.ts`, `src/main/local/run-pr.ts`, `src/shared/runpr.ts`.
+
+- **Focus PR** per session from signals: its cwd is a frontend worktree on a PR's branch, or a frontend PR URL / `#n` in its prompts or output (strongest, newest wins); then a PR of its task, or a `gh pr view/checkout/diff <n>` it ran.
+- **Chip:** "App · <branch> → Session · fe #n ▶ Run" on a mismatch; "Switching app to fe #n · step i of n" with a bar while running; "✓ App on fe #n · <url>" when they match; "Run fe #n failed · details"; ↩ Back after a base-checkout run.
+- ▶ Run app also on frontend rows in My PRs / Reviews, the task card's PRs, Needs you's PR card, the GitHub pane strip and the terminal PR card.
+- **Worktree found** (by branch, then upstream, then head commit, only under `.wtrc` worktree folders): stop `app`, run the repo's command there.
+- **No worktree:** the base checkout (`app`'s folder, `~/Productive/app`; never `~/Productive/work/repos/frontend`). A dirty tree asks: Stash and continue / Run alongside / Cancel. Then fetch, checkout (remembering the previous branch and stash for ↩ Back), `pnpm i` only if the lockfile changed, build lib · ui · form · prosemirror when their sources changed, restart, wait for the app to answer.
+- **Run alongside:** a second `app` on the next free port, from the worktree or a detached `frontend-review-<n>` worktree. A port held by a process Workbench didn't start stops the run with that message.
+- The run panel (from the chip or inline in Local) shows steps, a log tail and Cancel.
 
 ## Open questions
 
-- **Quiet hours** for notifications: none for now; revisit after using it.
+- Lid-closed keep-awake on battery or without an external display: verify what `caffeinate -s` actually allows.
+- Quiet hours for notifications: none for now.

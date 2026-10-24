@@ -2,7 +2,7 @@ import { useEffect, type CSSProperties } from 'react'
 import type { MenuCommand } from '@shared/types'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
-import { PrSide, SessionBar, SideResizer, TaskSide } from './components/TaskSide'
+import { PrSide, SessionBar, sessionPrs, SideResizer, TaskSide } from './components/TaskSide'
 import { TodayView } from './components/TodayView'
 import { WorkstreamView } from './components/WorkstreamView'
 import { DirtyGuardModal } from './components/RunPr'
@@ -14,7 +14,7 @@ import { Terminal } from './components/Terminal'
 import { MarkRail, stepMarks } from './components/Marks'
 import { TopBar } from './components/TopBar'
 import { installKeys } from './keys'
-import { activeSessionId, navigate, useStore, type SessionSide } from './store'
+import { activeSessionId, navigate, useStore } from './store'
 import { useShallow } from 'zustand/react/shallow'
 
 async function newSession(pick = false): Promise<void> {
@@ -48,8 +48,12 @@ function onMenu(cmd: MenuCommand): void {
     }
     case 'task-side':
       return useStore.getState().toggleSessionSide('task')
-    case 'pr-side':
-      return useStore.getState().toggleSessionSide('pr')
+    case 'pr-side': {
+      // Nothing to show without a PR; leave whatever sidebar is open.
+      const st = useStore.getState()
+      if (id && sessionPrs(id, st.tasks, st.git, st.runpr).length) st.toggleSessionSide('pr')
+      return
+    }
     case 'mark-step':
       return stepMarks(cmd.delta)
     case 'focus':
@@ -76,7 +80,7 @@ export function App() {
     const offNav = window.workbench.onNavigate(navigate)
     const { setRunpr } = useStore.getState()
     void window.workbench.getSetting<Record<string, number>>('ui:snoozed', {}).then((sn) => useStore.setState({ snoozed: Object.fromEntries(Object.entries(sn).filter(([, t]) => t > Date.now())) }))
-    void window.workbench.getSetting<SessionSide>('ui:sessionSide', null).then((sessionSide) => useStore.setState({ sessionSide }))
+    void window.workbench.getSetting<Record<string, 'task' | 'pr'>>('ui:sessionSides', {}).then((sessionSides) => useStore.setState({ sessionSides }))
     void window.workbench.getSetting<Partial<Record<'task' | 'pr', number>>>('ui:sideWidths', {}).then((sideWidths) => useStore.setState({ sideWidths }))
     void window.workbench.getSetting<boolean>('ui:hideDoneTodos', false).then((hideDoneTodos) => useStore.setState({ hideDoneTodos }))
     void window.workbench.runpr.snapshot().then(setRunpr)
@@ -136,10 +140,12 @@ export function App() {
 
   const activeId = activeSessionId(view)
   const active = sessions.find((s) => s.id === activeId)
-  const sessionSide = useStore((s) => s.sessionSide)
+  const sessionSide = useStore((s) => (activeId ? s.sessionSides[activeId] : undefined))
+  // A PR sidebar only shows while the session has a PR to show.
+  const hasPr = useStore((s) => !!activeId && sessionPrs(activeId, s.tasks, s.git, s.runpr).length > 0)
   const paneFull = useStore((s) => s.paneFull)
   const focus = useStore((s) => s.focus)
-  const side = view.kind === 'session' && !!active && !active.external ? sessionSide : null
+  const side = view.kind === 'session' && !!active && !active.external && sessionSide && (sessionSide !== 'pr' || hasPr) ? sessionSide : null
   const sideWidth = useStore((s) => (side ? s.sideWidths[side] : undefined))
   const full = side === 'pr' && paneFull
 

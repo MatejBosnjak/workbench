@@ -56,7 +56,7 @@ const CI_LABEL: Record<Ci, [string, string]> = {
  * PR (CI state), each opening its sidebar, and the branch at the right.
  */
 export function SessionBar({ session }: { session: Session }) {
-  const { tasks, git, runpr, side, toggle } = useStore(useShallow((s) => ({ tasks: s.tasks, git: s.git, runpr: s.runpr, side: s.sessionSide, toggle: s.toggleSessionSide })))
+  const { tasks, git, runpr, side, toggle } = useStore(useShallow((s) => ({ tasks: s.tasks, git: s.git, runpr: s.runpr, side: s.sessionSides[session.id] ?? null, toggle: s.toggleSessionSide })))
   const taskId = sessionTasks(tasks, session.id)[0]
   const task = taskId ? tasks?.tasks.find((t) => t.id === taskId) : undefined
   const prs = sessionPrs(session.id, tasks, git, runpr)

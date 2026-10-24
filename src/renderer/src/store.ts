@@ -66,13 +66,14 @@ interface State {
   pane: PaneState | null
   /** The GitHub pane takes the whole body (⤢). */
   paneFull: boolean
-  /** The sidebar beside a session's terminal: its task (⌘I) or its PR (⌘⇧I). Kept as ui:sessionSide. */
-  sessionSide: SessionSide
+  /** Each session's sidebar beside its terminal: its task (⌘I) or its PR (⌘⇧I); none until opened. Kept as ui:sessionSides. */
+  sessionSides: Record<string, Exclude<SessionSide, null>>
   /** Completed to-dos hidden in the task sidebar, for every task. Kept as ui:hideDoneTodos. */
   hideDoneTodos: boolean
   setHideDoneTodos(on: boolean): void
+  /** Opens or closes the sidebar of the session on screen. */
   setSessionSide(side: SessionSide): void
-  /** Toggles one sidebar: opens it, or closes it when it's the one open. */
+  /** Toggles one sidebar of the session on screen: opens it, or closes it when it's the one open. */
   toggleSessionSide(side: Exclude<SessionSide, null>): void
   /** Each sidebar's width in px once dragged; unset means its default. Kept as ui:sideWidths. */
   sideWidths: Partial<Record<Exclude<SessionSide, null>, number>>
@@ -154,17 +155,28 @@ export const useStore = create<State>((set, get) => ({
   runpr: null,
   pane: null,
   paneFull: false,
-  sessionSide: null,
+  sessionSides: {},
   hideDoneTodos: false,
   setHideDoneTodos: (hideDoneTodos) => {
     set({ hideDoneTodos })
     void window.workbench.setSetting('ui:hideDoneTodos', hideDoneTodos)
   },
-  setSessionSide: (sessionSide) => {
-    set({ sessionSide })
-    void window.workbench.setSetting('ui:sessionSide', sessionSide)
+  setSessionSide: (side) => {
+    const id = activeSessionId(get().view)
+    if (!id) return
+    const sessionSides = { ...get().sessionSides }
+    if (side) sessionSides[id] = side
+    else delete sessionSides[id]
+    // Only open sessions are worth remembering.
+    const open = new Set(get().sessions.map((s) => s.id))
+    for (const k of Object.keys(sessionSides)) if (!open.has(k)) delete sessionSides[k]
+    set({ sessionSides })
+    void window.workbench.setSetting('ui:sessionSides', sessionSides)
   },
-  toggleSessionSide: (side) => get().setSessionSide(get().sessionSide === side ? null : side),
+  toggleSessionSide: (side) => {
+    const id = activeSessionId(get().view)
+    if (id) get().setSessionSide(get().sessionSides[id] === side ? null : side)
+  },
   sideWidths: {},
   setSideWidth: (side, px, save) => {
     const sideWidths = { ...get().sideWidths }

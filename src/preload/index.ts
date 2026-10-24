@@ -19,6 +19,7 @@ const api: WorkbenchApi = {
   createSession: (opts) => ipcRenderer.invoke('sessions:create', opts),
   openSession: (id, size) => ipcRenderer.invoke('sessions:open', id, size),
   closeSession: (id) => ipcRenderer.invoke('sessions:close', id),
+  tabMenu: (id, enabled) => ipcRenderer.invoke('sessions:tab-menu', id, enabled),
   setTitle: (id, title, auto) => ipcRenderer.invoke('sessions:title', id, title, auto),
   reorderSessions: (ids) => ipcRenderer.invoke('sessions:reorder', ids),
   onSessionsChanged: (cb) => on('sessions:changed', (_e, sessions: Session[]) => cb(sessions)),

@@ -122,6 +122,25 @@ export function TopBar({ onNew }: { onNew: () => void }) {
     return () => window.removeEventListener('mousedown', close)
   }, [moreOpen])
 
+  const tabMenu = async (s: Session) => {
+    const i = sessions.findIndex((x) => x.id === s.id)
+    const left = sessions.slice(0, i)
+    const right = sessions.slice(i + 1)
+    const pick = await window.workbench.tabMenu(s.id, { close: true, others: sessions.length > 1, left: left.length > 0, right: right.length > 0, all: true })
+    if (!pick) return
+    const targets = { close: [s], others: [...left, ...right], left, right, all: sessions }[pick]
+    // Closing stops a turn in progress; ask first when a bulk close would do that.
+    const busy = targets.filter((t) => t.alive && t.state === 'running').length
+    if (pick !== 'close' && busy && !window.confirm(`Close ${targets.length} tabs? ${busy} ${busy === 1 ? 'is' : 'are'} running and will stop.`)) return
+    // Off a tab that's closing: to the nearest one that stays, or Today.
+    if (activeId && targets.some((t) => t.id === activeId)) {
+      const gone = new Set(targets.map((t) => t.id))
+      const stay = sessions.filter((x) => !gone.has(x.id)).sort((a, b) => Math.abs(sessions.indexOf(a) - i) - Math.abs(sessions.indexOf(b) - i))[0]
+      show(stay ? { kind: 'session', id: stay.id } : { kind: 'today' })
+    }
+    for (const t of targets) void window.workbench.closeSession(t.id)
+  }
+
   const drop = (targetId: string) => {
     if (!dragId || dragId === targetId) return
     const ids = sessions.map((s) => s.id).filter((id) => id !== dragId)
@@ -172,6 +191,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
             dropBefore={dropBefore === s.id}
             onSelect={() => show({ kind: 'session', id: s.id })}
             onClose={() => void window.workbench.closeSession(s.id)}
+            onMenu={() => void tabMenu(s)}
             onDragStart={() => setDragId(s.id)}
             onDragOver={() => setDropBefore(s.id)}
             onDrop={() => {
@@ -239,12 +259,14 @@ interface TabProps {
   cup: 'on' | 'lid' | null
   onSelect(): void
   onClose(): void
+  /** Right-click: close this, others, to the left, to the right, or all. */
+  onMenu(): void
   onDragStart(): void
   onDragOver(): void
   onDrop(): void
 }
 
-function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onDragStart, onDragOver, onDrop }: TabProps) {
+function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMenu, onDragStart, onDragOver, onDrop }: TabProps) {
   const cls = ['seg-btn', 'tab', `st-${s.state}`, s.alive ? '' : 'dead', dropBefore ? 'drop-before' : ''].filter(Boolean).join(' ')
   const [editing, setEditing] = useState(false)
   const cancelled = useRef(false)
@@ -267,6 +289,10 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onDr
         setEditing(true)
       }}
       onAuxClick={(e) => e.button === 1 && onClose()}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        if (!editing) onMenu()
+      }}
       onDragStart={onDragStart}
       onDragOver={(e) => {
         e.preventDefault()

@@ -5,7 +5,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstruc
 import type { AgentSettings } from '@shared/agent'
 import type { DraftTarget, GitSnapshot, Pr } from '@shared/git'
 import type { Person } from '@shared/tasks'
-import type { HooksStatus, MenuCommand, NavigateTarget } from '@shared/types'
+import type { HooksStatus, MenuCommand, NavigateTarget, TabMenuPick } from '@shared/types'
 import { Caffeinate } from './caffeinate'
 import { headlessPids, killHeadless } from './claude'
 import { MemoryMonitor } from './memory'
@@ -392,6 +392,18 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('sessions:open', (e, id: string, size: { cols: number; rows: number }) => sessions.open(id, size, e.sender))
   ipcMain.handle('sessions:close', (_e, id: string) => sessions.close(id))
+  ipcMain.handle(
+    'sessions:tab-menu',
+    (_e, _id: string, enabled: Record<TabMenuPick, boolean>) =>
+      new Promise<TabMenuPick | null>((resolve) => {
+        const item = (label: string, pick: TabMenuPick): MenuItemConstructorOptions => ({ label, enabled: enabled[pick], click: () => resolve(pick) })
+        Menu.buildFromTemplate([item('Close', 'close'), { type: 'separator' }, item('Close Others', 'others'), item('Close to the Left', 'left'), item('Close to the Right', 'right'), { type: 'separator' }, item('Close All', 'all')]).popup({
+          window: win ?? undefined,
+          // A click can arrive just after the menu reports it closed; only a dismissal resolves null (a later resolve is a no-op).
+          callback: () => setTimeout(() => resolve(null), 150),
+        })
+      }),
+  )
   ipcMain.handle('sessions:title', (_e, id: string, title: string, auto?: boolean) => sessions.setTitle(id, title, auto))
   ipcMain.handle('sessions:reorder', (_e, ids: string[]) => sessions.reorder(ids))
   ipcMain.handle('sessions:write', (_e, id: string, data: string) => sessions.write(id, data))

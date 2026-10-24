@@ -116,6 +116,8 @@ export type MenuCommand =
   | { type: 'mark-step'; delta: 1 | -1 }
   | { type: 'focus' }
 
+export type TabMenuPick = 'close' | 'others' | 'left' | 'right' | 'all'
+
 /** Where a notification click (or an in-app PR link) takes you. */
 export type NavigateTarget = { kind: 'session'; id: string } | { kind: 'git' | 'reviews'; prId: string | null }
 
@@ -134,6 +136,8 @@ export interface WorkbenchApi {
   /** Spawns the pty if needed (resuming a stored session) and delivers its port. */
   openSession(id: string, size: { cols: number; rows: number }): Promise<void>
   closeSession(id: string): Promise<void>
+  /** A tab's right-click menu; resolves to the pick, or null when dismissed. */
+  tabMenu(id: string, enabled: Record<TabMenuPick, boolean>): Promise<TabMenuPick | null>
   /** auto: claude's terminal title, ignored once the session was renamed or titled after its task. */
   setTitle(id: string, title: string, auto?: boolean): Promise<void>
   reorderSessions(ids: string[]): Promise<void>

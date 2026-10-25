@@ -5,7 +5,7 @@ import { groupByStatus, groupTasks, statusCounts, statusVivid, treeShapes, type 
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
-import { needsBreakdown, needsYou, tomorrowMorning, type NeedItem } from '../needs'
+import { needsBreakdown, needsYou, tomorrowMorning, UNTIL_CHANGED, type NeedItem } from '../needs'
 import { navigate, openInPane, openWorkstream, useStore, type TodayTab } from '../store'
 import { Box } from './Box'
 import { MarkGlyph, NewSessionButton } from './Chips'
@@ -320,7 +320,7 @@ function Home({
   const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore(
     useShallow((s) => ({ sessions: s.sessions, peekTask: s.peekTask, setPeekTask: s.setPeekTask, setTodayTab: s.setTodayTab, show: s.show, snooze: s.snooze, snoozed: s.snoozed })),
   )
-  const sleep = (n: NeedItem) => snooze(n.key, tomorrowMorning())
+  const sleep = (n: NeedItem, forever = false) => snooze(n.key, forever ? UNTIL_CHANGED : tomorrowMorning())
   const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)
   const [needIdx, setNeedIdx] = useState(0)
   const [filter, setFilter] = useState<string | null>(null)
@@ -401,10 +401,10 @@ function Home({
         return true
       },
       key: (k) => {
-        if (k !== 'z' || pane !== 'needs') return false
+        if ((k !== 'z' && k !== 'Z') || pane !== 'needs') return false
         const n = needs[needIdx]
         if (n) {
-          sleep(n)
+          sleep(n, k === 'Z')
           setNeedIdx((i) => Math.max(0, Math.min(needs.length - 2, i)))
         }
         return true
@@ -441,11 +441,11 @@ function Home({
               <span className="need-detail">{n.detail}</span>
               <button
                 className="need-sleep"
-                title="Sleep until tomorrow 08:00 (z). Comes back sooner if something new happens."
+                title="Sleep until tomorrow 08:00 (z). Comes back sooner if something new happens. ⇧-click (⇧Z): sleep until something new happens."
                 aria-label="Sleep until tomorrow"
                 onClick={(e) => {
                   e.stopPropagation()
-                  sleep(n)
+                  sleep(n, e.shiftKey)
                 }}
               >
                 zz
@@ -602,7 +602,7 @@ function Home({
               <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
               <span className="need-ref">{n.ref}</span>
               <span className="need-text">{n.text}</span>
-              <span className="need-detail">until {new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="need-detail">until {snoozed[n.key]! >= UNTIL_CHANGED ? 'it changes' : new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
               <button className="need-sleep wake" title="Wake it now" onClick={() => snooze(n.key, null)}>
                 wake
               </button>

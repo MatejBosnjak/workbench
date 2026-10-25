@@ -115,6 +115,7 @@ Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear
   | 1–9 | 1 Today, 2 Local, 3… sessions |
   | c | caffeinate popover |
   | z | sleep a Needs you item until tomorrow 08:00 |
+  | ⇧Z | sleep a Needs you item until it changes |
   | m | mark the selected PR's replies seen (My PRs) |
   | ? | shortcuts popover |
 
@@ -142,11 +143,11 @@ Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek)
 
 - **Counters** under the TopBar on every Today tab: Needs you, My tasks, My PRs, Reviews (the 5h limit lives in the status bar). Each has a big number with its breakdown stacked at the right (e.g. `2 PRs · 1 thread · 1 task`, `7 working · 10 in review`, `3 need a reply · 13 drafts`, `N waiting on authors · 11 bot PRs hidden`). Needs you leads: wider, a 52px number, violet, glowing while anything waits; the others are 28px. The active one (the tab shown) gets a near-white outline. Clicking a counter switches tab.
 - **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), and overdue tasks. Each row: kind, the PR's repo (or `task`), text, detail, and `zz`.
-  - `zz` / `z` sleeps an item until tomorrow 08:00; it wakes sooner if the item changes (a new message, push or due date). Sleeping items sit in a **Sleeping** box with "wake".
+  - `zz` / `z` sleeps an item until tomorrow 08:00; it wakes sooner if the item changes (a new message, push or due date). ⇧-click `zz` / ⇧Z (or "until it changes" on the PR card) sleeps it with no end date, until the item changes. Sleeping items sit in a **Sleeping** box with "wake".
   - **Threads** box: up to six reply-needed conversations with the last message quoted; more link to My PRs.
 - **Needs reply:** a conversation (an unresolved review thread, or the PR's own conversation of comments plus review bodies) whose last message isn't mine and isn't marked seen. Bots and bare approvals don't count.
 - Click or ⏎ shows the item in the right sidebar; ⏎ again or a double-click opens it (a PR in the GitHub pane at its last message; a task into its session).
-- **PR card** (sidebar): kind, repo with CI, title, branch, updated, the PR's task chips and best session (or `+ new ✻`), the latest message; ⏎ open, **draft reply with Claude**, ▶ Run app (frontend), sleep, open in browser.
+- **PR card** (sidebar): kind, repo with CI, title, branch, updated, the PR's task chips and best session (or `+ new ✻`), the latest message; ⏎ open, **draft reply with Claude**, ▶ Run app (frontend), sleep (until tomorrow / until it changes), open in browser.
 - **Notifications** (native), in tiers. A session **waiting** on you: banner with sound (skipped while that tab is on screen and the window focused). GitHub, already only what's for me (a new reply or comment on my PR, changes requested, CI failed not on drafts, a new review request): banner without sound, except a review request. A session **finishing** its turn: no banner; its tab shows it. Each opens its row or tab. The first poll only records what's there; more than four at once become one summary. The Dock badge counts sessions waiting on you. While focus is on, all of them are held (see Focus).
 
 ## Today › My tasks

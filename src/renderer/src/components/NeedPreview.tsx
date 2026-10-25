@@ -4,7 +4,7 @@ import { prSessions, prTasks } from '@shared/links'
 import { FE_REPO } from '@shared/runpr'
 import type { TasksSnapshot } from '@shared/tasks'
 import type { NeedItem } from '../needs'
-import { tomorrowMorning } from '../needs'
+import { tomorrowMorning, UNTIL_CHANGED } from '../needs'
 import { useStore } from '../store'
 import { Box } from './Box'
 import { NewSessionButton, SessionChip, TaskChip } from './Chips'
@@ -91,6 +91,9 @@ export function NeedPreview({ item, tasks, onOpen, onClose }: { item: NeedItem; 
       <div className="peek-links">
         <button className="link-btn" onClick={() => snooze(item.key, tomorrowMorning())}>
           zz sleep until tomorrow
+        </button>
+        <button className="link-btn" onClick={() => snooze(item.key, UNTIL_CHANGED)}>
+          until it changes
         </button>
         <button className="link-btn" onClick={() => void window.workbench.openExternal(last?.url || p.url)}>
           open in browser

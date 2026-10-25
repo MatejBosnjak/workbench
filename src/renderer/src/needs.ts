@@ -56,6 +56,9 @@ export function needsBreakdown(items: NeedItem[]): string {
   return [prs && n(prs, 'PR', 'PRs'), threads && n(threads, 'thread', 'threads'), tasks && n(tasks, 'task', 'tasks')].filter(Boolean).join(' · ') || 'nothing waiting'
 }
 
+/** A snooze with no end: the item sleeps until it changes (its key does). */
+export const UNTIL_CHANGED = 8.64e15
+
 /** Snoozes end at 08:00 the next morning. */
 export function tomorrowMorning(now = new Date()): number {
   const d = new Date(now)

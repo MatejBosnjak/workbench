@@ -22,9 +22,11 @@ const clean = (e: unknown) => (e as Error).message.replace(/^Error invoking remo
 function useTaskDetail(taskId: string): {
   detail: TaskDetail | null
   error: string | null
+  retry(): void
 } {
   const detail = useSyncExternalStore(subscribe, () => cache.get(taskId) ?? null)
   const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let live = true
     setError(null)
@@ -35,8 +37,8 @@ function useTaskDetail(taskId: string): {
     return () => {
       live = false
     }
-  }, [taskId])
-  return { detail, error }
+  }, [taskId, attempt])
+  return { detail, error, retry: () => setAttempt((n) => n + 1) }
 }
 
 /** Runs a write (which asks for a confirm in main); null means it was cancelled. */
@@ -507,7 +509,7 @@ function AddTodo({ detail, done }: { detail: TaskDetail; done(): void }) {
 
 /** The task as Productive has it: description, to-dos and comments. Comments and to-do adds and ticks ask first. */
 export function TaskDetails({ taskId, withTitle = false }: { taskId: string; withTitle?: boolean }) {
-  const { detail, error: loadError } = useTaskDetail(taskId)
+  const { detail, error: loadError, retry } = useTaskDetail(taskId)
   const { busy, error, write } = useWrite(taskId)
   const open = detail?.todos.filter((t) => !t.closed).length ?? 0
   const { hideDone, setHideDone } = useStore(useShallow((s) => ({ hideDone: s.hideDoneTodos, setHideDone: s.setHideDoneTodos })))
@@ -520,7 +522,16 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
   return (
     <Box title="Productive" className="peek task-details">
       {!detail && !loadError && <span className="faint">loading…</span>}
-      {(loadError || error) && <span className="bad-text">{loadError || error}</span>}
+      {(loadError || error) && (
+        <span className="bad-text">
+          {loadError || error}
+          {loadError && (
+            <button className="link-btn" onClick={retry}>
+              retry
+            </button>
+          )}
+        </span>
+      )}
       {detail && (
         <>
           {withTitle && (

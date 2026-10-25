@@ -10,6 +10,7 @@ const MARKER = '__WORKBENCH_ENV__'
 const BASE = ['HOME', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'LANG', 'SSH_AUTH_SOCK', '__CF_USER_TEXT_ENCODING']
 
 let cached: Promise<Record<string, string>> | undefined
+let reloading: Promise<Record<string, string>> | undefined
 
 /**
  * The environment a login + interactive shell would have. An app started from Finder
@@ -18,6 +19,13 @@ let cached: Promise<Record<string, string>> | undefined
 export function shellEnv(): Promise<Record<string, string>> {
   cached ??= load()
   return cached
+}
+
+/** Reads the login shell again, e.g. when a keychain secret was missing because the keychain was locked at startup. Calls made while one is running share it. */
+export function reloadShellEnv(): Promise<Record<string, string>> {
+  reloading ??= load().finally(() => (reloading = undefined))
+  cached = reloading
+  return reloading
 }
 
 function load(): Promise<Record<string, string>> {
@@ -31,6 +39,7 @@ function load(): Promise<Record<string, string>> {
         const at = stdout?.indexOf(MARKER) ?? -1
         if (err || at < 0) {
           console.warn('[shell-env] login shell failed, using a minimal env:', err?.message)
+          cached = undefined // try the shell again next time
           resolve({ ...baseEnv(), PATH: fallbackPath() })
           return
         }

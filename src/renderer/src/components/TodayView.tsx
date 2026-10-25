@@ -475,7 +475,14 @@ function Home({
       )}
 
       {snapshot.fetchedAt === null && snapshot.loading && <span className="faint">Loading your tasks from Productive…</span>}
-      {snapshot.error && <span className="bad-text">Couldn't load tasks: {snapshot.error}</span>}
+      {snapshot.error && (
+        <span className="bad-text">
+          Couldn't load tasks: {snapshot.error}
+          <button className="link-btn" onClick={() => void window.workbench.tasks.refresh()}>
+            retry
+          </button>
+        </span>
+      )}
 
       {pane === 'tasks' && statuses.length > 0 && <TaskStrip statuses={statuses} only={only} setOnly={setOnly} groupBy={groupBy} setGroupBy={pickGroup} />}
 

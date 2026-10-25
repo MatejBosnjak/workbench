@@ -149,7 +149,7 @@ Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek)
 
 Image: `docs/design/current/today-tasks.png`. Code: `TodayView.tsx` (Home, TaskStrip), `src/shared/tasks.ts`, `src/main/productive/tasks.ts`.
 
-- **Source.** Productive REST with the keychain token, every 2 min plus refresh. The filter is my saved "List view" filter, discovered once from `/filters` and stored with org and person in `productive:account` (fallback: assigned to me, not started or started). The last result is cached so Today has something before the first fetch.
+- **Source.** Productive REST with the keychain token (re-read from the login shell when missing), every 2 min plus refresh. The filter is my saved "List view" filter, discovered once from `/filters` and stored with org and person in `productive:account` (fallback: assigned to me, not started or started). The last result is cached so Today has something before the first fetch.
 - Productive's assignee filter also returns tasks assigned to someone else where an open to-do is mine; a second call (`/todos`, mine, open, `include=task`) counts those to-dos per task.
 - **Strip** above the list: a bar of the status mix, one chip per status with its count (click to filter, several allowed, "clear"), and **group by project / status** (remembered). Statuses are ordered nearest-done first; same-named statuses across workflows count as one.
 - **Group by project** (default): Bugs first, then Product: CRM, then A–Z; within a project, placement order, nested under parent or milestone. Box titles `My tasks › <project> (n)`.
@@ -173,6 +173,7 @@ Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `Task
 - On the box's bottom edge: **+ new ✻** (always a new session) and **⏎ continue** (switch to the live session, open the latest tab, or resume it; hidden with no session).
 - **Productive box** below it: description (URLs clickable); **to-dos** with done count, `+` add form (text, assignee from my colleagues or unassigned), hide/show done; each to-do has a checkbox and an assignee avatar with a searchable people picker. On someone else's task, my open to-dos are highlighted. **comments** newest first under a composer that's one quiet line until focused, then three lines with `@` tagging (tags notify), post, and **draft with Claude**.
 - Writes: comments, adding a to-do and ticking a to-do ask first with a native confirm showing the exact text and target. Status picks and to-do assignee picks apply directly (the pick is the approval).
+- A load error in the Productive box (and Couldn't load tasks on My tasks) has **retry**. A missing `PRODUCTIVE_AUTH_TOKEN` re-reads the login shell before failing, so a keychain that was locked when Workbench started fixes itself on the next fetch; a failed shell read isn't cached.
 
 ## Today › My PRs
 

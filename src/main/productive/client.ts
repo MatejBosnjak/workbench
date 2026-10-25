@@ -1,4 +1,4 @@
-import { shellEnv } from '../shell-env'
+import { reloadShellEnv, shellEnv } from '../shell-env'
 
 const API = 'https://api.productive.io/api/v2'
 
@@ -64,9 +64,9 @@ export class Productive {
   }
 
   private async request<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> {
-    const env = await shellEnv()
-    const token = env.PRODUCTIVE_AUTH_TOKEN
-    if (!token) throw new Error('PRODUCTIVE_AUTH_TOKEN is not set in the login shell')
+    // The token comes from the keychain; if it was locked when the shell was first read, read the shell again.
+    const token = (await shellEnv()).PRODUCTIVE_AUTH_TOKEN || (await reloadShellEnv()).PRODUCTIVE_AUTH_TOKEN
+    if (!token) throw new Error('PRODUCTIVE_AUTH_TOKEN is not set in the login shell (is the keychain unlocked?)')
     const headers: Record<string, string> = { 'X-Auth-Token': token, 'Content-Type': 'application/vnd.api+json' }
     if (this.orgId) headers['X-Organization-Id'] = this.orgId
     const res = await fetch(`${API}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })

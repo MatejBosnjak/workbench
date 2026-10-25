@@ -255,8 +255,8 @@ function Reviewers({ p }: { p: Pr }) {
 }
 
 /**
- * A PR of mine: reviewers under the title; on the right the checks still to pass (CI, merge, threads) one under
- * another beside the score, and Run app under them. ↩ opens replies waiting on me in Needs you.
+ * A PR of mine in three columns: title with reviewers under it; the checks (CI, merge, threads) one under another;
+ * the score with Run app under it. ↩ opens replies waiting on me in Needs you.
  */
 function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnapshot; tasks: TasksSnapshot | null; focused: boolean; selected: boolean; tone: GroupTone }) {
   const { setTodayTab, setPeekNeed } = useStore(useShallow((s) => ({ setTodayTab: s.setTodayTab, setPeekNeed: s.setPeekNeed })))
@@ -299,14 +299,16 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
               </span>
             ))}
         </div>
-        <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
-          {score}/4
-        </span>
-        {p.repo === 'productiveio/frontend' && (
-          <span className="pr-run">
-            <RunAppButton n={p.number} compact />
+        <div className="pr-go">
+          <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
+            {score}/4
           </span>
-        )}
+          {p.repo === 'productiveio/frontend' && (
+            <span className="pr-run">
+              <RunAppButton n={p.number} compact />
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

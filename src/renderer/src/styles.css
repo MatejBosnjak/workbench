@@ -955,7 +955,9 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .sbar-btn.on { background: var(--bg); color: var(--text); }
 .sbar-rail { width: 6px; align-self: stretch; background: var(--st); flex-shrink: 0; }
 .sbar-title { min-width: 0; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
-.sbar-cup { margin-left: auto; display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; background: transparent; color: var(--text-3); cursor: pointer; }
+.sbar-cup-wrap { position: relative; margin-left: auto; }
+.sbar-cafpop { top: 34px; width: 390px; }
+.sbar-cup { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; background: transparent; color: var(--text-3); cursor: pointer; }
 .sbar-cup:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
 .sbar-cup.caf-on { color: #C98D55; }
 .sbar-cup.caf-lid { color: #6FC3E0; }

@@ -197,6 +197,7 @@ await shot('caffeinate', async () => {
   if (sid) await api((id) => window.workbench.setCaffeinate(id, 'on', 'manual'), sid)
   await blurred(() => click('.cafb-btn'))
 })
+await shot('session-cup', () => blurred(() => click('.sbar-cup')))
 await shot('memory', () => blurred(() => click('.mem-btn')))
 await shot('keys', () => blurred(() => page.focus('.sb-keys')))
 await shot('picker', () => blurred(() => click('.picker-btn')))

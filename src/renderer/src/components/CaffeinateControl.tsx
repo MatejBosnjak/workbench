@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { UNTIL_LABEL, UNTIL_NEXT, type CafHold, type CafMode, type CafUntil } from '@shared/caffeinate'
 import type { CaffeinateState, Session } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
@@ -40,8 +40,6 @@ export function CaffeinateButton() {
 
   const sessionId = activeSessionId(view)
   const session = sessions.find((s) => s.id === sessionId)
-  const mine = caf && sessionId ? holdOf(caf, sessionId) : undefined
-  const mineMode: CafMode = mine && !mine.auto ? mine.mode : 'off'
   const set = (id: string, mode: CafMode, until?: CafUntil) => void window.workbench.setCaffeinate(id, mode, until).then(setCaf)
 
   useEffect(() => {
@@ -69,7 +67,6 @@ export function CaffeinateButton() {
   const n = caf.holds.length
   const label = `Caffeinate: ${MODE_LABEL[caf.mode]}${n ? ` · held by ${n} session${n > 1 ? 's' : ''}` : ''}`
   const via = caf.mode === 'lid' ? (caf.lidVia === 'amphetamine' ? ' · via Amphetamine' : ' · clamshell') : ''
-  const lidNote = caf.lidAvailable ? null : `Lid closed unavailable: ${caf.lidSetup ?? 'needs power and Amphetamine, or an external display'}`
 
   return (
     <span className="cafb" ref={root}>
@@ -129,32 +126,7 @@ export function CaffeinateButton() {
           {session && (
             <>
               <span className="cafpop-sec">This session · {session.title}</span>
-              <span className="cafpop-modes" role="radiogroup" aria-label="This session">
-                {OPTIONS.map((o) => (
-                  <button
-                    key={o.mode}
-                    role="radio"
-                    aria-checked={o.mode === mineMode}
-                    className={`caf-${o.mode}`}
-                    title={o.mode === 'lid' ? (lidNote ?? 'Keeps running with the lid shut · on power') : undefined}
-                    onClick={() => set(session.id, o.mode)}
-                  >
-                    <Cup mode={o.mode} size={18} />
-                    {o.label} <span className="faint">{o.key}</span>
-                  </button>
-                ))}
-              </span>
-              {mineMode !== 'off' && mine && (
-                <span className="cafpop-untils" role="radiogroup" aria-label="Until">
-                  until
-                  {(['done', 'closed', 'manual'] as const).map((u) => (
-                    <button key={u} role="radio" aria-checked={mine.until === u} onClick={() => set(session.id, mineMode, u)}>
-                      {UNTIL_LABEL[u].replace('until ', '')}
-                    </button>
-                  ))}
-                </span>
-              )}
-              {mineMode === 'lid' && lidNote && <span className="cafpop-msg">{lidNote}; using Awake.</span>}
+              <HoldControls caf={caf} sessionId={session.id} onSet={setCaf} />
             </>
           )}
           {caf.note && <span className="cafpop-msg">{caf.note}</span>}
@@ -171,21 +143,85 @@ export function CaffeinateButton() {
   )
 }
 
-/** The session bar's small cup: this session's hold. Opens the taskbar popover. */
+/** Off / Awake / Lid closed and until, for one session's own hold. */
+function HoldControls({ caf, sessionId, onSet }: { caf: CaffeinateState; sessionId: string; onSet: (c: CaffeinateState) => void }) {
+  const mine = holdOf(caf, sessionId)
+  const mineMode: CafMode = mine && !mine.auto ? mine.mode : 'off'
+  const set = (mode: CafMode, until?: CafUntil) => void window.workbench.setCaffeinate(sessionId, mode, until).then(onSet)
+  const lidNote = caf.lidAvailable ? null : `Lid closed unavailable: ${caf.lidSetup ?? 'needs power and Amphetamine, or an external display'}`
+  return (
+    <>
+      <span className="cafpop-modes" role="radiogroup" aria-label="This session">
+        {OPTIONS.map((o) => (
+          <button
+            key={o.mode}
+            role="radio"
+            aria-checked={o.mode === mineMode}
+            className={`caf-${o.mode}`}
+            title={o.mode === 'lid' ? (lidNote ?? 'Keeps running with the lid shut · on power') : undefined}
+            onClick={() => set(o.mode)}
+          >
+            <Cup mode={o.mode} size={18} />
+            {o.label} <span className="faint">{o.key}</span>
+          </button>
+        ))}
+      </span>
+      {mineMode !== 'off' && mine && (
+        <span className="cafpop-untils" role="radiogroup" aria-label="Until">
+          until
+          {(['done', 'closed', 'manual'] as const).map((u) => (
+            <button key={u} role="radio" aria-checked={mine.until === u} onClick={() => set(mineMode, u)}>
+              {UNTIL_LABEL[u].replace('until ', '')}
+            </button>
+          ))}
+        </span>
+      )}
+      {mine?.auto && <span className="cafpop-empty">Held by Auto while it works.</span>}
+      {mineMode === 'lid' && lidNote && <span className="cafpop-msg">{lidNote}; using Awake.</span>}
+    </>
+  )
+}
+
+/** The session bar's small cup: this session's hold, and a small popover with just its controls (`o` / `a` / `l`, Esc). */
 export function SessionCup({ session }: { session: Session }) {
-  const { caf, setCafOpen } = useStore(useShallow((s) => ({ caf: s.caf, setCafOpen: s.setCafOpen })))
+  const { caf, setCaf } = useStore(useShallow((s) => ({ caf: s.caf, setCaf: s.setCaf })))
+  const [open, setOpen] = useState(false)
+  const root = useRef<HTMLSpanElement>(null)
+  useOverlay(open)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const pick = OPTIONS.find((o) => o.key === e.key)
+      if (e.key === 'Escape' || pick) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (pick) void window.workbench.setCaffeinate(session.id, pick.mode).then(setCaf)
+        setOpen(false)
+      }
+    }
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey, true)
+    }
+  })
   const h = holdOf(caf, session.id)
   const mode: CafMode = h?.mode ?? 'off'
   const label = h ? `${MODE_LABEL[h.mode]} · ${h.auto ? 'while working (auto)' : UNTIL_LABEL[h.until]}` : 'Not keeping the Mac awake'
   return (
-    <button
-      className={`sbar-cup caf-${mode}`}
-      aria-label={`Caffeinate: ${label}`}
-      title={`${label} · c`}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={() => setCafOpen(!useStore.getState().cafOpen)}
-    >
-      <Cup mode={mode} size={18} />
-    </button>
+    <span className="sbar-cup-wrap" ref={root}>
+      <button className={`sbar-cup caf-${mode}`} aria-haspopup="dialog" aria-expanded={open} aria-label={`Keep the Mac awake for this session: ${label}`} title={label} onClick={() => setOpen(!open)}>
+        <Cup mode={mode} size={18} />
+      </button>
+      {open && caf && (
+        <div className="cafpop sbar-cafpop" role="dialog" aria-label="Keep the Mac awake for this session">
+          <span className="cafpop-head">Keep the Mac awake</span>
+          <HoldControls caf={caf} sessionId={session.id} onSet={setCaf} />
+        </div>
+      )}
+    </span>
   )
 }

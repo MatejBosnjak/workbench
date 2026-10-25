@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr, Reviewer } from '@shared/git'
+import type { Conversation, DraftTarget, GitSnapshot, GroupTone, MergeCheck, Pr, Reviewer } from '@shared/git'
 import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, prRepo, shortRepo } from '@shared/git'
 import { prTasks } from '@shared/links'
 import type { TasksSnapshot } from '@shared/tasks'
@@ -11,7 +11,6 @@ import { RunAppButton, runPr } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
 
 const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', info: 'var(--info)', faint: 'var(--faint)' }
-const CI_LABEL = { pass: 'CI passing', fail: 'CI failing', pending: 'CI running', none: 'No CI' }
 
 function age(iso: string): string {
   const d = ageDays(iso)
@@ -239,15 +238,34 @@ function OpenedGroup({ git }: { git: GitSnapshot }) {
 const REVIEW_WORD: Record<Reviewer['state'], string> = { waiting: 'waiting', approved: 'approved', changes: 'changes', commented: 'commented' }
 
 /** Who reviews the PR: avatar ringed by state, login, state. A PR that needs a review and has nobody asked says so. */
-function Reviewers({ p }: { p: Pr }) {
+function Reviewers({ p, author }: { p: Pr; author?: boolean }) {
   const rs = p.reviewers ?? []
-  if (!rs.length) return p.draft || p.reviewDecision !== 'REVIEW_REQUIRED' ? null : <div className="pr-revs"><span className="rv-none">! no reviewer</span></div>
+  if (!rs.length && !author) return p.draft || p.reviewDecision !== 'REVIEW_REQUIRED' ? null : <div className="pr-revs"><span className="rv-none">! no reviewer</span></div>
   return (
     <div className="pr-revs">
+      {author && (
+        <span className="rv rv-author">
+          {p.authorAvatar ? <img className="rv-av" src={p.authorAvatar} alt="" /> : <span className="rv-av" />}
+          {p.author} <span className="rv-state">{p.authorBot ? 'bot' : 'author'}</span>
+        </span>
+      )}
       {rs.map((r) => (
         <span key={r.login} className={`rv rv-${r.state}`}>
           <img className="rv-av" src={r.avatar} alt="" />
           {r.login} <span className="rv-state">{REVIEW_WORD[r.state]}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/** Merge checks one under another, short labels with the full one as a tooltip. */
+function Checks({ checks }: { checks: MergeCheck[] }) {
+  return (
+    <div className="pr-checks">
+      {checks.map((c) => (
+        <span key={c.key} className={`pr-check ${c.state}`} title={c.label}>
+          {c.key === 'ci' ? (c.state === 'wait' ? 'CI running' : 'CI') : c.key === 'conflicts' ? (c.state === 'bad' ? 'conflict' : 'merge') : c.state === 'ok' ? 'threads' : c.label.replace(/ open/, '')} {c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'}
         </span>
       ))}
     </div>
@@ -290,15 +308,7 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
       </div>
       <Reviewers p={p} />
       <div className="pr-end">
-        <div className="pr-checks">
-          {checks
-            .filter((c) => c.key !== 'reviews')
-            .map((c) => (
-              <span key={c.key} className={`pr-check ${c.state}`} title={c.label}>
-                {c.key === 'ci' ? (c.state === 'wait' ? 'CI running' : 'CI') : c.key === 'conflicts' ? (c.state === 'bad' ? 'conflict' : 'merge') : c.state === 'ok' ? 'threads' : c.label.replace(/ open/, '')} {c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'}
-              </span>
-            ))}
-        </div>
+        <Checks checks={checks.filter((c) => c.key !== 'reviews')} />
         <div className="pr-go">
           <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
             {score}/4
@@ -328,7 +338,7 @@ export function ReviewsView({ git, tasks, aside }: { git: GitSnapshot; tasks: Ta
   const groups = groupReviews(inRepo)
   const asked = askedForChanges(inRepo)
   const sel = useRowKeys([...groups.flatMap((g) => g.prs), ...asked])
-  const row = (p: Pr) => <ReviewRow key={p.id} p={p} tasks={tasks} focused={focus === p.id} selected={sel === p.id} />
+  const row = (p: Pr, tone: GroupTone) => <ReviewRow key={p.id} p={p} tasks={tasks} focused={focus === p.id} selected={sel === p.id} tone={tone} />
 
   return (
     <>
@@ -343,7 +353,7 @@ export function ReviewsView({ git, tasks, aside }: { git: GitSnapshot; tasks: Ta
           {groups.map((g) => (
             <section key={g.title} className="group">
               <GroupHead title={g.title} tone={g.tone} count={g.prs.length} />
-              {g.prs.map(row)}
+              {g.prs.map((p) => row(p, g.tone))}
             </section>
           ))}
         </div>
@@ -351,27 +361,26 @@ export function ReviewsView({ git, tasks, aside }: { git: GitSnapshot; tasks: Ta
       {asked.length > 0 && (
         <Box title={`You asked for changes (${asked.length})`} className="asked-box">
           <div className="faint asked-note">Waiting on the author; they come back up when your review is requested again.</div>
-          <div className="groups">{asked.map(row)}</div>
+          <div className="groups">{asked.map((p) => row(p, 'bad'))}</div>
         </Box>
       )}
     </>
   )
 }
 
-function ReviewRow({ p, tasks, focused, selected }: { p: Pr; tasks: TasksSnapshot | null; focused: boolean; selected: boolean }) {
+/** A PR waiting on my review, laid out like my PRs: title with the author and other reviewers under it; CI and merge; Run app. */
+function ReviewRow({ p, tasks, focused, selected, tone }: { p: Pr; tasks: TasksSnapshot | null; focused: boolean; selected: boolean; tone: GroupTone }) {
   const d = ageDays(p.createdAt)
   const mine = prTasks(p, tasks)[0]
+  // Review requests don't load threads, so only CI and conflicts are known here.
+  const checks = mergeChecks(p).filter((c) => c.key === 'ci' || c.key === 'conflicts')
   return (
-    <div id={`pr-${p.id}`} className={`pr-wrap${focused ? ' focus' : ''}${selected ? ' sel' : ''}`}>
-      <div className="pr-row rev">
+    <div id={`pr-${p.id}`} className={`pr-wrap merge review${focused ? ' focus' : ''}${selected ? ' sel' : ''}`} style={{ '--rail': TONE[tone] } as React.CSSProperties}>
+      <div className="pr-row">
         <button className="pr-main" title="Open here · ⌘-click opens the browser" onClick={(e) => openRow(p, e.metaKey)}>
           <span className="pr-ref mono" title={prRef(p)}>{prRepo(p)}</span>
           <span className="pr-title-wrap">
             <span className="pr-title">{p.title}</span>
-            <span className="pr-branch">
-              {p.author}
-              {p.authorBot ? ' · bot' : ''}
-            </span>
           </span>
         </button>
         <span className="pr-note">
@@ -382,11 +391,20 @@ function ReviewRow({ p, tasks, focused, selected }: { p: Pr; tasks: TasksSnapsho
             </>
           )}
         </span>
-        <span className={`ci-dot ci-${p.ci}`} role="img" aria-label={CI_LABEL[p.ci]} title={CI_LABEL[p.ci]} />
-        <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
-        <span className="pr-age mono" style={{ color: d > 14 ? 'var(--bad)' : d > 3 ? 'var(--warn)' : 'var(--faint)' }}>
+        <span className="pr-age mono" title="Opened" style={{ color: d > 14 ? 'var(--bad)' : d > 3 ? 'var(--warn)' : 'var(--faint)' }}>
           {age(p.createdAt)}
         </span>
+      </div>
+      <Reviewers p={p} author />
+      <div className="pr-end">
+        <Checks checks={checks} />
+        <div className="pr-go">
+          {p.repo === 'productiveio/frontend' && (
+            <span className="pr-run">
+              <RunAppButton n={p.number} compact />
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

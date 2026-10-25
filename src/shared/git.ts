@@ -36,6 +36,7 @@ export interface Pr {
   url: string
   author: string
   authorBot: boolean
+  authorAvatar?: string
   draft: boolean
   reviewDecision: string | null
   ci: Ci
@@ -54,7 +55,7 @@ export interface Pr {
   changesAddressed?: boolean
   /** Review list only: a review is requested from me (vs. one I already asked changes on). */
   requested?: boolean
-  /** Mine only: who's asked to review and where each one stands, requested first. */
+  /** Who's asked to review and where each one stands, requested first; never me. */
   reviewers?: Reviewer[]
 }
 

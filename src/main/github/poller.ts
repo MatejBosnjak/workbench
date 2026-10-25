@@ -10,9 +10,10 @@ const POLL_MS = 2 * 60_000
 const PR_FIELDS = `
   id number title url isDraft createdAt updatedAt headRefName headRefOid body reviewDecision mergeable
   repository { nameWithOwner name }
-  author { login __typename }
+  author { login __typename avatarUrl(size: 48) }
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state } } } }
   reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login avatarUrl(size: 48) } } } }
+  latestReviews(first: 10) { nodes { state author { login avatarUrl(size: 48) } } }
 `
 const ACTOR = 'author { login __typename }'
 
@@ -29,7 +30,6 @@ query {
       } }
       comments(last: 8) { nodes { id ${ACTOR} createdAt body url reactionGroups { viewerHasReacted } } }
       reviews(last: 15) { nodes { id ${ACTOR} state submittedAt body url reactionGroups { viewerHasReacted } } }
-      latestReviews(first: 10) { nodes { state author { login avatarUrl(size: 48) } } }
     } }
   }
   requested: search(query: "is:pr is:open user-review-requested:@me archived:false", type: ISSUE, first: 50) {
@@ -43,6 +43,7 @@ query {
 interface Actor {
   login: string
   __typename?: string
+  avatarUrl?: string
 }
 interface Reactions {
   reactionGroups?: { viewerHasReacted: boolean }[] | null
@@ -158,7 +159,7 @@ function reviewers(p: RawPr, viewer: string): Reviewer[] {
   const out = new Map<string, Reviewer>()
   for (const r of p.reviewRequests?.nodes ?? []) {
     const u = r.requestedReviewer
-    if (u?.login) out.set(u.login, { login: u.login, avatar: u.avatarUrl ?? '', state: 'waiting' })
+    if (u?.login && u.login !== viewer) out.set(u.login, { login: u.login, avatar: u.avatarUrl ?? '', state: 'waiting' })
   }
   for (const r of p.latestReviews?.nodes ?? []) {
     const a = r.author
@@ -180,6 +181,7 @@ function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
     url: p.url,
     author: login(p.author),
     authorBot: !human(p.author),
+    authorAvatar: p.author?.avatarUrl ?? '',
     draft: p.isDraft,
     reviewDecision: p.reviewDecision || null,
     ci: ci(p),
@@ -192,19 +194,19 @@ function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
     conversations: withTalk ? conversations(p, viewer) : [],
     changesRequestedBy: cr,
     changesAddressed: addressed(p, cr),
-    ...(withTalk ? { reviewers: reviewers(p, viewer) } : {}),
+    reviewers: reviewers(p, viewer),
   }
 }
 
 export function normalize(r: RawResult): { viewer: string; mine: Pr[]; reviews: Pr[] } {
   const viewer = r.viewer.login
-  const requested = r.requested.nodes.filter((p) => p.id).map((p) => ({ ...toPr(p, false), requested: true }))
+  const requested = r.requested.nodes.filter((p) => p.id).map((p) => ({ ...toPr(p, false, viewer), requested: true }))
   const ids = new Set(requested.map((p) => p.id))
   // PRs I already reviewed stay on the list while my latest opinion is "changes requested".
   const asked = r.reviewed.nodes
     .filter((p) => p.id && !ids.has(p.id))
     .filter((p) => p.latestOpinionatedReviews?.nodes.some((v) => v.author?.login === viewer && v.state === 'CHANGES_REQUESTED'))
-    .map((p) => ({ ...toPr(p, false), reviewDecision: 'CHANGES_REQUESTED', requested: false }))
+    .map((p) => ({ ...toPr(p, false, viewer), reviewDecision: 'CHANGES_REQUESTED', requested: false }))
   return { viewer, mine: r.mine.nodes.filter((p) => p.id).map((p) => toPr(p, true, viewer)), reviews: [...requested, ...asked] }
 }
 

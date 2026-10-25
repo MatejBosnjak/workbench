@@ -87,6 +87,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
 - Popovers open under the button that opens them, right-aligned to it (the TopBar cup's, the session bar cup's): popover colour, a heavy line and a shadow.
 - Checkbox rows aren't wrapped in a `<label>` when their text holds links or sits next to a write: only the box itself is a hit target.
+- My PRs and Reviews rows share one layout (rail, title over people, stacked checks, Run app column), so the two lists read the same.
 
 ## Shell: TopBar, StatusBar, keys
 
@@ -184,7 +185,7 @@ Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `Task
 
 Image: `docs/design/current/today-prs.png`. Code: `GitView.tsx` (GitView, PrRow), `src/shared/git.ts`, `src/main/github/poller.ts`.
 
-- **Source.** `gh api graphql` every 2 min: my open PRs (review decision, CI rollup, mergeable state, draft, head branch, requested reviewers and each reviewer's latest review with their avatar), review requests made to me directly (team requests don't count), threads and comments.
+- **Source.** `gh api graphql` every 2 min: my open PRs (review decision, CI rollup, mergeable state, draft, head branch, requested reviewers and each reviewer's latest review with their avatar, the author's avatar; the review list gets the same fields, never listing me as a reviewer), review requests made to me directly (team requests don't count), threads and comments.
 - Left list, right the GitHub pane (resizable split, remembered).
 - Repo chips, **Newest first** (remembered) and **Hide drafts**. Grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. A PR opened from a link that isn't in my lists gets a temporary **Opened** group.
 - **Row:** a rail in the stage colour; repo and title (the number in the repo's tooltip); the task chip; `↩ N` when replies wait on me (opens the first in Needs you); age. Under the title the **reviewers**: avatar ringed by state (grey waiting, green approved, red changes, blue commented), login, state; a requested reviewer is waiting even if they reviewed before; a PR that needs a review with nobody asked shows `! no reviewer` in amber (not on drafts). On the right the checks one under another, each ✓ / ✕ / · (CI or CI running, merge or conflict, threads or `N threads`; no CI counts as passing; the full text in the tooltip), then the `n/4` score (how many of the four merge checks pass: CI, reviews, conflicts, threads) with ▶ Run app under it on frontend PRs, without the worktree hint. 4/4 rows get a faint green tint. Within a stage: highest score, then most recently updated; with Newest first, most recently opened.
@@ -196,7 +197,7 @@ Image: `docs/design/current/today-reviews.png`. Code: `GitView.tsx` (ReviewsView
 
 - **Reviews** box: PRs waiting on my review (requested, or re-requested after I asked for changes), in **New this week** and **Waiting longer** (oldest first). Repo chips and **Hide bots** (on by default) apply to both boxes. The counter counts only this box.
 - **You asked for changes** box: PRs where my latest review asked for changes and I haven't been re-requested; latest first.
-- **Row:** repo, title, author (· bot), "your task" chip when it names one of my tasks, CI dot, ▶ Run app, age (amber after 3 days, red after 14).
+- **Row:** laid out like a My PRs row, with a left rail in the group's colour. Repo, title, "your task" chip when it names one of my tasks, and age since opened (amber after 3 days, red after 14). Under the title: the author's avatar and login ("author", or "bot"), then the other reviewers with their state ring (never me). Right: CI and merge one under the other (review requests don't load threads), and ▶ Run app for frontend. Source: `author.avatarUrl` and `latestReviews` are in the shared PR fields, so reviews get reviewers too.
 
 ## GitHub pane
 

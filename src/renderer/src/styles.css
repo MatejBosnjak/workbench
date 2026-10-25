@@ -93,9 +93,9 @@ button { font: inherit; color: inherit; }
 .dot-failed { color: var(--bad); }
 .dot-idle { color: var(--faint); }
 .tab-close {
-  width: 18px; height: 18px; display: grid; place-items: center; flex-shrink: 0;
+  width: 22px; height: 22px; display: grid; place-items: center; flex-shrink: 0;
   border: 0; background: transparent; color: var(--muted); cursor: pointer;
-  visibility: hidden; font-size: 14px; line-height: 1;
+  visibility: hidden; font-size: 17px; line-height: 1;
 }
 .tab:hover .tab-close, .tab[aria-selected='true'] .tab-close { visibility: visible; }
 .tab-close:hover { background: var(--raised); color: var(--text); }
@@ -763,7 +763,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex-shrink: 0; max-width: 190px; }
 /* Editor tabs: no boxes. Each tab runs the bar's full height with its state as a left border; the current tab takes the
-   session bar's colour and reaches down into it, under a violet line. A waiting tab is tinted violet with a violet border. */
+   session bar's colour and reaches down into it, tinted violet. A waiting tab is tinted violet with a violet border. */
 .topbar .seg-btn { border-color: transparent; }
 .topbar .seg-btn:hover { border-color: transparent; background: var(--raised); color: var(--text); }
 .cafb-btn:not(.caf-on):not(.caf-lid) { border-color: transparent; }
@@ -775,7 +775,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tab.st-failed { --st: var(--bad); }
 .tab.st-idle { --st: var(--faint); }
 .topbar .tab:hover { background: color-mix(in srgb, var(--raised) 55%, transparent); color: var(--text-2); }
-.topbar .tab[aria-selected='true'] { background: var(--raised); color: var(--text); box-shadow: inset 3px 0 0 var(--st), inset 0 2px 0 var(--accent); }
+.topbar .tab[aria-selected='true'] { background: color-mix(in srgb, var(--accent) 16%, var(--raised)); color: var(--text); box-shadow: inset 3px 0 0 var(--st); }
 .tab.st-waiting:not([aria-selected='true']) { color: var(--text); background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
 .tab-more.waiting { color: var(--text-2); box-shadow: inset 3px 0 0 var(--accent); }
 .tab-more-wait { color: var(--accent); }

@@ -81,6 +81,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - **No task or PR numbers on screen.** A PR reads as its repo (`fe`, `api`, `specs`) and title, a task as its title; GitHub links in text read `frontend PR`. Numbers stay in tooltips, search, git commands, and anything sent to Claude or GitHub. Notifications name the PR by title (`CI failed: <title>`).
 - Sidebars share one frame: 18px/14px padding and a box with its title set into the top border and its tools at the right (task sidebar, PR sidebar).
 - Buttons in one bar share its height (the session bar's are all 28px, `+ new ✻` included).
+- Bars don't box their buttons: the top bar and session bar buttons are text on the bar, raised on hover; boxes are kept for content (lists, sidebars, cards). State on a tab or a session-bar button is a left border, never a dot.
 - A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
 
 ## Shell: TopBar, StatusBar, keys
@@ -88,12 +89,12 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear in every image. Code: `TopBar.tsx`, `StatusBar.tsx`, `keys.ts`, `App.tsx`.
 
 - **TopBar** (44px, chrome background, a 1px line below; the traffic lights centred in it): `▌wb` memory button, places `1 Today` and `2 Local up/n`, a temporary workstream place when one is open (× closes it), a divider, session tabs `3…n`, `+` new session, then the caffeinate cup and ⌘K.
-  - The current place or tab is raised and outlined in grey.
-  - **Session tabs** carry their state as a bar along the bottom edge: 2px at 45% on other tabs, 3px full on the current one. The current tab is a purple-tinted box, outlined top/left/right, with a 2px accent top line (the one place selection keeps the accent). A waiting tab that isn't current gets a full violet bar, a violet border and the bar's only glow.
+  - Top bar buttons have no boxes: a raised background on hover; the current place is raised.
+  - **Session tabs** are editor tabs: no boxes, the bar's full height, state as a 3px left border (70% on other tabs, full on the current one; no state dots). The current tab takes the session bar's colour and reaches down into it, under a 2px accent top line (the one place selection keeps the accent). A waiting tab that isn't current is tinted violet with a violet left border.
   - **Right-click a tab:** Close, Close Others, Close to the Left, Close to the Right, Close All (native menu; options with nothing to close are disabled). A bulk close that would stop a running turn asks first. If the tab on screen closes, the view moves to the nearest tab that stays, or Today.
   - Tabs: double-click renames (a manual name sticks over claude's terminal title; clearing it unlocks), drag to reorder, middle-click closes, hover shows state, title and cwd. Caffeinated tabs show the cup at 13px.
   - **Overflow:** tabs never wrap or shrink; the strip scrolls sideways with no scrollbar. Hovering within 56px of an edge scrolls that way (faster nearer the edge; the cursor shows the direction only while there's more), the vertical wheel scrolls it, edges fade while tabs hide beyond them, and a `+N ▾` menu lists tabs out of view. The current tab always scrolls fully into view.
-  - **+N** counts tabs out of view and, when any of them waits on you, adds a violet `●k` and a violet underline, so a waiting session never hides in the overflow.
+  - **+N** counts tabs out of view and, when any of them waits on you, adds a violet `●k` and a violet left border, so a waiting session never hides in the overflow.
 - **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot (same colours as its tab), name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks or the statusline aren't installed (click installs); then the meters and the picker.
   - **ctx** (green, full-strength gradient; amber ≥ 60% with a `/compact` button that runs it, red ≥ 75%), **5h** (purple, `↻HH:MM` reset), **wk** (blue). 48px bars; the gradient's strength ranks them. Until a first value arrives the track shows a faint sweep and the value reads `—`. Hover shows the full text.
 - **Keys** (only when no terminal or text field has focus):
@@ -232,7 +233,7 @@ Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, 
 - **Session bar** (38px, raised, under the TopBar, only for Workbench sessions):
   - **Task button:** status rail, Productive logo, title, status, `⌘I` → task sidebar. No task: "link task…".
   - **PR button:** GitHub logo, title, CI state, `+N`, `⌘⇧I` → PR sidebar; hidden with no PR. The session's PRs, in order: connected by hand, the frontend PR its branch is on, PRs of its tasks.
-  - `+ new ✻` for the same task; the branch (⎇) at the right. The open sidebar's button is lit.
+  - `+ new ✻` for the same task; the branch (⎇) at the right. The buttons have no boxes, a hairline between them; the open sidebar's button sits on the terminal's colour.
 - **External sessions** (started in another terminal, reported through the same hooks) are read-only tabs showing state and cwd, with **Take over**: waits for the terminal copy to exit, then resumes it here.
 
 ## Session bookmarks

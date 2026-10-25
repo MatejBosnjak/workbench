@@ -32,7 +32,6 @@ button { font: inherit; color: inherit; }
   padding: 0 14px 0 84px; /* room for the traffic lights */
   background: var(--chrome);
   border-bottom: 1px solid var(--line-heavy);
-  box-shadow: 0 6px 18px var(--shadow);
   position: relative; z-index: 2;
   color: var(--text-2);
   -webkit-app-region: drag;
@@ -741,21 +740,22 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tabs { overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex-shrink: 0; max-width: 190px; }
-/* State bar along the bottom edge: quiet on other tabs, full strength on the current one. The current tab is a raised box
-   outlined in the muted accent on three sides, so a waiting (purple) tab never looks current. */
-.tab { --st: var(--faint); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--st) 45%, transparent); }
+/* Editor tabs: no boxes. Each tab runs the bar's full height with its state as a left border; the current tab takes the
+   session bar's colour and reaches down into it, under a violet line. A waiting tab is tinted violet with a violet border. */
+.topbar .seg-btn { border-color: transparent; }
+.topbar .seg-btn:hover { border-color: transparent; background: var(--raised); color: var(--text); }
+.cafb-btn:not(.caf-on):not(.caf-lid) { border-color: transparent; }
+.cafb-btn:not(.caf-on):not(.caf-lid):hover { background: var(--raised); }
+.tabs { gap: 0; align-self: stretch; align-items: stretch; height: calc(100% + 1px); margin-bottom: -1px; }
+.tab { --st: var(--faint); height: auto; max-width: 220px; padding: 0 8px 0 14px; border: 0; color: var(--text-3); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--st) 70%, transparent); }
 .tab.st-running { --st: var(--info); }
 .tab.st-waiting { --st: var(--accent); }
 .tab.st-failed { --st: var(--bad); }
 .tab.st-idle { --st: var(--faint); }
-.tab[aria-selected='true'] {
-  border-color: color-mix(in srgb, var(--accent) 70%, var(--line-heavy)); border-bottom-color: transparent;
-  background: color-mix(in srgb, var(--accent) 14%, var(--raised)); color: var(--text); font-weight: 700;
-  box-shadow: inset 0 2px 0 var(--accent), inset 0 -3px 0 var(--st);
-}
-/* A session waiting on you: the one violet tab, at full strength with the bar's only glow. */
-.tab.st-waiting:not([aria-selected='true']) { color: var(--text); border-color: var(--accent-line); box-shadow: inset 0 -2px 0 var(--accent), 0 0 10px color-mix(in srgb, var(--accent) 35%, transparent); }
-.tab-more.waiting { color: var(--text-2); border-color: var(--accent-line); box-shadow: inset 0 -2px 0 var(--accent); }
+.topbar .tab:hover { background: color-mix(in srgb, var(--raised) 55%, transparent); color: var(--text-2); }
+.topbar .tab[aria-selected='true'] { background: var(--raised); color: var(--text); box-shadow: inset 3px 0 0 var(--st), inset 0 2px 0 var(--accent); }
+.tab.st-waiting:not([aria-selected='true']) { color: var(--text); background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+.tab-more.waiting { color: var(--text-2); box-shadow: inset 3px 0 0 var(--accent); }
 .tab-more-wait { color: var(--accent); }
 .tab[aria-selected='true'] .tab-title { opacity: 1; }
 .tabs.fade-l.fade-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
@@ -923,10 +923,14 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .gp-side > .box-aside .gp-tools { margin-left: 0; }
 .gp-side > .gp-note { border-top: 1px solid var(--accent-line); }
 .session-bar { display: flex; align-items: center; gap: 10px; height: 38px; flex-shrink: 0; padding: 0 14px; background: var(--raised); border-bottom: 1px solid var(--line-heavy); white-space: nowrap; }
-.sbar-btn { display: flex; align-items: center; gap: 10px; height: 28px; padding: 0 10px 0 0; min-width: 0; overflow: hidden; border: 1px solid var(--line-heavy); background: transparent; color: var(--text-2); cursor: pointer; }
+.sbar-btn { position: relative; display: flex; align-items: center; gap: 10px; height: 28px; padding: 0 10px 0 0; min-width: 0; border: 0; background: transparent; color: var(--text-2); cursor: pointer; }
+.sbar-btn > * { flex-shrink: 0; }
+.sbar-btn > .sbar-title { flex-shrink: 1; }
+/* Session bar buttons: no boxes, a hairline between them; the one whose sidebar is open sits on the terminal's colour. */
+.sbar-btn + .sbar-btn::before { content: ''; position: absolute; left: -6px; top: 6px; bottom: 6px; width: 1px; background: var(--line-heavy); }
 .sbar-btn.pad, .sbar-btn:not(:has(.sbar-rail)) { padding-left: 10px; }
-.sbar-btn:hover { border-color: var(--text-3); }
-.sbar-btn.on { border-color: var(--text-3); background: var(--raised); color: var(--text); }
+.sbar-btn:hover, .session-bar .new-sess:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.sbar-btn.on { background: var(--bg); color: var(--text); }
 .sbar-rail { width: 3px; align-self: stretch; background: var(--st); flex-shrink: 0; }
 .sbar-title { min-width: 0; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
 .sbar-title.pr { max-width: 260px; }
@@ -1034,7 +1038,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .spark { color: #d97757; }
 .new-sess { display: inline-flex; align-items: center; gap: 6px; height: 22px; flex-shrink: 0; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--line-heavy); background: transparent; color: var(--text-2); font: inherit; font-size: 11.5px; line-height: 1; white-space: nowrap; cursor: pointer; }
 .new-sess:hover { border-color: var(--text-3); color: var(--text); }
-.session-bar .new-sess { height: 28px; padding: 0 10px; }
+.session-bar .new-sess { height: 28px; padding: 0 10px; border: 0; }
 /* Task peek: the PR row with the sessions header across from it; + new ✻ and ⏎ continue sit on the box's bottom edge. */
 .peek-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; color: var(--text-2); }
 .peek-links .k { color: var(--text-3); }

@@ -86,6 +86,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Bars don't box their buttons: the top bar and session bar buttons are text on the bar, raised on hover; boxes are kept for content (lists, sidebars, cards). State on a tab or a session-bar button is a left border (6px for the session bar's task status, which shows no status name), never a dot. The current tab is tinted violet with no violet border; a waiting tab has both.
 - A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
 - Popovers open under the button that opens them, right-aligned to it (the TopBar cup's, the session bar cup's): popover colour, a heavy line and a shadow.
+- Checkbox rows aren't wrapped in a `<label>` when their text holds links or sits next to a write: only the box itself is a hit target.
 
 ## Shell: TopBar, StatusBar, keys
 
@@ -175,7 +176,7 @@ Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `Task
 - Linked sessions: mark, time, first prompt; × unlinks. **left off**: Summarize / refresh runs `claude -p --model haiku` over the latest linked transcript's tail; cached per session.
 - On the box's bottom edge: **+ new ✻** (always a new session) and **⏎ continue** (switch to the live session, open the latest tab, or resume it; hidden with no session).
 - **Productive box** below it: description (URLs clickable); **to-dos** with done count, `+` add form (text, assignee from my colleagues or unassigned), hide/show done; each to-do has a checkbox and an assignee avatar with a searchable people picker. On someone else's task, my open to-dos are highlighted. **comments** newest first under a composer that's one quiet line until focused, then three lines with `@` tagging (tags notify), post, and **draft with Claude**.
-- Writes: comments, adding a to-do and ticking a to-do ask first with a native confirm showing the exact text and target. Status picks and to-do assignee picks apply directly (the pick is the approval).
+- Writes: comments, adding a to-do and ticking a to-do ask first with a native confirm showing the exact text and target. Only the checkbox ticks a to-do; clicking its text or a link in it does not. Status picks and to-do assignee picks apply directly (the pick is the approval).
 - A load error in the Productive box (and Couldn't load tasks on My tasks) has **retry**. A missing `PRODUCTIVE_AUTH_TOKEN` re-reads the login shell before failing, so a keychain that was locked when Workbench started fixes itself on the next fetch; a failed shell read isn't cached.
 
 ## Today › My PRs

@@ -575,12 +575,12 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
           {detail.todos.length > 0 && hideDone && open === 0 && <span className="faint">all done</span>}
           {detail.todos.filter((t) => !(hideDone && t.closed)).map((t) => (
             <div key={t.id} className={`td-todo${t.closed ? ' done' : ''}${mineHere(t) ? ' mine' : ''}${busy === `t:${t.id}` ? ' busy' : ''}`}>
-              <label>
-                <input type="checkbox" checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
+              <div className="td-check">
+                <input type="checkbox" aria-label={t.closed ? 'Reopen to-do' : 'Mark to-do done'} checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
                 <span>
                   <Linked text={t.text} />
                 </span>
-              </label>
+              </div>
               <PersonPicker
                 id={t.assigneeId ?? null}
                 name={t.assignee ?? null}

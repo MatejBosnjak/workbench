@@ -930,9 +930,9 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .td-desc a, .td-todo a, .task-details .peek-title a { color: var(--link); text-decoration: none; }
 .td-desc a:hover, .td-todo a:hover { text-decoration: underline; }
 .td-todo { display: flex; align-items: flex-start; gap: 8px; color: var(--text-2); line-height: 1.5; overflow-wrap: anywhere; }
-.td-todo > label { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.td-check { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 8px; }
 .td-todo input { margin: 3px 0 0; accent-color: var(--ok); cursor: pointer; }
-.td-todo.done > label > span { color: var(--faint); text-decoration: line-through; }
+.td-todo.done > .td-check > span { color: var(--faint); text-decoration: line-through; }
 .avatar { flex: none; width: 20px; height: 20px; border-radius: 50%; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; object-fit: cover; font-size: 9px; font-weight: 600; color: var(--text); background: var(--accent-bg); }
 .avatar.none { background: transparent; border: 1px dashed var(--faint); }
 .person-picker { position: relative; flex: none; display: inline-flex; }

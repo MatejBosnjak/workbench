@@ -23,6 +23,32 @@ const base = (p: Record<string, unknown>) => ({
 const c = (id: string, who: string, at: string, type = 'User') => ({ id, author: actor(who, type), createdAt: at, body: id, url: '' })
 
 describe('normalize', () => {
+  it('lists reviewers: requested ones waiting, the rest by their latest review, without me', () => {
+    const raw = {
+      viewer: { login: 'me' },
+      mine: {
+        nodes: [
+          base({
+            reviewRequests: { nodes: [{ requestedReviewer: { login: 'ana', avatarUrl: 'a.png' } }] },
+            latestReviews: {
+              nodes: [
+                { state: 'CHANGES_REQUESTED', author: { login: 'ana', avatarUrl: 'a.png' } },
+                { state: 'APPROVED', author: { login: 'bo', avatarUrl: 'b.png' } },
+                { state: 'COMMENTED', author: { login: 'me', avatarUrl: 'm.png' } },
+              ],
+            },
+          }),
+        ],
+      },
+      requested: { nodes: [] },
+      reviewed: { nodes: [] },
+    } as unknown as RawResult
+    expect(normalize(raw).mine[0]!.reviewers).toEqual([
+      { login: 'ana', avatar: 'a.png', state: 'waiting' },
+      { login: 'bo', avatar: 'b.png', state: 'approved' },
+    ])
+  })
+
   it('builds PRs, conversations and the review list', () => {
     const raw = {
       viewer: { login: 'me' },

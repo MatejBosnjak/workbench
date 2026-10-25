@@ -54,6 +54,15 @@ export interface Pr {
   changesAddressed?: boolean
   /** Review list only: a review is requested from me (vs. one I already asked changes on). */
   requested?: boolean
+  /** Mine only: who's asked to review and where each one stands, requested first. */
+  reviewers?: Reviewer[]
+}
+
+export interface Reviewer {
+  login: string
+  avatar: string
+  /** waiting: requested (or re-requested after a review) and not answered yet. */
+  state: 'waiting' | 'approved' | 'changes' | 'commented'
 }
 
 export interface Draft {
@@ -153,10 +162,10 @@ export const mergeScore = (p: Pr) => mergeChecks(p).filter((c) => c.state === 'o
  * My PRs by stage, nearest to merge first: Ready to merge, In review, Changes requested, Draft. Inside a stage the
  * PRs with the most checks passing come first, then the most recently updated.
  */
-export function groupByStage(prs: Pr[]): PrGroup[] {
+export function groupByStage(prs: Pr[], by: 'progress' | 'opened' = 'progress'): PrGroup[] {
   const stage = (p: Pr) =>
     p.draft ? 'draft' : changesPending(p) ? 'changes' : p.reviewDecision === 'APPROVED' ? 'ready' : 'review'
-  const order = (a: Pr, b: Pr) => mergeScore(b) - mergeScore(a) || byUpdated(a, b)
+  const order = (a: Pr, b: Pr) => (by === 'opened' ? b.createdAt.localeCompare(a.createdAt) : mergeScore(b) - mergeScore(a) || byUpdated(a, b))
   return [
     { title: 'Ready to merge', tone: 'ok' as const, prs: prs.filter((p) => stage(p) === 'ready') },
     { title: 'In review', tone: 'info' as const, prs: prs.filter((p) => stage(p) === 'review') },

@@ -79,6 +79,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - **Status colours.** Productive's 17 status colours each map to a bright stand-in (`statusVivid`) for marks, labels, the strip and chips; Productive's own pastel pairs (`statusColors`) stay for tag-style badges such as the status button.
 - Shortcuts are never printed in the UI except in the ⌨ popover and tooltips.
 - **No task or PR numbers on screen.** A PR reads as its repo (`fe`, `api`, `specs`) and title, a task as its title; GitHub links in text read `frontend PR`. Numbers stay in tooltips, search, git commands, and anything sent to Claude or GitHub. Notifications name the PR by title (`CI failed: <title>`).
+- People show as their GitHub avatar (18px, round) with a 1.5px ring in their state colour, then the login (PR reviewers).
 - Sidebars share one frame: 18px/14px padding and a box with its title set into the top border and its tools at the right (task sidebar, PR sidebar).
 - Buttons in one bar share its height (the session bar's are all 28px, `+ new ✻` included).
 - Bars don't box their buttons: the top bar and session bar buttons are text on the bar, raised on hover; boxes are kept for content (lists, sidebars, cards). State on a tab or a session-bar button is a left border (6px for the session bar's task status, which shows no status name), never a dot. The current tab is tinted violet with no violet border; a waiting tab has both.
@@ -180,10 +181,10 @@ Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `Task
 
 Image: `docs/design/current/today-prs.png`. Code: `GitView.tsx` (GitView, PrRow), `src/shared/git.ts`, `src/main/github/poller.ts`.
 
-- **Source.** `gh api graphql` every 2 min: my open PRs (review decision, CI rollup, mergeable state, draft, head branch), review requests made to me directly (team requests don't count), threads and comments.
+- **Source.** `gh api graphql` every 2 min: my open PRs (review decision, CI rollup, mergeable state, draft, head branch, requested reviewers and each reviewer's latest review with their avatar), review requests made to me directly (team requests don't count), threads and comments.
 - Left list, right the GitHub pane (resizable split, remembered).
-- Repo chips and **Hide drafts**. Grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. A PR opened from a link that isn't in my lists gets a temporary **Opened** group.
-- **Row:** a rail in the stage colour; repo and title (the number in the repo's tooltip); the task chip; ▶ Run app (frontend); `↩ N` when replies wait on me (opens the first in Needs you); age; an `n/4` score. Under it four checks, each ✓ / ✕ / ·: CI (no CI counts as passing), reviews, conflicts, open threads. 4/4 rows get a faint green tint. Within a stage: highest score, then most recently updated.
+- Repo chips, **Newest first** (remembered) and **Hide drafts**. Grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. A PR opened from a link that isn't in my lists gets a temporary **Opened** group.
+- **Row:** a rail in the stage colour; repo and title (the number in the repo's tooltip); the task chip; `↩ N` when replies wait on me (opens the first in Needs you); age. Under the title the **reviewers**: avatar ringed by state (grey waiting, green approved, red changes, blue commented), login, state; a requested reviewer is waiting even if they reviewed before; a PR that needs a review with nobody asked shows `! no reviewer` in amber (not on drafts). On the right the checks one under another, each ✓ / ✕ / · (CI or CI running, merge or conflict, threads or `N threads`; no CI counts as passing; the full text in the tooltip), the `n/4` score beside them (reviews count toward it), and ▶ Run app under them on frontend PRs, without the worktree hint. 4/4 rows get a faint green tint. Within a stage: highest score, then most recently updated; with Newest first, most recently opened.
 - ⏎ / click opens in the pane, ⌘-click the browser, `m` marks replies seen.
 
 ## Today › Reviews

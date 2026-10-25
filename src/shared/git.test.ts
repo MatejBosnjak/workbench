@@ -68,6 +68,12 @@ describe('groupByStage', () => {
     const green = pr({ ci: 'pass', updatedAt: '2026-10-21T00:00:00Z' })
     expect(groupByStage([red, green])[0]!.prs.map((p) => p.id)).toEqual([green.id, red.id])
   })
+
+  it('sorts by date opened, newest first, when asked', () => {
+    const old = pr({ ci: 'pass', createdAt: '2026-10-01T00:00:00Z' })
+    const fresh = pr({ ci: 'fail', createdAt: '2026-10-10T00:00:00Z' })
+    expect(groupByStage([old, fresh], 'opened')[0]!.prs.map((p) => p.id)).toEqual([fresh.id, old.id])
+  })
 })
 
 describe('mergeChecks', () => {

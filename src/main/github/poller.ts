@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import type { Ci, Conversation, GhMessage, Pr } from '@shared/git'
+import type { Ci, Conversation, GhMessage, Pr, Reviewer } from '@shared/git'
 import { isBot } from '@shared/git'
 import { taskIdsFromText } from '@shared/tasks'
 import { shellEnv, which } from '../shell-env'
@@ -12,7 +12,7 @@ const PR_FIELDS = `
   repository { nameWithOwner name }
   author { login __typename }
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state } } } }
-  reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login } } } }
+  reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login avatarUrl(size: 48) } } } }
 `
 const ACTOR = 'author { login __typename }'
 
@@ -29,6 +29,7 @@ query {
       } }
       comments(last: 8) { nodes { id ${ACTOR} createdAt body url reactionGroups { viewerHasReacted } } }
       reviews(last: 15) { nodes { id ${ACTOR} state submittedAt body url reactionGroups { viewerHasReacted } } }
+      latestReviews(first: 10) { nodes { state author { login avatarUrl(size: 48) } } }
     } }
   }
   requested: search(query: "is:pr is:open user-review-requested:@me archived:false", type: ISSUE, first: 50) {
@@ -77,7 +78,8 @@ interface RawPr {
   repository: { nameWithOwner: string; name: string }
   author: Actor | null
   commits: { nodes: { commit: { committedDate?: string; statusCheckRollup: { state: string } | null } }[] }
-  reviewRequests?: { nodes: { requestedReviewer: { login?: string } | null }[] }
+  reviewRequests?: { nodes: { requestedReviewer: { login?: string; avatarUrl?: string } | null }[] }
+  latestReviews?: { nodes: { state: string; author: { login: string; avatarUrl?: string } | null }[] }
   reviewThreads?: { nodes: { id: string; isResolved: boolean; path: string; head: { nodes: { diffHunk: string }[] }; comments: { nodes: RawComment[] } }[] }
   comments?: { nodes: RawComment[] }
   reviews?: { nodes: RawReview[] }
@@ -149,6 +151,23 @@ function addressed(p: RawPr, cr: Pr['changesRequestedBy']): boolean {
   return reRequested || (!!pushed && pushed > cr.at)
 }
 
+const REVIEW_STATE: Record<string, Reviewer['state']> = { APPROVED: 'approved', CHANGES_REQUESTED: 'changes' }
+
+/** Requested reviewers are waiting (a re-request counts, whatever they said before); the rest by their latest review. */
+function reviewers(p: RawPr, viewer: string): Reviewer[] {
+  const out = new Map<string, Reviewer>()
+  for (const r of p.reviewRequests?.nodes ?? []) {
+    const u = r.requestedReviewer
+    if (u?.login) out.set(u.login, { login: u.login, avatar: u.avatarUrl ?? '', state: 'waiting' })
+  }
+  for (const r of p.latestReviews?.nodes ?? []) {
+    const a = r.author
+    if (!a || a.login === viewer || out.has(a.login)) continue
+    out.set(a.login, { login: a.login, avatar: a.avatarUrl ?? '', state: REVIEW_STATE[r.state] ?? 'commented' })
+  }
+  return [...out.values()]
+}
+
 function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
   const cr = withTalk ? changesRequestedBy(p) : null
   const fromBranch = [...p.headRefName.matchAll(/(?:^|\D)(\d{7,9})(?=\D|$)/g)].map((m) => m[1]!)
@@ -173,6 +192,7 @@ function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
     conversations: withTalk ? conversations(p, viewer) : [],
     changesRequestedBy: cr,
     changesAddressed: addressed(p, cr),
+    ...(withTalk ? { reviewers: reviewers(p, viewer) } : {}),
   }
 }
 

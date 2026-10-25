@@ -525,6 +525,7 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .tab-alert { font-size: 11px; font-weight: 600; color: var(--accent); }
 .toggle { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); cursor: pointer; }
 .toggle input { accent-color: var(--accent); margin: 0; }
+.toggle + .toggle { margin-left: 16px; }
 .tone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .pr-group-head { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 14px; }
 .pr-wrap { border-top: 1px solid var(--line-soft); border-left: 2px solid transparent; transition: background 0.3s; }
@@ -536,8 +537,26 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .pr-wrap.merge { border-left: 3px solid var(--rail); padding-bottom: 6px; }
 .pr-wrap.merge.ready { background: color-mix(in srgb, var(--ok) 7%, transparent); }
 .pr-wrap.merge.focus { background: var(--accent-bg); }
-.pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 220px 118px 44px 44px 36px; min-height: 34px; }
-.pr-checks { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-left: 98px; font-size: 12px; }
+.pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 220px 44px 44px; min-height: 34px; }
+/* My PR: title row and reviewers on the left; on the right the checks one under another beside the score, Run app under them. */
+.pr-wrap.merge { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto 1fr; column-gap: 14px; }
+.pr-wrap.merge > .pr-row, .pr-revs { grid-column: 1; }
+.pr-end { grid-column: 2; grid-row: 1 / span 3; display: grid; grid-template-columns: auto 36px; column-gap: 12px; align-content: start; padding: 8px 14px 0 0; }
+.pr-checks { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; line-height: 1.5; }
+.pr-end .pr-score { line-height: 1.5; }
+.pr-end .pr-run { grid-column: 1 / span 2; justify-content: flex-end; margin-top: 6px; }
+.pr-end .run-btn-wrap.compact { margin-left: 0; }
+.pr-revs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 2px 0 4px 98px; font-size: 12px; color: var(--text-3); }
+.rv { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.rv-av { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; background: var(--raised); box-shadow: 0 0 0 1.5px var(--rv); }
+.rv-waiting { --rv: var(--faint); }
+.rv-approved { --rv: var(--ok); }
+.rv-changes { --rv: var(--bad); }
+.rv-commented { --rv: var(--info); }
+.rv-state { color: var(--faint); }
+.rv-approved .rv-state { color: var(--ok); }
+.rv-changes .rv-state { color: var(--bad); }
+.rv-none { color: var(--warn); white-space: nowrap; }
 .pr-check { white-space: nowrap; color: var(--faint); }
 .pr-check.ok { color: var(--ok); }
 .pr-check.bad { color: var(--bad); }
@@ -837,15 +856,15 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
   .pr-row.rev .pr-age { display: block; }
   .pr-quote { margin-left: 24px; }
   .pr-main { grid-template-columns: 70px minmax(0, 1fr); }
-  .pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 104px 40px 36px; }
-  .pr-checks { padding-left: 92px; }
+  .pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 40px; }
+  .pr-revs { padding-left: 92px; }
 }
 @container (max-width: 640px) {
   .pr-row { grid-template-columns: minmax(0, 1fr) 12px 86px; }
   .pr-row .pr-run { display: none; }
   .pr-row.rev { grid-template-columns: minmax(0, 1fr) 12px 44px; }
-  .pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 40px 36px; }
-  .pr-checks { padding-left: 12px; }
+  .pr-wrap.merge .pr-row { grid-template-columns: minmax(0, 1fr) 40px; }
+  .pr-revs { padding-left: 12px; }
 }
 
 /* Sleep (snooze) on Needs you rows */

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr } from '@shared/git'
+import type { Conversation, DraftTarget, GitSnapshot, GroupTone, Pr, Reviewer } from '@shared/git'
 import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, prRepo, shortRepo } from '@shared/git'
 import { prTasks } from '@shared/links'
 import type { TasksSnapshot } from '@shared/tasks'
@@ -169,16 +169,18 @@ function TaskRef({ p, tasks }: { p: Pr; tasks: TasksSnapshot | null }) {
 export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot | null }) {
   const [repo, setRepo] = useState('All')
   const [hideDrafts, setHideDrafts] = usePref('workbench.hideDrafts', false)
+  const [newest, setNewest] = usePref('workbench.prsNewestFirst', false)
   const focus = useFocus()
   const shown = git.mine.filter((p) => !(hideDrafts && p.draft) || p.id === focus)
   // Stages nearest to merge first; replies waiting on me live in Needs you, so here they're only a ↩ badge.
-  const groups = groupByStage(shown.filter((p) => repo === 'All' || p.repoName === repo))
+  const groups = groupByStage(shown.filter((p) => repo === 'All' || p.repoName === repo), newest ? 'opened' : 'progress')
   const sel = useRowKeys(groups.flatMap((g) => g.prs))
 
   return (
     <>
       <div className="chips">
         <RepoChips prs={shown} repo={repo} setRepo={setRepo} />
+        <Toggle on={newest} label="Newest first" set={setNewest} />
         <Toggle on={hideDrafts} label="Hide drafts" set={setHideDrafts} />
       </div>
       {git.fetchedAt === null && git.loading && <div className="today-empty muted">Loading your PRs from GitHub…</div>}
@@ -234,7 +236,28 @@ function OpenedGroup({ git }: { git: GitSnapshot }) {
   )
 }
 
-/** A PR of mine: what's left before it can merge, as four checks and a score; ↩ opens replies waiting on me in Needs you. */
+const REVIEW_WORD: Record<Reviewer['state'], string> = { waiting: 'waiting', approved: 'approved', changes: 'changes', commented: 'commented' }
+
+/** Who reviews the PR: avatar ringed by state, login, state. A PR that needs a review and has nobody asked says so. */
+function Reviewers({ p }: { p: Pr }) {
+  const rs = p.reviewers ?? []
+  if (!rs.length) return p.draft || p.reviewDecision !== 'REVIEW_REQUIRED' ? null : <div className="pr-revs"><span className="rv-none">! no reviewer</span></div>
+  return (
+    <div className="pr-revs">
+      {rs.map((r) => (
+        <span key={r.login} className={`rv rv-${r.state}`}>
+          <img className="rv-av" src={r.avatar} alt="" />
+          {r.login} <span className="rv-state">{REVIEW_WORD[r.state]}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * A PR of mine: reviewers under the title; on the right the checks still to pass (CI, merge, threads) one under
+ * another beside the score, and Run app under them. ↩ opens replies waiting on me in Needs you.
+ */
 function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnapshot; tasks: TasksSnapshot | null; focused: boolean; selected: boolean; tone: GroupTone }) {
   const { setTodayTab, setPeekNeed } = useStore(useShallow((s) => ({ setTodayTab: s.setTodayTab, setPeekNeed: s.setPeekNeed })))
   const open = p.conversations.filter((c) => needsReply(c, git.viewer, git.seen))
@@ -256,7 +279,6 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
           </span>
         </button>
         <TaskRef p={p} tasks={tasks} />
-        <span className="pr-run">{p.repo === 'productiveio/frontend' && <RunAppButton n={p.number} />}</span>
         <span className="pr-replies-slot">
           {open.length > 0 && (
             <button className="pr-replies" title={`${open.length} repl${open.length > 1 ? 'ies' : 'y'} waiting on you · open in Needs you`} onClick={toNeeds}>
@@ -265,16 +287,26 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
           )}
         </span>
         <span className="pr-age mono">{age(p.updatedAt)}</span>
+      </div>
+      <Reviewers p={p} />
+      <div className="pr-end">
+        <div className="pr-checks">
+          {checks
+            .filter((c) => c.key !== 'reviews')
+            .map((c) => (
+              <span key={c.key} className={`pr-check ${c.state}`} title={c.label}>
+                {c.key === 'ci' ? (c.state === 'wait' ? 'CI running' : 'CI') : c.key === 'conflicts' ? (c.state === 'bad' ? 'conflict' : 'merge') : c.state === 'ok' ? 'threads' : c.label.replace(/ open/, '')} {c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'}
+              </span>
+            ))}
+        </div>
         <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
           {score}/4
         </span>
-      </div>
-      <div className="pr-checks">
-        {checks.map((c) => (
-          <span key={c.key} className={`pr-check ${c.state}`}>
-            {c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'} {c.label}
+        {p.repo === 'productiveio/frontend' && (
+          <span className="pr-run">
+            <RunAppButton n={p.number} compact />
           </span>
-        ))}
+        )}
       </div>
     </div>
   )

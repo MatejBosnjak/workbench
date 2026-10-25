@@ -196,6 +196,7 @@ void app.whenReady().then(() => {
     confirm: async (message, detail) =>
       (await dialog.showMessageBox(win!, { type: 'question', buttons: ['Replace', 'Keep it'], defaultId: 1, cancelId: 1, message, detail })).response === 0,
     owned: { get: () => repo.getSetting('caf:amphetamineOwned', false), set: (v) => repo.setSetting('caf:amphetamineOwned', v) },
+    saved: { get: () => repo.getSetting('caf:holds', { holds: [], auto: true }), set: (v) => repo.setSetting('caf:holds', v) },
   })
   const local = new Supervisor(
     loadConfig(join(dataDir(), 'services.json')),
@@ -420,7 +421,8 @@ void app.whenReady().then(() => {
   ipcMain.handle('sessions:takeover', (_e, id: string) => sessions.takeOver(id))
   ipcMain.handle('sessions:takeover-cancel', (_e, id: string) => sessions.cancelTakeOver(id))
   ipcMain.handle('caf:get', () => caffeinate.get())
-  ipcMain.handle('caf:set', (_e, mode, scope, sessionId: string | null) => caffeinate.set(mode, scope, sessionId))
+  ipcMain.handle('caf:set', (_e, sessionId: string, mode, until) => caffeinate.set(sessionId, mode, until))
+  ipcMain.handle('caf:auto', (_e, on: boolean) => caffeinate.setAuto(on))
   ipcMain.handle('gh:pr', (_e, url: string) => prInfo(url))
   ipcMain.handle('shell:open', (_e, url: string) => {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url)

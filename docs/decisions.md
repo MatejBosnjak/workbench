@@ -62,3 +62,8 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 - **Link suggestions are rules only, no tokens** — a bare 7–9 digit id in a prompt; a PR counts as the session's when printed in a turn that ran `gh pr create`, or when it's mine and under 15 minutes old; a URL pasted into the prompt never counts
 - **My tasks rows** — version A: quiet rows, glowing status dots, tree lines; tasks there only for a to-do of mine show the assignee's avatar and a to-do chip, my own rows show nothing extra
 - **Workstream tree** — option B: an avatar on every row, mine ringed violet
+
+## Added 2026-10-25
+
+- **Caffeinate is per-session holds, not one global setting** — one {mode, scope, session} silently moved off a session when another picked Awake, and nothing listed who kept the Mac up. Holds (level + until done / tab closes / I stop) list in the cup's popover (option A of `CaffeinateHolds`); a small cup in the session bar instead of a full per-session control (option B). Auto (running sessions hold the Mac) replaces "applies to: all" and is on by default. A session asking for itself (`wb awake`, option C) is deferred.
+- **Session bar trimmed** — the task's status is only its (wider, 6px) rail colour; the PR button drops its title and the branch is gone; the sidebars show both.

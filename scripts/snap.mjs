@@ -192,7 +192,11 @@ const blurred = async (fn) => {
   await fn()
 }
 await shot('palette', () => blurred(() => click('.kbar')))
-await shot('caffeinate', () => blurred(() => click('.cafb-btn')))
+// The session holds the Mac until I stop it, so the list has a row.
+await shot('caffeinate', async () => {
+  if (sid) await api((id) => window.workbench.setCaffeinate(id, 'on', 'manual'), sid)
+  await blurred(() => click('.cafb-btn'))
+})
 await shot('memory', () => blurred(() => click('.mem-btn')))
 await shot('keys', () => blurred(() => page.focus('.sb-keys')))
 await shot('picker', () => blurred(() => click('.picker-btn')))

@@ -7,6 +7,7 @@ import type { PaneState } from './pane'
 import type { LocalSnapshot, Worktree } from './local'
 import type { Person, SessionPrLink, TaskDetail, TasksSnapshot } from './tasks'
 import type { Mark } from './marks'
+import type { CafHold, CafMode, CafUntil } from './caffeinate'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -69,16 +70,18 @@ export type PortMessage = { type: 'data'; data: string } | { type: 'reset' }
 export type PortInput = { type: 'input'; data: string } | { type: 'resize'; cols: number; rows: number }
 
 export interface CaffeinateState {
-  mode: 'off' | 'on' | 'lid'
-  scope: 'session' | 'all'
-  /** The session a 'session'-scoped mode follows. */
-  sessionId: string | null
+  /** What the Mac is doing: the strongest hold, or Awake when lid closed isn't available. */
+  mode: CafMode
+  /** Sessions keeping the Mac awake, oldest first; auto ones come from the Auto rule. */
+  holds: CafHold[]
+  /** Auto: a session that's working holds the Mac until it stops. */
+  auto: boolean
   /** Lid-closed mode needs AC power, plus Amphetamine set up or an external display (clamshell). */
   lidAvailable: boolean
   lidVia: 'amphetamine' | 'clamshell' | null
   /** What's missing for the Amphetamine route, if anything. */
   lidSetup: string | null
-  /** Why the mode last changed by itself, if it did. */
+  /** Why something changed by itself, if it did. */
   note: string | null
 }
 
@@ -158,7 +161,9 @@ export interface WorkbenchApi {
   takeOver(id: string): Promise<'now' | 'waiting'>
   cancelTakeOver(id: string): Promise<void>
   getCaffeinate(): Promise<CaffeinateState>
-  setCaffeinate(mode: CaffeinateState['mode'], scope: CaffeinateState['scope'], sessionId: string | null): Promise<CaffeinateState>
+  /** Sets one session's hold; 'off' releases it. */
+  setCaffeinate(sessionId: string, mode: CafMode, until?: CafUntil): Promise<CaffeinateState>
+  setCaffeinateAuto(on: boolean): Promise<CaffeinateState>
   onCaffeinate(cb: (s: CaffeinateState) => void): () => void
   prInfo(url: string): Promise<PrInfo | null>
   openExternal(url: string): Promise<void>

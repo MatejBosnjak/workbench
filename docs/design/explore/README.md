@@ -15,6 +15,7 @@ Each file is a self-contained HTML mock: the markup sits inside `<x-dc>`, and th
 | `StyleTui.dc.html` | Chosen: direction 1b, the TUI style. Still the reference for style rules (boxes, counters, type) | all |
 | `CaffeinateLid.dc.html` | Superseded by `CaffeinateButton` | `caffeinate.png` |
 | `CaffeinateButton.dc.html` | Chosen: the cup button and its popover | `caffeinate.png` |
+| `CaffeinateHolds.dc.html` | Chosen: A (holds listed in the cup popover, Auto) with a small cup in the session bar; C (`wb awake`) deferred | `caffeinate.png` |
 | `RunPR.dc.html` | Chosen: chip states, ▶ Run app, run panels, dirty guard | `today-prs.png` (▶ Run app) |
 | `SessionBookmarks.dc.html` | Chosen: the rail | `session.png`, `session-legend.png` |
 | `WorkstreamMine.dc.html` | Chosen: **B** (avatar on every row); NOW and A rejected | `workstream.png` |

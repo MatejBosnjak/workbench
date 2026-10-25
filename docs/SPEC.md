@@ -81,18 +81,18 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - **No task or PR numbers on screen.** A PR reads as its repo (`fe`, `api`, `specs`) and title, a task as its title; GitHub links in text read `frontend PR`. Numbers stay in tooltips, search, git commands, and anything sent to Claude or GitHub. Notifications name the PR by title (`CI failed: <title>`).
 - Sidebars share one frame: 18px/14px padding and a box with its title set into the top border and its tools at the right (task sidebar, PR sidebar).
 - Buttons in one bar share its height (the session bar's are all 28px, `+ new ✻` included).
-- Bars don't box their buttons: the top bar and session bar buttons are text on the bar, raised on hover; boxes are kept for content (lists, sidebars, cards). State on a tab or a session-bar button is a left border, never a dot.
+- Bars don't box their buttons: the top bar and session bar buttons are text on the bar, raised on hover; boxes are kept for content (lists, sidebars, cards). State on a tab or a session-bar button is a left border (6px for the session bar's task status, which shows no status name), never a dot.
 - A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
 
 ## Shell: TopBar, StatusBar, keys
 
 Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear in every image. Code: `TopBar.tsx`, `StatusBar.tsx`, `keys.ts`, `App.tsx`.
 
-- **TopBar** (44px, chrome background, a 1px line below; the traffic lights centred in it): `▌wb` memory button, places `1 Today` and `2 Local up/n`, a temporary workstream place when one is open (× closes it), a divider, session tabs `3…n`, `+` new session, then the caffeinate cup and ⌘K.
+- **TopBar** (44px, chrome background, a 1px line below; the traffic lights centred in it): `▌wb` memory button, places `1 Today` and `2 Local up/n`, a temporary workstream place when one is open (× closes it), a divider, session tabs `3…n`, `+` new session, then the caffeinate cup (with a count of the sessions holding the Mac) and ⌘K.
   - Top bar buttons have no boxes: a raised background on hover; the current place is raised.
   - **Session tabs** are editor tabs: no boxes, the bar's full height, state as a 3px left border (70% on other tabs, full on the current one; no state dots). The current tab takes the session bar's colour and reaches down into it, under a 2px accent top line (the one place selection keeps the accent). A waiting tab that isn't current is tinted violet with a violet left border.
   - **Right-click a tab:** Close, Close Others, Close to the Left, Close to the Right, Close All (native menu; options with nothing to close are disabled). A bulk close that would stop a running turn asks first. If the tab on screen closes, the view moves to the nearest tab that stays, or Today.
-  - Tabs: double-click renames (a manual name sticks over claude's terminal title; clearing it unlocks), drag to reorder, middle-click closes, hover shows state, title and cwd. Caffeinated tabs show the cup at 13px.
+  - Tabs: double-click renames (a manual name sticks over claude's terminal title; clearing it unlocks), drag to reorder, middle-click closes, hover shows state, title and cwd. Tabs of sessions holding the Mac awake (by hand or Auto) show the cup at 13px; Lid closed only while the Mac really is.
   - **Overflow:** tabs never wrap or shrink; the strip scrolls sideways with no scrollbar. Hovering within 56px of an edge scrolls that way (faster nearer the edge; the cursor shows the direction only while there's more), the vertical wheel scrolls it, edges fade while tabs hide beyond them, and a `+N ▾` menu lists tabs out of view. The current tab always scrolls fully into view.
   - **+N** counts tabs out of view and, when any of them waits on you, adds a violet `●k` and a violet left border, so a waiting session never hides in the overflow.
 - **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot (same colours as its tab), name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks or the statusline aren't installed (click installs); then the meters and the picker.
@@ -231,9 +231,9 @@ Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, 
 - **Spawning.** `claude` (or `claude --resume <id>`) in a pty, with `--model` / `--effort` / `--permission-mode` from the session's settings. Default cwd `~/Productive/work` (setting `defaultCwd`); a task session starts in the task's worktree when there is one. Fork (from a workstream) starts `--resume <id> --fork-session` in a new tab.
 - **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws. Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with repo, title, state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
 - **Session bar** (38px, raised, under the TopBar, only for Workbench sessions):
-  - **Task button:** status rail, Productive logo, title, status, `⌘I` → task sidebar. No task: "link task…".
-  - **PR button:** GitHub logo, title, CI state, `+N`, `⌘⇧I` → PR sidebar; hidden with no PR. The session's PRs, in order: connected by hand, the frontend PR its branch is on, PRs of its tasks.
-  - `+ new ✻` for the same task; the branch (⎇) at the right. The buttons have no boxes, a hairline between them; the open sidebar's button sits on the terminal's colour.
+  - **Task button:** a 6px status rail (the status shows only as its colour; the name is in the tooltip), Productive logo, title, `⌘I` → task sidebar. No task: "link task…".
+  - **PR button:** GitHub logo, CI state, `+N`, `⌘⇧I` → PR sidebar (no title; it's in the tooltip and the sidebar); hidden with no PR. The session's PRs, in order: connected by hand, the frontend PR its branch is on, PRs of its tasks.
+  - `+ new ✻` for the same task; at the right a small cup: this session's caffeinate hold (grey when none, coffee for Awake, the laptop badge for Lid closed); it opens the caffeinate popover. The buttons have no boxes, a hairline between them; the open sidebar's button sits on the terminal's colour.
 - **External sessions** (started in another terminal, reported through the same hooks) are read-only tabs showing state and cwd, with **Take over**: waits for the terminal copy to exit, then resumes it here.
 
 ## Session bookmarks
@@ -281,12 +281,15 @@ Image: `docs/design/current/picker.png`. Code: `Picker.tsx`, `src/shared/agent.t
 
 ## Caffeinate
 
-Image: `docs/design/current/caffeinate.png`. Code: `CaffeinateControl.tsx`, `Cup.tsx`, `src/main/caffeinate.ts`, `amphetamine.ts`.
+Image: `docs/design/current/caffeinate.png`. Code: `CaffeinateControl.tsx`, `Cup.tsx`, `src/main/caffeinate.ts`, `amphetamine.ts`, `src/shared/caffeinate.ts`.
 
-- A 44px espresso cup in the TopBar: empty grey (Off), coffee with steam that plays twice when turned on and then rests, on a coffee-tinted button (Awake), plus a cyan shut-laptop badge (Lid closed). Tabs show the cup without steam. No steam with Reduce Motion.
-- Click or `c` opens the popover: Off / Awake / Lid closed (`o` / `a` / `l`), each with a note, and **applies to: this session / all**. Esc closes.
-- **Awake:** `powerSaveBlocker('prevent-app-suspension')`; turns itself off when the scoped sessions stop.
-- **Lid closed:** on AC power, via Amphetamine's AppleScript (`start new session` indefinite + `enable closed display mode`; `end session` only for a session Workbench started, remembered across crashes; asks before replacing one it didn't start). Needs Amphetamine's Power Protect helper; otherwise unavailable with the reason shown. Without Amphetamine, available only in clamshell mode (AC + external display) via `caffeinate -s`. Unplugging falls back to Awake with a notification.
+- **Holds.** Sessions keep the Mac awake by holding it: a session, a level (Awake / Lid closed) and when it lets go: **until done** (its turn ends; set on an idle session it waits for a turn to start and end), **until tab closes**, or **until I stop**. A closed tab always lets go. The Mac follows the strongest hold and sleeps as usual when none is left. My holds and Auto are saved (setting `caf:holds`); "until done" holds don't survive a restart.
+- **Auto** (on by default): every session that's running holds the Mac (Awake), terminal sessions reporting through the hooks included; it lets go when the session stops or waits on me. A session with its own hold isn't doubled.
+- **The cup** (44px, TopBar) shows what the Mac is doing: empty grey (Off), coffee with steam that plays twice when turned on and then rests, on a coffee-tinted button (Awake), plus a cyan shut-laptop badge (Lid closed); a badge counts the holds. No steam with Reduce Motion.
+- **Popover** (click the cup, the session bar's small cup, or `c`; Esc closes): the head says what the Mac is doing (and via Amphetamine / clamshell); **Holding the Mac · n** lists each hold: cup, tab number and title (click opens it), state dot, terminal / working / waiting on you / idle, for how long, `auto`; its until (click cycles) and × to let go (auto rows have neither). **This session** (when a session is open): Off / Awake / Lid closed (`o` / `a` / `l`) and until (done / tab closes / I stop). The Auto checkbox at the bottom. A note says when something changed by itself ("Let go: … is done.").
+- Tabs of held sessions show a small cup; the session bar shows the session's own.
+- **Awake:** `powerSaveBlocker('prevent-app-suspension')` while any hold exists.
+- **Lid closed:** on AC power, via Amphetamine's AppleScript (`start new session` indefinite + `enable closed display mode`; `end session` only for a session Workbench started, remembered across crashes; asks before replacing one it didn't start, and Awake if I keep mine). Needs Amphetamine's Power Protect helper; otherwise unavailable with the reason shown. Without Amphetamine, available only in clamshell mode (AC + external display) via `caffeinate -s`. Unplugging pauses it to Awake with a notification; the hold stays Lid closed and resumes on power.
 
 ## Memory (`▌wb`)
 

@@ -7,6 +7,7 @@ import type { Session } from '@shared/types'
 import { useShallow } from 'zustand/react/shallow'
 import { useOverlay, useStore } from '../store'
 import { Box } from './Box'
+import { SessionCup } from './CaffeinateControl'
 import { GitHubIcon, NewSessionButton, ProductiveIcon } from './Chips'
 import { GitPane } from './GitPane'
 import { LinkSuggest } from './LinkSuggest'
@@ -77,7 +78,6 @@ export function SessionBar({ session }: { session: Session }) {
             <span className="sbar-rail" />
             <ProductiveIcon />
             <span className="sbar-title">{task.title}</span>
-            <span className="sbar-status">{(task.statusName || 'no status').toLowerCase()}</span>
           </>
         ) : (
           <span className="muted">{taskId ? 'Task' : 'link task…'}</span>
@@ -87,7 +87,6 @@ export function SessionBar({ session }: { session: Session }) {
       {pr && (
         <button className={`sbar-btn pad${side === 'pr' ? ' on' : ''}`} aria-pressed={side === 'pr'} title={`${pr.title} (⌘⇧I)`} onClick={() => toggle('pr')}>
           <GitHubIcon />
-          <span className="sbar-title pr">{pr.title}</span>
           {ci && <span style={{ color: ci[1] }}>● {ci[0]}</span>}
           {prs.length > 1 && <span className="faint">+{prs.length - 1}</span>}
           <span className="faint">⌘⇧I</span>
@@ -95,11 +94,7 @@ export function SessionBar({ session }: { session: Session }) {
       )}
       {task && <NewSessionButton taskId={task.id} />}
       <LinkSuggest session={session} />
-      {pr?.branch && (
-        <span className="sbar-branch faint">
-          ⎇ <span className="muted">{pr.branch}</span>
-        </span>
-      )}
+      <SessionCup session={session} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
-import { CaffeinateButton } from './CaffeinateControl'
+import { CaffeinateButton, holdOf } from './CaffeinateControl'
 import { Cup } from './Cup'
 import { FocusChip } from './Focus'
 import { MemoryButton } from './Memory'
@@ -19,9 +19,10 @@ export function TopBar({ onNew }: { onNew: () => void }) {
   const { sessions, view, show, caf, local, wsPlace, closeWorkstream } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, show: s.show, caf: s.caf, local: s.local, wsPlace: s.wsPlace, closeWorkstream: s.closeWorkstream })))
   const inProfile = local?.services.filter((s) => s.def.profiles.includes(local.profile) && !s.transient) ?? []
   const up = inProfile.filter((s) => s.status === 'running').length
+  // A held session's tab shows its cup; lid closed only when the Mac really is (else Awake).
   const caffeinated = (s: Session) => {
-    if (!caf || caf.mode === 'off') return null
-    return (caf.scope === 'all' ? s.alive : caf.sessionId === s.id) ? caf.mode : null
+    const h = holdOf(caf, s.id)
+    return h ? (h.mode === 'lid' && caf?.mode !== 'lid' ? 'on' : h.mode) : null
   }
   const activeId = activeSessionId(view)
   const focus = useStore((s) => s.focus)

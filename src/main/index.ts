@@ -62,7 +62,7 @@ function createWindow(): BrowserWindow {
     show: false,
     backgroundColor: '#0E0D12',
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 15 },
+    trafficLightPosition: { x: 16, y: 11 },
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.mjs'),
       sandbox: false,

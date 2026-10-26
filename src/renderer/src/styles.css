@@ -27,7 +27,7 @@ button { font: inherit; color: inherit; }
 
 /* Taskbar (TopBar) */
 .topbar {
-  height: 44px; flex-shrink: 0;
+  height: 36px; flex-shrink: 0;
   display: flex; align-items: center; gap: 6px;
   padding: 0 14px 0 84px; /* room for the traffic lights */
   background: var(--chrome);
@@ -44,7 +44,7 @@ button { font: inherit; color: inherit; }
 .mem-btn.open { border-color: var(--accent); background: var(--accent-bg); }
 .mem-glyph { transition: color 0.8s ease, text-shadow 0.8s ease; }
 .mem-short { margin-left: 8px; font-weight: 400; color: var(--text-3); }
-.mem-pop { -webkit-app-region: no-drag; position: absolute; top: 40px; left: 0; z-index: 12; width: 620px; display: flex; flex-direction: column; gap: 18px; padding: 16px 16px 12px; background: var(--popover); border: 1px solid var(--accent); box-shadow: 0 18px 44px var(--shadow); font-weight: 400; cursor: default; }
+.mem-pop { -webkit-app-region: no-drag; position: absolute; top: 34px; left: 0; z-index: 12; width: 620px; display: flex; flex-direction: column; gap: 18px; padding: 16px 16px 12px; background: var(--popover); border: 1px solid var(--accent); box-shadow: 0 18px 44px var(--shadow); font-weight: 400; cursor: default; }
 .mem-head { display: flex; align-items: flex-end; gap: 16px; }
 .mem-total { display: flex; flex-direction: column; gap: 2px; }
 .mem-big { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
@@ -232,7 +232,7 @@ button:disabled { cursor: default; opacity: 0.6; }
 .cafb-btn { position: relative; }
 .cafb-n { position: absolute; right: -6px; top: -6px; min-width: 14px; padding: 0 3px; background: #C98D55; color: #120E16; font-size: 10px; font-weight: 700; line-height: 14px; }
 .cafb-btn.caf-lid .cafb-n { background: #6FC3E0; }
-.cafpop { position: absolute; right: 0; top: 48px; z-index: 12; width: 400px; display: flex; flex-direction: column; padding: 8px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); text-align: left; }
+.cafpop { position: absolute; right: 0; top: 42px; z-index: 12; width: 400px; display: flex; flex-direction: column; padding: 8px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); text-align: left; }
 .cafpop-head { display: flex; justify-content: space-between; padding: 4px 10px 8px; color: var(--text); font-weight: 700; }
 .cafpop-now { font-weight: 500; color: var(--text-3); }
 .cafpop-now.caf-on { color: #C98D55; }
@@ -803,19 +803,28 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 /* Editor tabs: no boxes. Each tab runs the bar's full height with its state as a left border; the current tab takes the
    session bar's colour and reaches down into it, tinted violet. A waiting tab is tinted violet with a violet border. */
 .topbar .seg-btn { border-color: transparent; }
+.topbar .seg-btn:not(.tab) { height: 26px; }
+.topbar .mem-btn { height: 26px; }
+.topbar .cafb-btn { height: 26px; }
 .topbar .seg-btn:hover { border-color: transparent; background: var(--raised); color: var(--text); }
 .cafb-btn:not(.caf-on):not(.caf-lid) { border-color: transparent; }
 .cafb-btn:not(.caf-on):not(.caf-lid):hover { background: var(--raised); }
 .tabs { gap: 0; align-self: stretch; align-items: stretch; height: calc(100% + 1px); margin-bottom: -1px; }
-.tab { --st: var(--faint); height: auto; max-width: 220px; padding: 0 8px 0 14px; border: 0; color: var(--text-3); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--st) 70%, transparent); }
+.tab { --st: var(--faint); height: auto; max-width: 180px; padding: 0 6px 0 13px; border: 0; color: var(--text-3); font-size: 12px; }
 .tab.st-running { --st: var(--info); }
 .tab.st-waiting { --st: var(--accent); }
 .tab.st-failed { --st: var(--bad); }
 .tab.st-idle { --st: var(--faint); }
-.topbar .tab:hover { background: color-mix(in srgb, var(--raised) 55%, transparent); color: var(--text-2); }
-.topbar .tab[aria-selected='true'] { background: color-mix(in srgb, var(--accent) 16%, var(--raised)); color: var(--text); box-shadow: inset 3px 0 0 var(--st); }
-.tab.st-waiting:not([aria-selected='true']) { color: var(--text); background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
-.tab-more.waiting { color: var(--text-2); box-shadow: inset 3px 0 0 var(--accent); }
+/* Idle tabs are split by hairlines and carry no mark. Only what needs me stands out: waiting most, then failed; running barely. */
+.topbar .tab:not([aria-selected='true']) + .tab:not([aria-selected='true'])::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 1px; background: var(--line-heavy); }
+.topbar .tab::after { content: ''; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--st); visibility: hidden; }
+.topbar .tab.st-running::after, .topbar .tab.st-waiting::after, .topbar .tab.st-failed::after { visibility: visible; }
+.topbar .tab.st-running::after { width: 2px; left: 6px; background: color-mix(in srgb, var(--info) 55%, transparent); }
+.topbar .tab:hover { background: color-mix(in srgb, var(--raised) 50%, transparent); color: var(--text-2); }
+/* The current tab takes the session bar's colour and joins it, like a browser tab. */
+.topbar .tab[aria-selected='true'] { background: var(--raised); color: var(--text); box-shadow: inset 1px 0 0 var(--line-heavy), inset -1px 0 0 var(--line-heavy); }
+.tab.st-waiting:not([aria-selected='true']) { color: var(--text); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.tab-more.waiting { color: var(--text-2); }
 .tab-more-wait { color: var(--accent); }
 .tab[aria-selected='true'] .tab-title { opacity: 1; }
 .tabs.fade-l.fade-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
@@ -825,7 +834,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tabs.edge-r, .tabs.edge-r * { cursor: e-resize !important; }
 .tab-more-wrap { position: relative; flex-shrink: 0; }
 .tab-more { padding: 0 10px; color: var(--text-3); gap: 6px; }
-.tab-menu { position: absolute; top: 38px; right: 0; z-index: 12; min-width: 260px; display: flex; flex-direction: column; padding: 4px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); }
+.tab-menu { position: absolute; top: 34px; right: 0; z-index: 12; min-width: 260px; display: flex; flex-direction: column; padding: 4px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); }
 .tab-menu-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border: 0; background: transparent; color: var(--text-2); cursor: pointer; text-align: left; white-space: nowrap; }
 .tab-menu-item .faint { margin-left: auto; }
 .tab-menu-item:hover, .tab-menu-item.on { background: var(--raised); color: var(--text); }

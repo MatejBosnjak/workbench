@@ -22,7 +22,7 @@ export function GitPane({
   active: boolean
   /** Replaces closing the pane (the session sidebar closes itself instead). */
   onClose?(): void
-  /** In a session's sidebar: takes the shown PR off the session (in place of back / forward). */
+  /** In a session's sidebar: takes the shown PR off the session (an unlink button after back / forward). */
   onUnlink?(url: string): void
   /** In a session's sidebar: framed like the task sidebar, without the task and session links the session bar already shows. */
   side?: boolean
@@ -132,21 +132,16 @@ export function GitPane({
   const tools = (
     <span className="gp-tools">
       {pr?.repo === FE_REPO && <RunAppButton n={pr.number} compact />}
-      {onUnlink ? (
-        key && (
-          <button className="key-btn tl-unlink" title="Unlink this PR from the session" aria-label="Unlink this PR from the session" onClick={() => onUnlink(key)}>
-            <UnlinkIcon />
-          </button>
-        )
-      ) : (
-        <>
-          <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>
-            ‹
-          </button>
-          <button className="key-btn" title="Forward (⌘])" disabled={!pane?.canForward} onClick={() => void window.workbench.pane.nav('forward')}>
-            ›
-          </button>
-        </>
+      <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>
+        ‹
+      </button>
+      <button className="key-btn" title="Forward (⌘])" disabled={!pane?.canForward} onClick={() => void window.workbench.pane.nav('forward')}>
+        ›
+      </button>
+      {onUnlink && key && (
+        <button className="key-btn tl-unlink" title="Unlink this PR from the session" aria-label="Unlink this PR from the session" onClick={() => onUnlink(key)}>
+          <UnlinkIcon />
+        </button>
       )}
       <button className="key-btn" title="Open in browser (⌘↩)" aria-label="Open in browser" onClick={() => void window.workbench.pane.nav('external')}>
         ↗

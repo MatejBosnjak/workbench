@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import type { ServiceState, Worktree } from '@shared/local'
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import type { Branch, ServiceState, Worktree } from '@shared/local'
 
 const home = (p: string) => p.replace(/^\/Users\/[^/]+\/(Productive\/)?/, '')
 
@@ -22,8 +22,15 @@ function badge(w: Worktree): [string, string] | null {
   return null
 }
 
+/** Rows shown at most per section; the filter narrows the rest. */
+const MAX_ROWS = 200
+
+type Item = { kind: 'wt'; w: Worktree } | { kind: 'branch'; b: Branch }
+
+/** Worktrees of the service's repo, then branches of its base checkout no worktree has; ⏎ on a branch checks it out there. */
 export function WorktreeSwitcher({ service, onClose }: { service: ServiceState; onClose(): void }) {
   const [list, setList] = useState<Worktree[] | null>(null)
+  const [branches, setBranches] = useState<Branch[] | null>(null)
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
   const [note, setNote] = useState<string | null>(null)
@@ -31,19 +38,34 @@ export function WorktreeSwitcher({ service, onClose }: { service: ServiceState; 
 
   const load = () => void window.workbench.local.worktrees(service.name).then(setList)
   useEffect(load, [service.name])
+  useEffect(() => void window.workbench.local.branches(service.name).then(setBranches), [service.name])
 
-  const items = useMemo(
-    () => (list ?? []).filter((w) => !query || `${w.branch ?? ''} ${w.path}`.toLowerCase().includes(query.toLowerCase())),
-    [list, query],
+  const { trees, refs } = useMemo(() => {
+    const q = query.toLowerCase()
+    const trees = (list ?? []).filter((w) => !q || `${w.branch ?? ''} ${w.path}`.toLowerCase().includes(q))
+    const refs = (branches ?? []).filter((b) => !q || `${b.remote ? 'origin/' : ''}${b.name}`.toLowerCase().includes(q))
+    return { trees, refs }
+  }, [list, branches, query])
+  const items: Item[] = useMemo(
+    () => [...trees.slice(0, MAX_ROWS).map((w) => ({ kind: 'wt' as const, w })), ...refs.slice(0, MAX_ROWS).map((b) => ({ kind: 'branch' as const, b }))],
+    [trees, refs],
   )
+  const baseBranch = list?.find((w) => w.base)?.branch
   useEffect(() => setIndex(0), [query])
   useEffect(() => {
     listEl.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [index])
 
   const current = items[index]
-  const act = async (kind: 'run' | 'switch' | 'editor' | 'remove' | 'alongside', w = current) => {
-    if (!w) return
+  const act = async (kind: 'run' | 'switch' | 'editor' | 'remove' | 'alongside', item = current) => {
+    if (!item) return
+    if (item.kind === 'branch') {
+      if (kind === 'editor') return void window.workbench.openInEditor(service.def.cwd)
+      if (kind !== 'run' && kind !== 'switch') return
+      onClose()
+      return void (await window.workbench.local.checkoutBranch(service.name, item.b.name, kind === 'run'))
+    }
+    const w = item.w
     if (kind === 'editor') return void window.workbench.openInEditor(w.path)
     if (kind === 'remove') {
       const r = await window.workbench.local.removeWorktree(w.path)
@@ -74,25 +96,53 @@ export function WorktreeSwitcher({ service, onClose }: { service: ServiceState; 
       <div className="palette wt" role="dialog" aria-label={`Switch ${service.name} worktree`} onMouseDown={(e) => e.stopPropagation()}>
         <label className="palette-search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
-          <input autoFocus aria-label="Filter worktrees" placeholder={`Filter ${service.def.repo} worktrees…`} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} />
+          <input autoFocus aria-label="Filter worktrees" placeholder={`Filter ${service.def.repo} worktrees and branches…`} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} />
           <span className="muted mono" style={{ fontSize: 11 }}>
-            {list ? `${items.length} worktrees · by recent activity` : 'scanning…'}
+            {list ? `${trees.length} worktrees · ${branches ? `${refs.length} branches` : 'branches…'}` : 'scanning…'}
           </span>
         </label>
         <div className="palette-list" ref={listEl}>
-          {items.map((w, i) => {
+          {items.map((item, i) => {
+            const head =
+              i === 0 && item.kind === 'wt' ? (
+                <div className="wt-sec">Worktrees</div>
+              ) : item.kind === 'branch' && items[i - 1]?.kind !== 'branch' ? (
+                <div className="wt-sec">
+                  Branches · {home(service.def.cwd)} (base checkout{baseBranch ? `, on ${baseBranch}` : ''})
+                </div>
+              ) : null
+            if (item.kind === 'branch') {
+              const b = item.b
+              return (
+                <Fragment key={`b:${b.remote}:${b.name}`}>
+                  {head}
+                  <button className="palette-item wt-row wt-branch" data-active={i === index} onMouseEnter={() => setIndex(i)} onClick={() => void act('run', item)}>
+                    <span className="wt-marker" />
+                    <span className="pop-text">
+                      <span className="mono">{b.remote ? `origin/${b.name}` : b.name}</span>
+                    </span>
+                    <span className={`wt-badge ${b.remote ? 'wt-remote' : 'wt-local'}`}>{b.remote ? 'remote' : 'local'}</span>
+                    <span className="mono muted wt-age">{age(b.ts)}</span>
+                  </button>
+                </Fragment>
+              )
+            }
+            const w = item.w
             const b = badge(w)
             const here = w.path === service.cwd
             return (
-              <button key={w.path} className="palette-item wt-row" data-active={i === index} onMouseEnter={() => setIndex(i)} onClick={() => void act('run', w)}>
-                <span className="wt-marker">{here ? '▸' : ''}</span>
-                <span className="pop-text">
-                  <span className="mono">{w.branch ?? '(detached)'}</span>
-                  <span className="pop-note mono">{home(w.path)}</span>
-                </span>
-                {b && <span className={`wt-badge ${b[1]}`}>{b[0]}</span>}
-                <span className="mono muted wt-age">{age(w.ts)}</span>
-              </button>
+              <Fragment key={w.path}>
+                {head}
+                <button className="palette-item wt-row" data-active={i === index} onMouseEnter={() => setIndex(i)} onClick={() => void act('run', item)}>
+                  <span className="wt-marker">{here ? '▸' : ''}</span>
+                  <span className="pop-text">
+                    <span className="mono">{w.branch ?? '(detached)'}</span>
+                    <span className="pop-note mono">{home(w.path)}</span>
+                  </span>
+                  {b && <span className={`wt-badge ${b[1]}`}>{b[0]}</span>}
+                  <span className="mono muted wt-age">{age(w.ts)}</span>
+                </button>
+              </Fragment>
             )
           })}
         </div>
@@ -100,10 +150,10 @@ export function WorktreeSwitcher({ service, onClose }: { service: ServiceState; 
           <span>↵ switch &amp; run</span>
           <span>⌘O switch only</span>
           <span>⌘. VS Code</span>
-          <span>⌘⌫ remove</span>
+          <span>⌘⌫ remove worktree</span>
           {note && <span className="wt-note">{note}</span>}
           {service.def.port && (
-            <button className="ghost" onClick={() => void act('alongside')} disabled={!current}>
+            <button className="ghost" onClick={() => void act('alongside')} disabled={current?.kind !== 'wt'}>
               Run alongside on new port
             </button>
           )}

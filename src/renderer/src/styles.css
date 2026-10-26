@@ -354,6 +354,7 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .pane { height: 100%; display: flex; flex-direction: column; border-radius: 0; border: 1px solid var(--line-soft); background: var(--panel); overflow: hidden; }
 .pane-main { border-color: var(--line-strong); }
 .pane-head { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 6px 0 10px; border-bottom: 1px solid var(--line); font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+.pane-crash { color: var(--bad); }
 .pane-tools { margin-left: auto; display: flex; gap: 2px; }
 .pane-tools button { width: 24px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 0; background: transparent; color: var(--muted); cursor: pointer; }
 .pane-tools button:hover { background: var(--raised); color: var(--text); }
@@ -370,12 +371,16 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 /* Worktree switcher */
 .palette.wt { width: 760px; }
 .wt-row { min-height: 46px; }
+.wt-branch { min-height: 34px; }
 .wt-marker { width: 10px; color: var(--accent); }
 .wt-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 0; white-space: nowrap; }
 .wt-base { background: var(--raised); color: var(--text-2); }
 .wt-dirty { background: var(--accent-bg); color: var(--warn); }
 .wt-unmerged { background: var(--info-bg); color: var(--link); }
 .wt-done { background: var(--ok-bg); color: var(--ok); }
+.wt-sec { padding: 10px 14px 4px; color: var(--text-3); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wt-remote { background: var(--info-bg); color: var(--info); }
+.wt-local { background: var(--raised); color: var(--text-3); }
 .wt-age { width: 36px; text-align: right; font-size: 11px; }
 .wt-note { color: var(--warn); }
 .palette-foot .ghost { margin-left: auto; height: 24px; font-family: var(--sans); }

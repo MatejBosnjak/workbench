@@ -85,6 +85,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Buttons in one bar share its height (the session bar's are all 28px, `+ new ✻` included).
 - Bars don't box their buttons: the top bar and session bar buttons are text on the bar, raised on hover; boxes are kept for content (lists, sidebars, cards). State on a tab or a session-bar button is a left border (6px for the session bar's task status, which shows no status name), never a dot. The current tab is tinted violet with no violet border; a waiting tab has both.
 - A filter row above a long scrolling list stays pinned at its top (the workstream's Show row). A resizable sidebar shows its edge as a 2px line on hover or while dragging.
+- Status in pane headers: a crashed service's pane header says `· crashed · exit n` in the bad colour. Switcher sections (Worktrees, Branches) use small uppercase headers; a branch row is shorter than a worktree row and badged `local` (raised) or `remote` (info).
 - Popovers open under the button that opens them, right-aligned to it (the TopBar cup's, the session bar cup's): popover colour, a heavy line and a shadow.
 - Checkbox rows aren't wrapped in a `<label>` when their text holds links or sits next to a write: only the box itself is a hit target.
 - My PRs and Reviews rows share one layout (rail, title over people, stacked checks, Run app column), so the two lists read the same.
@@ -237,7 +238,7 @@ Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `s
 Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, `TaskSide.tsx` (SessionBar), `ExternalPanel.tsx`, `PrCard.tsx`, `src/main/sessions.ts`, `pty-host.ts`.
 
 - **Spawning.** `claude` (or `claude --resume <id>`) in a pty, with `--model` / `--effort` / `--permission-mode` from the session's settings. Default cwd `~/Productive/work` (setting `defaultCwd`); a task session starts in the task's worktree when there is one. Fork (from a workstream) starts `--resume <id> --fork-session` in a new tab.
-- **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws. Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with repo, title, state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
+- **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws (a pty's owner may rewrite output before it's kept, as Local strips its service shell's markers). Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with repo, title, state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
 - **Session bar** (38px, raised, under the TopBar, only for Workbench sessions):
   - **Task button:** a 6px status rail (the status shows only as its colour; the name is in the tooltip), Productive logo, title, `⌘I` → task sidebar. No task: "link task…".
   - **PR button:** GitHub logo, CI state, `+N`, `⌘⇧I` → PR sidebar (no title; it's in the tooltip and the sidebar); hidden with no PR. The session's PRs, in order: connected by hand, the frontend PR its branch is on, PRs of its tasks.
@@ -318,14 +319,15 @@ Image: `docs/design/current/workstream.png`. Code: `WorkstreamView.tsx`, `src/ma
 
 ## Local
 
-Image: `docs/design/current/local.png`. Code: `LocalView.tsx`, `Panes.tsx`, `WorktreeSwitcher.tsx`, `src/main/local/`, `panes.ts`, `ports.ts`, `src/shared/local.ts`.
+Image: `docs/design/current/local.png`. Code: `LocalView.tsx`, `Panes.tsx`, `WorktreeSwitcher.tsx`, `src/main/local/` (`shell.ts`: the service terminal's zsh hooks), `panes.ts`, `ports.ts`, `src/shared/local.ts`.
 
 - **Config** (`services.json` in the data folder, seeded from `prd`): app (`pnpm start`, port 4201, 2 panes), api (`bundle exec sidekiq`), e2e-tests (`npm run cli`), exporter, pdf-generator, pdf-viewer (`npm run start`), AI (`DEV_API_ENV=production pnpm start` in `ai-agent`). Profiles: prd · full, Frontend only, AI work, Exports & PDF.
 - Header: profile switch, **Stop all**, **Start missing (n)**. A Run PR job shows inline here while it runs.
 - Left: services in the profile with status dot, uptime and state; **Infra · brew services** chips (mysql, redis, memcached, meilisearch, nginx), a stopped one starts on click.
-- Right: the branch button (opens the worktree switcher), path and how far behind its base, Open in browser, Start / Restart / Stop, and split, resizable terminal panes (service log plus shells; layout saved per service).
+- Right: the branch button (opens the switcher), path and how far behind its base, Open in browser, Start / Restart / Stop, and split, resizable terminal panes (service terminal plus shells; layout saved per service).
+- **Service terminal:** a login zsh in the service's folder, open as soon as the pane is. Start types the service command into it. When the command ends, the log stays, a dim line says how (`[api exited · code 1 · Start or ↑ ⏎ runs it again]`), and the prompt is there to fix things; ↑ ⏎ or Start runs it again. Stop sends Ctrl-C, then SIGTERM / SIGKILL to the command's process group after 5 s; the shell stays. The status (running, crashed · exit n in the pane header) follows the command, reported by hooks in the shell, not the shell. A shell typed `exit` reopens on Enter. With a login shell other than zsh, and for Run alongside copies, the command runs without a shell and the pane shows Not running / Crashed with Start.
 - Services run inside the app: quitting stops them, after a confirm while any run.
-- **Worktree switcher** (from `~/.wtrc.json`): filter, recency order, badges (● dirty, ✓ merged, ⬆ gone, ⚠ unmerged). ⏎ switch and run, ⌘O switch, ⌘. open in editor, ⌘⌫ remove, **Run alongside on new port**.
+- **Switcher** (from `~/.wtrc.json`): filter, two sections. **Worktrees**: recency order, badges (● dirty, ✓ merged, ⬆ gone, ⚠ unmerged); ⏎ switch and run, ⌘O switch, ⌘. open in editor, ⌘⌫ remove, **Run alongside on new port**. **Branches** of the base checkout (the service's own folder) that no worktree has: local ones, then remote-only ones as `origin/…`, newest first, up to 200 per section. ⏎ points the service at the base checkout and types `git switch <branch> && <command>` into its terminal (⌘O without the command); a remote-only branch becomes a local tracking branch. Uncommitted tracked changes ask first: Stash and continue (`git stash push -m "workbench: before <branch>"`) / Cancel.
 
 ## Run PR in app
 

@@ -42,6 +42,8 @@ export class PtyHost {
     /** Typed input, after it's written to the pty. */
     private onInput?: (id: string, data: string) => void,
     private onOutput?: (id: string, data: string) => void,
+    /** Rewrites output before it's shown and kept, e.g. to take out markers a shell prints. */
+    private transform?: (id: string, data: string) => string,
   ) {}
 
   has(id: string): boolean {
@@ -65,7 +67,8 @@ export class PtyHost {
     const e: Entry = { proc, pending: '', history: [], historyChars: 0, historyCap: o.historyChars ?? HISTORY_CHARS, exited: new Promise((r) => (onExited = r)), size: { cols: o.cols, rows: o.rows } }
     this.entries.set(id, e)
 
-    proc.onData((data) => {
+    proc.onData((raw) => {
+      const data = this.transform ? this.transform(id, raw) : raw
       this.onOutput?.(id, data)
       e.pending += data
       this.remember(e, data)

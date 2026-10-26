@@ -126,7 +126,11 @@ await shot('workstream', async () => {
   await page.waitForSelector('.ws-who', { timeout: 20_000 })
 })
 await page.click('.ws-place-close').catch(() => {})
-await shot('local', () => click('.place:has-text("Local")'))
+// Service and shell panes are login shells; give them time to print a prompt.
+await shot('local', async () => {
+  await click('.place:has-text("Local")')
+  await wait(4000)
+})
 
 // A session started from a task: it prefills the task prompt; replace it with two one-word prompts, the second naming
 // another task so the link suggestion shows.

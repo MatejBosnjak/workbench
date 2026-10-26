@@ -21,5 +21,6 @@ Each file is a self-contained HTML mock: the markup sits inside `<x-dc>`, and th
 | `WorkstreamMine.dc.html` | Chosen: **B** (avatar on every row); NOW and A rejected | `workstream.png` |
 | `TaskListClean.dc.html` | Chosen: **A** (quiet rows, tree lines) and the to-do-only rows; NOW rejected | `today-tasks.png` |
 | `LinkSuggest.dc.html` | Chosen: all three cards. Built as a card under the session bar, not a popover from the Task button | `session-suggest.png` |
+| `LocalTerminal.dc.html` | Chosen: both (service pane as a shell terminal; base-checkout branches in the switcher) | `local.png` |
 
 When a new exploration is picked: mark its row here (Chosen: X), build it, then `pnpm snap` and update `docs/SPEC.md` in the same commit.

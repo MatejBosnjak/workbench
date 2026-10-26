@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
-import type { Worktree } from '@shared/local'
+import type { Branch, Worktree } from '@shared/local'
 
 function git(cwd: string, args: string[], timeout = 15_000): Promise<string | null> {
   return new Promise((done) => {
@@ -102,6 +102,25 @@ export async function listWorktrees(repo: string, extraRoots: string[] = []): Pr
     })
   }
   return out.sort((a, b) => b.ts - a.ts)
+}
+
+/**
+ * Branches of a checkout for the switcher: local ones, then remote-only ones on origin (shown as `origin/…`), each
+ * newest commit first. `taken` are branches already checked out in a worktree; git won't check them out twice.
+ */
+export async function listBranches(cwd: string, taken: Set<string | null>): Promise<Branch[]> {
+  const out = (await git(cwd, ['for-each-ref', '--sort=-committerdate', '--format=%(refname)|%(committerdate:unix)', 'refs/heads', 'refs/remotes/origin'])) ?? ''
+  const local: Branch[] = []
+  const remote: Branch[] = []
+  for (const line of out.split('\n')) {
+    const [ref, ts] = line.split('|')
+    if (!ref) continue
+    const at = parseInt(ts ?? '0', 10) || 0
+    if (ref.startsWith('refs/heads/')) local.push({ name: ref.slice(11), remote: false, ts: at })
+    else if (ref !== 'refs/remotes/origin/HEAD') remote.push({ name: ref.slice(20), remote: true, ts: at })
+  }
+  const names = new Set(local.map((b) => b.name))
+  return [...local.filter((b) => !taken.has(b.name)), ...remote.filter((b) => !names.has(b.name) && !taken.has(b.name))]
 }
 
 /** Tracked changes only (`-uno`): fast, and `git worktree remove` still refuses on untracked files. */

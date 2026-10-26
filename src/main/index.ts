@@ -575,6 +575,23 @@ void app.whenReady().then(() => {
   ipcMain.handle('local:close-pane', (_e, id: string) => local.closePane(id))
   ipcMain.handle('local:worktrees', (_e, name: string) => local.worktrees(name))
   ipcMain.handle('local:switch', (_e, name: string, path: string, run: boolean) => local.switchWorktree(name, path, run))
+  ipcMain.handle('local:branches', (_e, name: string) => local.branches(name))
+  ipcMain.handle('local:checkout', async (_e, name: string, branch: string, run: boolean) => {
+    let stash = false
+    if (await local.baseDirty(name)) {
+      const res = await dialog.showMessageBox(win!, {
+        type: 'question',
+        buttons: ['Stash and continue', 'Cancel'],
+        defaultId: 0,
+        cancelId: 1,
+        message: `${local.state(name)?.def.cwd ?? name} has uncommitted changes`,
+        detail: `Stash them (git stash push) before checking out ${branch}? They stay in git stash list.`,
+      })
+      if (res.response !== 0) return
+      stash = true
+    }
+    await local.checkoutBranch(name, branch, { run, stash })
+  })
   ipcMain.handle('local:alongside', (_e, name: string, path: string) => local.runAlongside(name, path))
   ipcMain.handle('local:infra-start', (_e, name: string) => local.startInfra(name))
   ipcMain.handle('local:infra-refresh', () => local.refreshInfra())

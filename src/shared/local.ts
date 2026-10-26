@@ -33,6 +33,8 @@ export interface ServiceState {
   behind: number | null
   /** A "Run alongside" copy; removed once stopped. */
   transient: boolean
+  /** Its terminal is open (a shell in its folder, or the command itself), whether or not the service runs. */
+  terminal?: boolean
 }
 
 export interface Profile {
@@ -64,6 +66,14 @@ export interface Worktree {
   gone: boolean
   /** null until the (slower) dirty scan has run. */
   dirty: boolean | null
+}
+
+/** A branch of a service's base checkout; `remote` ones exist only on origin (`name` without the `origin/`). */
+export interface Branch {
+  name: string
+  remote: boolean
+  /** Last commit time, unix seconds. */
+  ts: number
 }
 
 /**

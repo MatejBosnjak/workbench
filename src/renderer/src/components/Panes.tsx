@@ -49,6 +49,7 @@ export function Panes({ service }: { service: ServiceState }) {
         <span className="mono">
           {index + 1} · {isService ? service.def.command : 'zsh'}
         </span>
+        {isService && service.status === 'crashed' && <span className="mono pane-crash">· crashed · exit {service.exitCode}</span>}
         <span className="pane-tools">
           <button aria-label="Split right" title="Split right" onClick={() => save(splitPane(layout, id, 'row', nextShellId(layout, service.name)))}>
             <Svg d={Icon.right} />
@@ -81,6 +82,9 @@ export function Panes({ service }: { service: ServiceState }) {
   const pane = (id: string) => {
     const isService = id.startsWith('svc:')
     const running = service.status === 'running' || service.status === 'stopping'
+    // The service's terminal is a shell that outlives the command; without one (not zsh) it's only there while it runs.
+    const terminal = service.terminal ?? running
+    const open = (size: { cols: number; rows: number }) => window.workbench.local.openPane(id, size)
     return (
       <div className={`pane${isService ? ' pane-main' : ''}`}>
         {header(id, order.indexOf(id))}
@@ -91,12 +95,12 @@ export function Panes({ service }: { service: ServiceState }) {
             autoFocus={false}
             hideWhenInactive={false}
             className="pane-term"
-            alive={isService ? running : (alive[id] ?? true)}
-            open={(size) => void window.workbench.local.openPane(id, size)}
-            revive={isService ? undefined : (size) => void window.workbench.local.openPane(id, size).then(() => setAlive((a) => ({ ...a, [id]: true })))}
-            exitMessage={isService ? `exited${service.exitCode != null ? ` · code ${service.exitCode}` : ''}` : 'shell exited · press Enter for a new one'}
+            alive={isService ? terminal : (alive[id] ?? true)}
+            open={(size) => void open(size)}
+            revive={isService ? (size) => void open(size) : (size) => void open(size).then(() => setAlive((a) => ({ ...a, [id]: true })))}
+            exitMessage="shell exited · press Enter for a new one"
           />
-          {isService && !running && (
+          {isService && !terminal && (
             <div className="pane-idle">
               <span>{service.status === 'crashed' ? `Crashed · exit code ${service.exitCode}` : 'Not running'}</span>
               <button className="primary" onClick={() => void window.workbench.local.start(service.name)}>

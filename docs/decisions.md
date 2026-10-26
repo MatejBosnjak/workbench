@@ -67,3 +67,8 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 
 - **Caffeinate is per-session holds, not one global setting** — one {mode, scope, session} silently moved off a session when another picked Awake, and nothing listed who kept the Mac up. Holds (level + until done / tab closes / I stop) list in the cup's popover (option A of `CaffeinateHolds`); a small cup in the session bar instead of a full per-session control (option B). Auto (running sessions hold the Mac) replaces "applies to: all" and is on by default. A session asking for itself (`wb awake`, option C) is deferred.
 - **Session bar trimmed** — the task's status is only its (wider, 6px) rail colour; the PR button drops its title and the branch is gone; the sidebars show both.
+
+## Added 2026-10-26
+
+- **Service terminals are shells.** A crashed service used to cover its log with "Crashed · Start"; fixing it (bundle install, a migration) meant another pane. Now the command runs inside a login zsh, so the prompt is right under the error. Status still has to follow the command, not the shell, for Start missing, the Local counter and Run PR: a ZDOTDIR of our own sources the user's zsh files and adds preexec / precmd hooks that print OSC markers with the command line and its exit code; main strips them from the output. Only zsh gets this (it's the login shell here); others keep the old direct run.
+- **Branches in the switcher** come from the base checkout only, and the checkout is typed into the service terminal rather than run behind the scenes, so a conflict or hook failure is visible and fixable in place.

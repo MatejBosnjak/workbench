@@ -4,7 +4,7 @@ import type { Workstream } from './workstream'
 import type { DirtyGuard, RunPrSnapshot } from './runpr'
 import type { MemorySnapshot } from './memory'
 import type { PaneState } from './pane'
-import type { LocalSnapshot, Worktree } from './local'
+import type { Branch, LocalSnapshot, Worktree } from './local'
 import type { Person, SessionPrLink, TaskDetail, TasksSnapshot } from './tasks'
 import type { Mark } from './marks'
 import type { CafHold, CafMode, CafUntil } from './caffeinate'
@@ -283,6 +283,9 @@ export interface WorkbenchApi {
     closePane(id: string): Promise<void>
     worktrees(name: string): Promise<Worktree[]>
     switchWorktree(name: string, path: string, run: boolean): Promise<void>
+    branches(name: string): Promise<Branch[]>
+    /** Checks out a branch in the service's base checkout; asks first when it has changes. */
+    checkoutBranch(name: string, branch: string, run: boolean): Promise<void>
     runAlongside(name: string, path: string): Promise<string | null>
     removeWorktree(path: string): Promise<string>
     startInfra(name: string): Promise<void>

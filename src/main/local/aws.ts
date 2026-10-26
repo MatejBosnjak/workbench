@@ -41,7 +41,8 @@ export class Aws {
 
   constructor(private changed: () => void) {
     this.timer = setInterval(() => void this.check(), CHECK_MS)
-    void this.check()
+    // Not synchronously: check() may report before the owner has finished constructing (Supervisor's snapshot reads this.aws).
+    setTimeout(() => void this.check(), 0)
   }
 
   get(): AwsLogin | null {

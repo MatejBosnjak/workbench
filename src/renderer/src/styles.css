@@ -1101,11 +1101,6 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .new-sess.in-row { height: 18px; padding: 0 6px; font-size: 11px; visibility: hidden; }
 .task-line:hover .new-sess.in-row, .task-line.sel .new-sess.in-row { visibility: visible; }
 .ts-tabs .sb-chip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ts-tabs .pr-chip { display: inline-flex; align-items: center; min-width: 0; padding: 0 0 0 10px; cursor: default; }
-.pr-chip-open { min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pr-chip-x { flex: none; width: 22px; height: 100%; padding: 0; border: 0; background: transparent; color: var(--faint); font-size: 15px; line-height: 1; cursor: pointer; visibility: hidden; }
-.pr-chip:hover .pr-chip-x, .pr-chip.on .pr-chip-x { visibility: visible; }
-.pr-chip-x:hover { color: var(--text); }
 .kv .peek-prs { align-items: center; min-width: 0; }
 
 /* Link suggestion under the session bar: a task id typed in a prompt, or a PR the session opened. */
@@ -1140,3 +1135,12 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .digest-row.finished .digest-glyph { color: var(--info); }
 .digest-row.github .digest-glyph { color: var(--text-3); }
 .digest-actions { justify-content: flex-end; margin-top: 10px; }
+
+/* macOS traffic-light colours, softly tinted: red closes or removes, yellow unlinks, green goes full width. */
+:root { --tl-red: #FF5F57; --tl-yellow: #FEBC2E; --tl-green: #28C840; }
+.tl-close { color: color-mix(in srgb, var(--tl-red) 80%, var(--text-3)); }
+.tl-unlink { color: color-mix(in srgb, var(--tl-yellow) 80%, var(--text-3)); display: inline-grid; place-items: center; }
+.tl-full { color: color-mix(in srgb, var(--tl-green) 80%, var(--text-3)); }
+.tl-close:hover { color: var(--tl-red); }
+.tl-unlink:hover { color: var(--tl-yellow); }
+.tl-full:hover { color: var(--tl-green); }

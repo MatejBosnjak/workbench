@@ -113,21 +113,16 @@ export function PrSide({ session }: { session: Session }) {
 
   return (
     <aside className="pr-side">
-      {prs.length > 0 && (
+      {prs.length > 1 && (
         <div className="ts-tabs">
           {prs.map((p) => (
-            <span key={p.url} className={`sb-chip pr-chip${p.url === current?.url ? ' on' : ''}`}>
-              <button className="pr-chip-open" title={p.title} onClick={() => void window.workbench.pane.open(p.url)}>
-                {p.title}
-              </button>
-              <button className="pr-chip-x" aria-label="Unlink PR from this session" title="Unlink from this session" onClick={() => void window.workbench.tasks.unlinkPr(session.id, p.url)}>
-                ×
-              </button>
-            </span>
+            <button key={p.url} className={`sb-chip${p.url === current?.url ? ' on' : ''}`} title={p.title} onClick={() => void window.workbench.pane.open(p.url)}>
+              {p.title}
+            </button>
           ))}
         </div>
       )}
-      {prs.length === 0 ? <span className="faint">No PR for this session.</span> : <GitPane active side onClose={() => setSessionSide(null)} />}
+      {prs.length === 0 ? <span className="faint">No PR for this session.</span> : <GitPane active side onClose={() => setSessionSide(null)} onUnlink={(url) => void window.workbench.tasks.unlinkPr(session.id, url)} />}
     </aside>
   )
 }

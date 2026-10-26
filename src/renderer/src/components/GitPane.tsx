@@ -15,11 +15,14 @@ const CI = { pass: ['CI passing', 'var(--ok)'], fail: ['CI failing', 'var(--bad)
 export function GitPane({
   active,
   onClose,
+  onUnlink,
   side = false,
 }: {
   active: boolean
   /** Replaces closing the pane (the session sidebar closes itself instead). */
   onClose?(): void
+  /** In a session's sidebar: takes the shown PR off the session (in place of back / forward). */
+  onUnlink?(url: string): void
   /** In a session's sidebar: framed like the task sidebar, without the task and session links the session bar already shows. */
   side?: boolean
 }) {
@@ -128,20 +131,32 @@ export function GitPane({
   const tools = (
     <span className="gp-tools">
       {pr?.repo === FE_REPO && <RunAppButton n={pr.number} compact />}
-      <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>
-        ‹
-      </button>
-      <button className="key-btn" title="Forward (⌘])" disabled={!pane?.canForward} onClick={() => void window.workbench.pane.nav('forward')}>
-        ›
-      </button>
+      {onUnlink ? (
+        key && (
+          <button className="key-btn tl-unlink" title="Unlink this PR from the session" aria-label="Unlink this PR from the session" onClick={() => onUnlink(key)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 4 8M8 12h3M4 4l16 16" />
+            </svg>
+          </button>
+        )
+      ) : (
+        <>
+          <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>
+            ‹
+          </button>
+          <button className="key-btn" title="Forward (⌘])" disabled={!pane?.canForward} onClick={() => void window.workbench.pane.nav('forward')}>
+            ›
+          </button>
+        </>
+      )}
       <button className="key-btn" title="Open in browser (⌘↩)" aria-label="Open in browser" onClick={() => void window.workbench.pane.nav('external')}>
         ↗
       </button>
-      <button className="key-btn" title={paneFull ? 'Back to the split (⌘J)' : 'Full width'} onClick={() => setPaneFull(!paneFull)}>
+      <button className="key-btn tl-full" title={paneFull ? 'Back to the split (⌘J)' : 'Full width'} onClick={() => setPaneFull(!paneFull)}>
         ⤢
       </button>
       <button
-        className="key-btn"
+        className="key-btn tl-close"
         title="Close"
         onClick={() => {
           setPaneFull(false)

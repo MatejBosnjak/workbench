@@ -88,7 +88,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Popovers open under the button that opens them, right-aligned to it (the TopBar cup's, the session bar cup's): popover colour, a heavy line and a shadow.
 - Checkbox rows aren't wrapped in a `<label>` when their text holds links or sits next to a write: only the box itself is a hit target.
 - My PRs and Reviews rows share one layout (rail, title over people, stacked checks, Run app column), so the two lists read the same.
-- A chip that can be removed carries its own × inside the chip, shown on hover and on the selected chip.
+- Window-like buttons take macOS traffic-light colours, softly tinted at rest (80% toward the muted text) and full on hover: × red (close), unlink yellow, ⤢ green. Tab × stays grey.
 
 ## Shell: TopBar, StatusBar, keys
 
@@ -264,7 +264,7 @@ Image: `docs/design/current/session-task-side.png`. Code: `TaskSide.tsx` (TaskSi
 
 Image: `docs/design/current/session-pr-side.png`. Code: `TaskSide.tsx` (PrSide), `GitPane.tsx`.
 
-- 45% wide by default: the GitHub pane on the session's PR, with a chip per PR (shown even for one) to pick between them. Each chip has an × (on hover, and on the current one) that unlinks the PR from this session for good, however it got there (by hand, Run app, a linked task): it's kept as a dismissal (`suggest_dismissed`, key `pr:<url>`), so it isn't suggested again either; connecting it by hand later clears that. With no PR left the sidebar closes. Framed like the task sidebar: a box with the PR's repo, title, state and CI set into its top border and the tools (‹ › browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
+- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. In the header's tools, the unlink icon (where ‹ › are elsewhere) takes the shown PR off this session for good, however it got there (by hand, Run app, a linked task): it's kept as a dismissal (`suggest_dismissed`, key `pr:<url>`), so it isn't suggested again either; connecting it by hand later clears that. With no PR left the sidebar closes. Framed like the task sidebar: a box with the PR's repo, title, state and CI set into its top border and the tools (unlink, browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
 - **Per session:** each session remembers its own sidebar (task, PR or none; `ui:sessionSides`), closed until opened. The PR sidebar shows only while the session has a PR; ⌘⇧I does nothing without one.
 - **Width (both sidebars):** drag the left edge to resize (←/→ when it has focus); double-click resets to the default. Each sidebar remembers its width (`ui:sideWidths`), never narrower than 320px or leaving the terminal less than 360px. The GitHub pane waits behind a still while dragging.
 

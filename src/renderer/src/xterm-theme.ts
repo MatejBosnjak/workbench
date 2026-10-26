@@ -28,3 +28,12 @@ export function xtermTheme(): ITheme {
     brightWhite: css('text'),
   }
 }
+
+/** The terminal face for the current theme: --term-font, --term-size (px) and --term-line from the theme tokens. */
+export function termFont(): { fontFamily: string; fontSize: number; lineHeight: number } {
+  return {
+    fontFamily: css('term-font') || "'JetBrains Mono', ui-monospace, monospace",
+    fontSize: Number(css('term-size')) || 13,
+    lineHeight: Number(css('term-line')) || 1.25,
+  }
+}

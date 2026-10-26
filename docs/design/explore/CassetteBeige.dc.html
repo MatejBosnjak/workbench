@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cassette 3 · Brown workstation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;family=VT323&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.board{width:3104px;padding:24px;background:#0B0A0D;font-family:Inter,system-ui,sans-serif}
+.row{display:flex;gap:32px}
+.lbl-s{color:#8E879E;font:600 13px 'JetBrains Mono',monospace;letter-spacing:.06em;margin:0 0 10px}
+.cap{color:#CDC7D8;font:13px/1.6 'JetBrains Mono',monospace;margin-top:18px;max-width:3056px}
+.cap b{color:#ECE8F2}
+.scr{width:1512px;height:860px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+
+.scr{background:#211D18;color:#D9CBB0;font-family:'Space Mono',monospace;font-size:13px}
+
+.top{height:50px;display:flex;align-items:center;gap:10px;padding:0 16px 0 92px;position:relative}
+.brand{display:flex;align-items:center;gap:10px;margin-right:12px;font-weight:700;letter-spacing:.06em}
+.rb{display:flex;flex-direction:column;gap:1px}.rb i{display:block;width:30px;height:3px}
+.cap-k{height:32px;padding:0 14px;display:flex;align-items:center;gap:8px;border-radius:5px;background:linear-gradient(180deg,#3A332A,#2D2820);box-shadow:0 0 0 1px #14110D,0 3px 0 #14110D,inset 0 1px 0 rgba(255,235,200,.08);font-size:12px;color:#CDBFA4}
+.cap-k.on{background:linear-gradient(180deg,#C8692A,#B35A20);color:#FFF1DE;box-shadow:0 0 0 1px #6E3210,0 1px 0 #6E3210;transform:translateY(2px);font-weight:700}
+.cap-k .n{color:#B5551A}.cap-k.on .n{color:#FFE2C4}
+.cap-k.dk{background:linear-gradient(180deg,#2A251E,#221E18);color:#CDBFA4;box-shadow:0 0 0 1px #14110D,0 3px 0 #14110D}
+.top .r{margin-left:auto;display:flex;gap:10px}
+.bezel{flex:1;display:flex;min-height:0;position:relative;border-top:1px solid #0D0B08;border-bottom:1px solid #0D0B08}
+.bezel .badge{position:absolute;bottom:5px;left:24px;font:700 9px 'Space Mono';letter-spacing:.3em;color:#7C735F}
+.crt{flex:1;background:radial-gradient(ellipse at 50% 40%,#2B2318 0%,#1A150E 70%,#120E09 100%);box-shadow:inset 0 0 60px rgba(0,0,0,.45);color:#F3E2C2;position:relative;overflow:hidden;display:flex;min-height:0;text-shadow:0 0 3px rgba(255,210,150,.25)}
+.crt::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(ellipse at 30% 10%,rgba(255,255,255,.06),transparent 40%);pointer-events:none}
+.in{flex:1;display:flex;gap:16px;padding:18px 20px;min-width:0}
+.col{flex:1;display:flex;flex-direction:column;gap:14px;min-width:0}
+.ctrs{display:flex;gap:10px}
+.ctr{flex:1;padding:8px 12px;border:1px solid #4A3D2A;display:flex;gap:12px;align-items:center;position:relative}
+.ctr .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+.ctr .n{font:700 40px 'Space Mono';line-height:1}
+.ctr .l{font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.ctr .notes{color:#A8977A;font-size:11px;line-height:1.4}
+.band{display:flex;height:6px}.band i{display:block}
+.flt{display:flex;gap:4px 16px;flex-wrap:wrap;font-size:12px}
+.flt span{display:flex;gap:6px;align-items:center}.flt .on{text-decoration:underline;text-underline-offset:4px}
+.sq{width:9px;height:9px;display:inline-block}
+.grp .hd{display:flex;gap:10px;align-items:baseline;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:11px;color:#F2B45A;border-bottom:1px dashed #4A3D2A;padding-bottom:4px;margin-bottom:2px}
+.grp .hd .r{margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none;color:#A8977A}
+.tr{display:flex;align-items:center;gap:10px;height:25px;white-space:nowrap}
+.tr .ti{flex:1;overflow:hidden;text-overflow:ellipsis}
+.tr.p .ti{font-weight:700}
+.tr .st{font-size:11px;width:120px;text-align:right}
+.tr .due{width:56px;text-align:right;color:#A8977A}
+.tr.sel{background:rgba(232,122,46,.18)}
+.dim{color:#A8977A}
+.side{width:320px;border:1px solid #4A3D2A;padding:12px;align-self:flex-start;line-height:1.7}
+.side .hd{font-weight:700;letter-spacing:.14em;font-size:11px;color:#F2B45A}
+.sb{height:44px;display:flex;align-items:center;gap:14px;padding:0 16px}
+.lcd{display:flex;align-items:center;gap:16px;height:30px;padding:0 12px;background:linear-gradient(180deg,#6F7962,#7C876D);border-radius:3px;box-shadow:inset 0 2px 4px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.5);color:#1E2618;font:400 18px 'VT323',monospace}
+.lcd .off{color:rgba(30,38,24,.16)}
+.sb .r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.sbar{height:34px;display:flex;align-items:center;gap:12px;padding:0 4px 8px;font-size:12px}
+.term{flex:1;padding:22px 28px;white-space:pre;line-height:1.6;font-size:13px}
+.pr{background:rgba(242,180,90,.12);box-shadow:inset 3px 0 0 #E87A2E}
+.cur{display:inline-block;width:8px;height:16px;background:#F3E2C2;vertical-align:-3px}
+.o{color:#E87A2E}.y{color:#F2B45A}.rd{color:#E5482D}
+.grill{position:absolute;right:30px;bottom:6px;display:flex;gap:3px}.grill i{width:22px;height:3px;border-radius:2px;background:#9F967F;display:block}
+
+</style>
+</helmet>
+<div class="board">
+<div class="row">
+<div><div class="lbl-s">TODAY · MY TASKS</div><div class="scr"><div class="top"><span class="brand"><span class="rb"><i style="background:#F2B45A"></i><i style="background:#E87A2E"></i><i style="background:#E5482D"></i><i style="background:#8C3B1E"></i></span>WORKBENCH<span class="dim" style="font-weight:400">193M</span></span><span class="cap-k on">1 Today</span><span class="cap-k">2 Local <span class="n">0/7</span></span><span class="r"><span class="cap-k">+</span><span class="cap-k">☕</span><span class="cap-k dk">⌘K</span></span></div>
+<div class="bezel"><div class="crt"><div class="in"><div class="col">
+<div class="ctrs"><div class="ctr"><span class="bar" style="background:#F2B45A"></span><span class="n" style="color:#F2B45A">6</span><span><span class="l">Needs you</span><br><span class="notes">1 PR · 3 threads · 2 tasks</span></span></div><div class="ctr"><span class="bar" style="background:#E87A2E"></span><span class="n" style="color:#E87A2E">40</span><span><span class="l">My tasks</span><br><span class="notes">9 on latest · 8 working</span></span></div><div class="ctr"><span class="bar" style="background:#E5482D"></span><span class="n" style="color:#E5482D">20</span><span><span class="l">My PRs</span><br><span class="notes">2 need a reply · 16 drafts</span></span></div><div class="ctr"><span class="bar" style="background:#8C3B1E"></span><span class="n" style="color:#F3E2C2">6</span><span><span class="l">Reviews</span><br><span class="notes">2 waiting on authors · 1 bot PRs hidden</span></span></div></div>
+<div class="band"><i style="background:#5FB8A8;width:5.00%"></i><i style="background:#7FA6C9;width:22.50%"></i><i style="background:#E5482D;width:20.00%"></i><i style="background:#C97A3A;width:7.50%"></i><i style="background:#F2B45A;width:20.00%"></i><i style="background:#8A7C66;width:10.00%"></i><i style="background:#C8A2C8;width:15.00%"></i></div>
+<div class="flt"><span class=""><span class="sq" style="background:#5FB8A8"></span>On Production / Followup <b>2</b></span><span class=""><span class="sq" style="background:#7FA6C9"></span>On Latest <b>9</b></span><span class=""><span class="sq" style="background:#E5482D"></span>Peer Review <b>8</b></span><span class=""><span class="sq" style="background:#C97A3A"></span>Paused <b>3</b></span><span class="on"><span class="sq" style="background:#F2B45A"></span>Working <b>8</b></span><span class=""><span class="sq" style="background:#8A7C66"></span>Backlog <b>4</b></span><span class=""><span class="sq" style="background:#C8A2C8"></span>Triage <b>6</b></span><span style="margin-left:auto" class="dim">group by <b style="color:#F3E2C2;text-decoration:underline">project</b> status</span></div>
+<div class="grp"><div class="hd">Bugs (3)<span class="r">updated 0m ago · <span class="y">refresh</span></span></div><div class="tr" style="padding-left:0px"><span class="sq" style="background:#7FA6C9;border-radius:50%"></span><span class="ti">Scenarios: različita marža u pregledu i uređivanju scenarija (Ustwo)</span><span class="st" style="color:#7FA6C9">on latest</span><span class="due"></span></div><div class="tr" style="padding-left:0px"><span class="sq" style="background:#F2B45A;border-radius:50%"></span><span class="ti">Scenarios: used_quantity opis u ai-agentu i API dokumentaciji (sati, ne dani)</span><span class="st" style="color:#F2B45A">working</span><span class="due"></span></div><div class="tr" style="padding-left:0px"><span class="sq" style="background:#E5482D;border-radius:50%"></span><span class="ti">Scenarios: data migracija used_quantity (dani → sati) za day servise</span><span class="st" style="color:#E5482D">peer review</span><span class="due"></span></div></div>
+<div class="grp" style="flex:1;overflow:hidden"><div class="hd">My tasks › Product: CRM (20)</div><div class="tr p" style="padding-left:0px"><span class="sq" style="background:#5FB8A8;transform:rotate(45deg)"></span><span class="ti">CRM Contacts copy update</span><span class="st" style="color:#5FB8A8">on production</span><span class="due rd">21 Oct</span></div><div class="tr p" style="padding-left:0px"><span class="sq" style="background:#5FB8A8;transform:rotate(45deg)"></span><span class="ti">Proposals v2 <span class="dim">2</span></span><span class="st" style="color:#5FB8A8">on production</span><span class="due rd">23 Oct</span></div><div class="tr" style="padding-left:18px"><span class="dim">└</span><span class="sq" style="background:#E5482D;border-radius:50%"></span><span class="ti">API: reject custom document templates on proposals</span><span class="st" style="color:#E5482D">peer review</span><span class="due"></span></div><div class="tr" style="padding-left:18px"><span class="dim">└</span><span class="sq" style="background:#E5482D;border-radius:50%"></span><span class="ti">AI agent: proposals skill should fall back to a standard document template</span><span class="st" style="color:#E5482D">peer review</span><span class="due"></span></div><div class="tr p" style="padding-left:0px"><span class="sq" style="background:#F2B45A;transform:rotate(45deg)"></span><span class="ti">Redesign contact form <span class="dim">3</span></span><span class="st" style="color:#F2B45A">working</span><span class="due">30 Oct</span></div><div class="tr" style="padding-left:18px"><span class="dim">└</span><span class="sq" style="background:#E5482D;border-radius:50%"></span><span class="ti">Dev: Redesign contact form technical specification</span><span class="st" style="color:#E5482D">peer review</span><span class="due"></span></div><div class="tr sel" style="padding-left:18px"><span class="dim">└</span><span class="sq" style="border:1.5px solid #C8A2C8;border-radius:50%"></span><span class="ti">E: Redesign contact form E2E test</span><span class="st" style="color:#C8A2C8">triage</span><span class="due"></span></div><div class="tr" style="padding-left:18px"><span class="dim">└</span><span class="sq" style="border:1.5px solid #C8A2C8;border-radius:50%"></span><span class="ti">PM: Redesign contact form — confirm own login email change</span><span class="st" style="color:#C8A2C8">triage</span><span class="due"></span></div><div class="tr p" style="padding-left:0px"><span class="sq" style="background:#C97A3A;transform:rotate(45deg)"></span><span class="ti">Split deal-form <span class="dim">1</span></span><span class="st" style="color:#C97A3A">paused</span><span class="due"></span></div><div class="tr" style="padding-left:18px"><span class="dim">└</span><span class="sq" style="background:#C97A3A;border-radius:50%"></span><span class="ti">SPEC</span><span class="st" style="color:#C97A3A">paused</span><span class="due"></span></div><div class="tr p" style="padding-left:0px"><span class="sq" style="background:#F2B45A;transform:rotate(45deg)"></span><span class="ti">Deal notifications - Mention user <span class="dim">1</span></span><span class="st" style="color:#F2B45A">working</span><span class="due">30 Oct</span></div><div class="tr" style="padding-left:18px"><span class="dim">└</span><span class="sq" style="background:#F2B45A;border-radius:50%"></span><span class="ti">FE: Deal notifications - mention user</span><span class="st" style="color:#F2B45A">working</span><span class="due"></span></div></div>
+</div>
+<div class="side"><span class="hd">TASK</span><br>E: Redesign contact form E2E test<br><span class="dim">triage · CRM · no due date</span><br><span class="o">▶</span> 3 Redesign contact fo… <span class="o">running</span><br><span class="rd">●</span> PR #1251 <span class="rd">CI failing</span><br><span class="dim">⏎ open · s start · o Productive</span></div>
+</div></div></div><div class="sb"><span class="cap-k">⌨</span><span style="font-size:12px">no session</span><span class="r"><span class="lcd"><span>CTX ▮<span class="off">▮▮▮▮▮▮▮▮▮▮▮</span> 06%</span><span>5H ▮<span class="off">▮▮▮▮▮▮▮▮▮▮▮</span> 03% ↻21:10</span><span>WK ▮<span class="off">▮▮▮▮▮▮▮▮▮▮▮</span> 02%</span></span><span class="cap-k dk">◆ haiku-5.5 · medium · auto</span></span></div></div></div>
+<div><div class="lbl-s">SESSION</div><div class="scr"><div class="top"><span class="brand"><span class="rb"><i style="background:#F2B45A"></i><i style="background:#E87A2E"></i><i style="background:#E5482D"></i><i style="background:#8C3B1E"></i></span>WORKBENCH<span class="dim" style="font-weight:400">193M</span></span><span class="cap-k">1 Today</span><span class="cap-k">2 Local <span class="n">0/7</span></span><span class="cap-k on" style="margin-left:12px">3 Redesign contact fo… ×</span><span class="r"><span class="cap-k">+</span><span class="cap-k">☕</span><span class="cap-k dk">⌘K</span></span></div>
+<div class="sbar" style="padding:0 16px 8px"><span class="dim" style="font-weight:700;letter-spacing:.14em;font-size:10px">SESSION</span><span class="cap-k">◇ E: Redesign contact form E2E test <span class="dim">⌘I</span></span><span class="cap-k"><span class="rd">●</span> CI failing</span><span class="cap-k">+ new</span></div>
+<div class="bezel"><div class="crt"><div class="term"><span style="display:inline-block;vertical-align:top;margin-right:16px"><svg width="60" height="30" viewBox="0 0 60 30" shape-rendering="crispEdges"><rect x="12" y="0" width="6" height="6" fill="#E87A2E"/><rect x="18" y="0" width="6" height="6" fill="#E87A2E"/><rect x="24" y="0" width="6" height="6" fill="#E87A2E"/><rect x="30" y="0" width="6" height="6" fill="#E87A2E"/><rect x="36" y="0" width="6" height="6" fill="#E87A2E"/><rect x="42" y="0" width="6" height="6" fill="#E87A2E"/><rect x="6" y="6" width="6" height="6" fill="#E87A2E"/><rect x="12" y="6" width="6" height="6" fill="#E87A2E"/><rect x="24" y="6" width="6" height="6" fill="#E87A2E"/><rect x="30" y="6" width="6" height="6" fill="#E87A2E"/><rect x="42" y="6" width="6" height="6" fill="#E87A2E"/><rect x="48" y="6" width="6" height="6" fill="#E87A2E"/><rect x="0" y="12" width="6" height="6" fill="#E87A2E"/><rect x="6" y="12" width="6" height="6" fill="#E87A2E"/><rect x="12" y="12" width="6" height="6" fill="#E87A2E"/><rect x="18" y="12" width="6" height="6" fill="#E87A2E"/><rect x="24" y="12" width="6" height="6" fill="#E87A2E"/><rect x="30" y="12" width="6" height="6" fill="#E87A2E"/><rect x="36" y="12" width="6" height="6" fill="#E87A2E"/><rect x="42" y="12" width="6" height="6" fill="#E87A2E"/><rect x="48" y="12" width="6" height="6" fill="#E87A2E"/><rect x="54" y="12" width="6" height="6" fill="#E87A2E"/><rect x="6" y="18" width="6" height="6" fill="#E87A2E"/><rect x="12" y="18" width="6" height="6" fill="#E87A2E"/><rect x="18" y="18" width="6" height="6" fill="#E87A2E"/><rect x="24" y="18" width="6" height="6" fill="#E87A2E"/><rect x="30" y="18" width="6" height="6" fill="#E87A2E"/><rect x="36" y="18" width="6" height="6" fill="#E87A2E"/><rect x="42" y="18" width="6" height="6" fill="#E87A2E"/><rect x="48" y="18" width="6" height="6" fill="#E87A2E"/><rect x="6" y="24" width="6" height="6" fill="#E87A2E"/><rect x="18" y="24" width="6" height="6" fill="#E87A2E"/><rect x="36" y="24" width="6" height="6" fill="#E87A2E"/><rect x="48" y="24" width="6" height="6" fill="#E87A2E"/><rect x="12" y="6" width="6" height="6" fill="#1A150E"/><rect x="42" y="6" width="6" height="6" fill="#1A150E"/></svg></span><span style="display:inline-block"><b>Claude Code</b> <span class="dim">v2.1.310</span><br><span class="dim">Haiku 5.5 · Claude Team</span><br><span class="dim">~/Productive/work/worktrees/e2e-tests-19985369-contact-form-redesign-flag</span></span><br><br><br><span class="pr">❯ Reply with just: ok                                                                                                                                                       </span><br><br><span class="y">●</span> ok<br><br><span class="dim">✻ Churned for 1s · done 4:48 PM</span><br><br><span class="pr">❯ Reply with just: ok. (context: 9822475)                                                                                                                                   </span><br><br><span class="y">●</span> ok<br><br><span class="dim">✻ Cogitated for 2s · done 4:48 PM</span><br><br><span class="dim">──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</span><br>❯ <span class="cur"></span><br><span class="dim">──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</span><br>  <span class="o">▸▸ auto mode on</span> <span class="dim">(shift+tab to cycle) · PR #1251</span></div></div>
+</div>
+<div class="sb"><span class="cap-k">⌨</span><span style="font-size:12px">● Redesign contact form E2… · 0m</span><span class="r"><span class="lcd"><span>CTX ▮<span class="off">▮▮▮▮▮▮▮▮▮▮▮</span> 06%</span><span>5H ▮<span class="off">▮▮▮▮▮▮▮▮▮▮▮</span> 03% ↻21:10</span><span>WK ▮<span class="off">▮▮▮▮▮▮▮▮▮▮▮</span> 02%</span></span><span class="cap-k dk">◆ haiku-5.5 · medium · auto</span></span></div></div></div>
+</div>
+<div class="cap"><b>3 · Brown workstation</b> — a 1981 desk computer in dark smoked-brown plastic: keycap places (the open one is the orange key, pressed), and everything you work in sits on one CRT screen between the top and bottom strips, warm-white text on brown-black with a faint scanline. 70s sunset stripes (yellow → orange → red → brown) carry the brand and the four counters; usage moves to a green-grey LCD strip. The screen runs edge to edge between the dark top and bottom strips; in the chrome only the open place (orange key) and the stripes carry colour.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":3104,"height":1010}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

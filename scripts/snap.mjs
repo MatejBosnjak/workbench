@@ -142,7 +142,7 @@ const git = await api(() => window.workbench.git.snapshot())
 const withPr = new Set([...git.mine, ...git.reviews].flatMap((p) => p.taskRefs ?? []))
 const t1 = mine.find((t) => withPr.has(t.id)) ?? mine[0] ?? snap.tasks[0]
 const t2 = mine.find((t) => t !== t1)
-const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || ['focus', 'palette', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
+const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || n.startsWith('theme-') || ['focus', 'palette', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
 let sid = null
 if (wantSession && t1) {
   const s = await api((id) => window.workbench.tasks.start(id), t1.id)
@@ -205,6 +205,17 @@ await shot('session-cup', () => blurred(() => click('.sbar-cup')))
 await shot('memory', () => blurred(() => click('.mem-btn')))
 await shot('keys', () => blurred(() => page.focus('.sb-keys')))
 await shot('picker', () => blurred(() => click('.picker-btn')))
+
+// Each non-default theme on My tasks and the session, then back to Dusk.
+for (const theme of ['muthur', 'brown', 'console']) {
+  await menu({ type: 'theme', theme })
+  await shot(`theme-${theme}`, () => today('My tasks'))
+  await shot(`theme-${theme}-session`, async () => {
+    await session()
+    await wait(800)
+  })
+}
+await menu({ type: 'theme', theme: 'dusk' })
 
 if (sid) await api((id) => window.workbench.closeSession(id), sid)
 await app.close()

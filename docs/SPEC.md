@@ -71,12 +71,15 @@ Code (plumbing that every screen rests on): `src/main/index.ts`, `claude.ts`, `h
 
 ## Visual style
 
-Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
+Image: every screenshot below; the other themes in `theme-muthur.png`, `theme-brown.png`, `theme-console.png` and their `-session` shots. Code: `src/renderer/src/theme.css`, `styles.css`, `themes.css`, `src/shared/theme.ts`, `SevenSeg.tsx`.
 
 - TUI look: JetBrains Mono 12.5px with tabular numbers; 1px square boxes with the title set into the top border; the box holding the selection gets a lighter border and title.
 - **Violet means "needs you".** The accent marks waiting sessions (tab, +N count, status-bar dot, row marks, question bookmarks), the Needs-you number, primary actions and the ▌wb mark. Selection and "current" don't use it, except the current session tab: selected rows, the current place, picked chips and the open sidebar's button are raised with a light outline or bar, and keep their own colours. Amber isn't an attention colour either; it's Productive's Working status, effort, and meter warnings.
 - **Still at rest.** Nothing loops; glow is kept for a waiting tab and the Needs-you number. Plain ground behind lists and the terminal.
-- Theme **Dusk** only (muted synthwave on graphite, purple accent). Colours are CSS tokens.
+- **Themes.** Dusk (muted synthwave on graphite, purple accent) is the default; three cassette-futurism themes can be picked from the app menu (Workbench › Theme) or ⌘K (`theme`). The choice is the setting `ui:theme` (mirrored in localStorage so the first paint has it) and applies at once as `data-theme` on `<html>`; open terminals switch colours, face and size in place. Colours are CSS tokens; each theme replaces them and restyles the shell in `themes.css`; terminals read `--term-font` / `--term-size` / `--term-line`.
+  - **MU/TH/UR:** amber phosphor on near-black, VT323 (scaled to JetBrains Mono's x-height with `font-size-adjust`, so sizes and column widths hold), light scanlines and a soft vignette over the whole window, chrome in capitals. Task rows and status chips print a three-letter status code in the status colour instead of the name and drop the dot; Working is reverse video. Counters print two digits; My PRs blue, Reviews violet; Needs you hot red (the accent). The current place and tab are reverse video. Meters are block cells.
+  - **Brown workstation:** smoked-brown chrome, Space Mono; places, top-bar buttons and tabs are keycaps, the current one the orange key, pressed; `▌wb` carries the four sunset stripes; each counter has its stripe colour down the left and its number in it; box titles small amber capitals; faint scanlines; the meters sit on a grey-green LCD strip with dark segments.
+  - **Ops console:** slate panels on a perforated ground, Share Tech Mono, a cream → orange → rust → brown stripe under the top bar; box and counter titles on embossed Dymo tape (Needs you on red tape); counters are screwed plates with seven-segment LED digits (amber, Needs you red); status dots are glowing lamps and status names small capitals; status chips carry a toggle switch; meters are green LED ladders.
 - **Status colours.** Productive's 17 status colours each map to a bright stand-in (`statusVivid`) for marks, labels, the strip and chips; Productive's own pastel pairs (`statusColors`) stay for tag-style badges such as the status button.
 - Shortcuts are never printed in the UI except in the ⌨ popover and tooltips.
 - **No task or PR numbers on screen.** A PR reads as its repo (`fe`, `api`, `specs`) and title, a task as its title; GitHub links in text read `frontend PR`. Numbers stay in tooltips, search, git commands, and anything sent to Claude or GitHub. Notifications name the PR by title (`CI failed: <title>`).
@@ -108,6 +111,7 @@ Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear
   - **+N** counts tabs out of view and, when any of them waits on you, adds a violet `●k` and a violet left border, so a waiting session never hides in the overflow.
 - **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot (same colours as its tab), name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks, the statusline or the workbench skill aren't installed (click installs); then the meters and the picker.
   - **ctx** (green, full-strength gradient; amber ≥ 60% with a `/compact` button that runs it, red ≥ 75%), **5h** (purple, `↻HH:MM` reset), **wk** (blue). 48px bars; the gradient's strength ranks them. Until a first value arrives the track shows a faint sweep and the value reads `—`. Hover shows the full text.
+- **Theme** (Workbench menu › Theme, radio items; or ⌘K): switches the whole app at once (see Visual style). A full-window layer above everything (`.crt-fx`, never hit by the pointer) carries the scanlines of MU/TH/UR and Brown; it's hidden on the others.
 - **Keys** (only when no terminal or text field has focus):
 
   | Key | Action |
@@ -132,7 +136,7 @@ Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear
 
 Image: `docs/design/current/palette.png`. Code: `Palette.tsx`.
 
-- Groups: Sessions, Recently closed, Actions (new session, new session in folder…). Typing also searches Workstreams, Tasks and PRs (mine and reviews, bots excluded); every query word must match. Rows show status and project for tasks, repo and author for PRs; no numbers.
+- Groups: Sessions, Recently closed, Actions (new session, new session in folder…). Typing also searches Workstreams, Tasks, PRs and Themes (`Theme: <name>`, the current one marked) (mine and reviews, bots excluded); every query word must match. Rows show status and project for tasks, repo and author for PRs; no numbers.
 - `/command` runs a slash command in the current running session. `/model` and `/effort` are refused there (they rewrite the global defaults); the picker covers them.
 
 ## Focus (⌘F)
@@ -170,7 +174,7 @@ Image: `docs/design/current/today-tasks.png`. Code: `TodayView.tsx` (Home, TaskS
   - tree lines from parent to children (a continuous guide per level, `├` / `└` joints);
   - a status dot in the status colour (a ring for not started, a diamond for a milestone);
   - the title exactly as in Productive; a parent is bold with its child count; a subtask shown without its parent names it in faint text;
-  - the status name in its colour, due date (red when late), and the best session's mark plus count, or `+ ✻` on hover/selection to start one;
+  - the status name in its colour (a three-letter code on MU/TH/UR, see Visual style), due date (red when late), and the best session's mark plus count, or `+ ✻` on hover/selection to start one;
   - a context header (hollow diamond) for a parent that isn't mine ("not assigned to you") or is filtered out; click opens its workstream.
 - **To-do-only rows** (assigned to someone else, in my list for my open to-dos): a `☐ N to-do(s)` chip and the assignee's avatar at the row end; my own rows have no avatar.
 - `/` opens a title filter; j / k select; ⏎ or double-click continues the task (below); `s` starts a new session on it; `r` runs its frontend PR.
@@ -244,7 +248,7 @@ Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `s
 Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, `TaskSide.tsx` (SessionBar), `ExternalPanel.tsx`, `PrCard.tsx`, `src/main/sessions.ts`, `pty-host.ts`.
 
 - **Spawning.** `claude` (or `claude --resume <id>`) in a pty, with `--model` / `--effort` / `--permission-mode` from the session's settings. Default cwd `~/Productive/work` (setting `defaultCwd`); a task session starts in the task's worktree when there is one. Fork (from a workstream) starts `--resume <id> --fork-session` in a new tab. The session's env carries `WORKBENCH_SESSION_ID` and puts Workbench's bin folder (with `wb`) first on PATH.
-- **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws (a pty's owner may rewrite output before it's kept, as Local strips its service shell's markers). Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with repo, title, state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
+- **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback, in the theme's colours and face (a theme switch restyles open terminals and refits them); main keeps replay history so a reopened view redraws (a pty's owner may rewrite output before it's kept, as Local strips its service shell's markers). Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with repo, title, state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
 - **Session bar** (38px, raised, under the TopBar, only for Workbench sessions):
   - **Task button:** a 6px status rail (the status shows only as its colour; the name is in the tooltip), Productive logo, title, `⌘I` → task sidebar. No task: "link task…".
   - **PR button:** GitHub logo, CI state, `+N`, `⌘⇧I` → PR sidebar (no title; it's in the tooltip and the sidebar); hidden with no PR. The session's PRs, in order: connected by hand, the frontend PR its branch is on, PRs of its tasks.

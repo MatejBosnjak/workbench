@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cassette 1 · MU/TH/UR</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=VT323&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.board{width:3104px;padding:24px;background:#0B0A0D;font-family:Inter,system-ui,sans-serif}
+.row{display:flex;gap:32px}
+.lbl-s{color:#8E879E;font:600 13px 'JetBrains Mono',monospace;letter-spacing:.06em;margin:0 0 10px}
+.cap{color:#CDC7D8;font:13px/1.6 'JetBrains Mono',monospace;margin-top:18px;max-width:3056px}
+.cap b{color:#ECE8F2}
+.scr{width:1512px;height:860px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+
+.scr{background:#0A0602;color:#FFB33A;font-family:'VT323',monospace;font-size:20px;line-height:1.15;text-shadow:0 0 2px rgba(255,170,40,.35),0 0 10px rgba(255,140,0,.08)}
+.scr::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:9;background:repeating-linear-gradient(0deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px)}
+.scr::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:10;background:radial-gradient(ellipse at center,transparent 65%,rgba(0,0,0,.4) 100%);box-shadow:inset 0 0 80px rgba(255,150,30,.06)}
+.dim{color:#9A6618;text-shadow:0 0 4px rgba(255,150,30,.25)}
+.p-prod{color:#7FE0B0;text-shadow:0 0 5px rgba(110,230,170,.5)}
+.p-latest{color:#7CC8FF;text-shadow:0 0 5px rgba(110,190,255,.5)}
+.p-review{color:#FF6A5A;text-shadow:0 0 5px rgba(255,90,70,.55)}
+.p-paused{color:#FF9A3A;text-shadow:0 0 5px rgba(255,150,50,.45)}
+.p-backlog{color:#8A6A3A;text-shadow:none}
+.p-triage{color:#D0A8FF;text-shadow:0 0 5px rgba(200,160,255,.45)}
+.hot{color:#FF5A2E;text-shadow:0 0 6px rgba(255,80,40,.7)}
+.inv{background:#FFB33A;color:#0A0602;text-shadow:none;padding:0 4px}
+.top{height:38px;display:flex;align-items:center;gap:22px;padding:0 18px 0 92px;border-bottom:1px solid #6B4510}
+.top .brand{letter-spacing:.12em}
+.tab{padding:0 6px}
+.tab.on{background:#FFB33A;color:#0A0602;text-shadow:0 0 10px rgba(255,170,40,.6)}
+.top .r{margin-left:auto;display:flex;gap:18px}
+.main{flex:1;display:flex;gap:18px;padding:14px 18px;min-height:0}
+.col{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ctrs{display:flex;gap:14px}
+.ctr{flex:1;border:1px solid #6B4510;padding:4px 12px 8px;position:relative;display:flex;align-items:flex-end;gap:14px}
+.ctr .t{position:absolute;top:-12px;left:10px;background:#0A0602;padding:0 6px;letter-spacing:.1em}
+.ctr .n{font-size:64px;line-height:1}
+.ctr .notes{margin-left:auto;text-align:right;font-size:17px}
+.ctr.alert{border-color:#FF5A2E}
+.ctr.alert .n{color:#FF5A2E;text-shadow:0 0 12px rgba(255,80,40,.8)}
+.flt{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:19px}
+.flt .on{background:#FFB33A;color:#0A0602;text-shadow:none;padding:0 4px}
+.grp{border:1px solid #6B4510;padding:10px 12px 6px;position:relative}
+.grp .t{position:absolute;top:-12px;left:10px;background:#0A0602;padding:0 6px;letter-spacing:.08em}
+.grp .t2{position:absolute;top:-12px;right:10px;background:#0A0602;padding:0 6px}
+.tr{display:flex;gap:12px;height:26px;align-items:center;white-space:nowrap}
+.tr .c{width:44px;flex-shrink:0}
+.tr .ti{flex:1;overflow:hidden;text-overflow:ellipsis}
+.tr .due{width:70px;text-align:right}
+.tr.p .ti{letter-spacing:.02em}
+.tr.sel{background:rgba(255,179,58,.12);outline:1px solid #FFB33A}
+.side{width:340px;border:1px solid #6B4510;padding:12px;position:relative;align-self:flex-start}
+.side .t{position:absolute;top:-12px;left:10px;background:#0A0602;padding:0 6px}
+.sb{height:34px;border-top:1px solid #6B4510;display:flex;align-items:center;gap:26px;padding:0 18px;font-size:19px}
+.sb .r{margin-left:auto}
+.sbar{height:34px;border-bottom:1px solid #6B4510;display:flex;align-items:center;gap:22px;padding:0 18px}
+.term{flex:1;padding:18px 22px;white-space:pre;font-size:21px;line-height:1.25}
+.cur{display:inline-block;width:11px;height:20px;background:#FFB33A;vertical-align:-3px;box-shadow:0 0 8px #FFB33A}
+.pr{background:rgba(255,179,58,.13)}
+.rail{position:absolute;right:10px;top:150px;display:flex;flex-direction:column;gap:110px}
+
+</style>
+</helmet>
+<div class="board">
+<div class="row">
+<div><div class="lbl-s">TODAY · MY TASKS</div><div class="scr"><div class="top"><span class="brand">▌WB 193M</span><span class="tab on">[1] TODAY</span><span class="tab">[2] LOCAL <span class="dim">0/7</span></span><span class="dim">│</span><span class="r"><span>[+]</span><span>[CAF:OFF]</span><span>[⌘K]</span></span></div>
+<div class="main"><div class="col">
+<div class="ctrs"><div class="ctr alert"><span class="t">NEEDS YOU</span><span class="n ">06</span><span class="notes ">1 PR<br>3 THREADS<br>2 TASKS</span></div><div class="ctr"><span class="t">MY TASKS</span><span class="n ">40</span><span class="notes dim">9 ON LATEST<br>8 WORKING</span></div><div class="ctr"><span class="t">MY PRS</span><span class="n p-latest">20</span><span class="notes dim">2 NEED A REPLY<br>16 DRAFTS</span></div><div class="ctr"><span class="t">REVIEWS</span><span class="n p-triage">06</span><span class="notes dim">2 WAITING ON AUTHORS<br>1 BOT PRS HIDDEN</span></div></div>
+<div class="flt"><span class=""><span class="p-prod">PRD</span> ON PRODUCTION / FOLLOWUP 2</span><span class=""><span class="p-latest">LAT</span> ON LATEST 9</span><span class=""><span class="p-review">REV</span> PEER REVIEW 8</span><span class=""><span class="p-paused">PAU</span> PAUSED 3</span><span class="on"><span class="">WRK</span> WORKING 8</span><span class=""><span class="p-backlog">BKL</span> BACKLOG 4</span><span class=""><span class="p-triage">TRI</span> TRIAGE 6</span><span style="margin-left:auto" class="dim">GROUP BY <span class="inv">PROJECT</span> STATUS</span></div>
+<div class="grp"><span class="t">BUGS (3)</span><span class="t2 dim">UPDATED 0M AGO · R=REFRESH</span><div class="tr"><span class="c"><span class="p-latest">LAT</span></span><span class="ti"><span class="dim"></span>Scenarios: različita marža u pregledu i uređivanju scenarija (Ustwo)</span><span class="due"></span></div><div class="tr"><span class="c"><span class="inv">WRK</span></span><span class="ti"><span class="dim"></span>Scenarios: used_quantity opis u ai-agentu i API dokumentaciji (sati, ne dani)</span><span class="due"></span></div><div class="tr"><span class="c"><span class="p-review">REV</span></span><span class="ti"><span class="dim"></span>Scenarios: data migracija used_quantity (dani → sati) za day servise</span><span class="due"></span></div></div>
+<div class="grp" style="flex:1"><span class="t">MY TASKS › PRODUCT: CRM (20)</span><div class="tr p"><span class="c"><span class="p-prod">PRD</span></span><span class="ti"><span class="dim"></span>CRM CONTACTS COPY UPDATE</span><span class="due"><span class="hot">21 OCT</span></span></div><div class="tr p"><span class="c"><span class="p-prod">PRD</span></span><span class="ti"><span class="dim"></span>PROPOSALS V2 <span class="dim">[2]</span></span><span class="due"><span class="hot">23 OCT</span></span></div><div class="tr"><span class="c"><span class="p-review">REV</span></span><span class="ti">&nbsp;&nbsp;&nbsp;<span class="dim">└ </span>API: reject custom document templates on proposals</span><span class="due"></span></div><div class="tr"><span class="c"><span class="p-review">REV</span></span><span class="ti">&nbsp;&nbsp;&nbsp;<span class="dim">└ </span>AI agent: proposals skill should fall back to a standard document template</span><span class="due"></span></div><div class="tr p"><span class="c"><span class="inv">WRK</span></span><span class="ti"><span class="dim"></span>REDESIGN CONTACT FORM <span class="dim">[3]</span></span><span class="due"><span class="">30 OCT</span></span></div><div class="tr"><span class="c"><span class="p-review">REV</span></span><span class="ti">&nbsp;&nbsp;&nbsp;<span class="dim">└ </span>Dev: Redesign contact form technical specification</span><span class="due"></span></div><div class="tr sel"><span class="c"><span class="p-triage">TRI</span></span><span class="ti">&nbsp;&nbsp;&nbsp;<span class="dim">└ </span>E: Redesign contact form E2E test</span><span class="due"></span></div><div class="tr"><span class="c"><span class="p-triage">TRI</span></span><span class="ti">&nbsp;&nbsp;&nbsp;<span class="dim">└ </span>PM: Redesign contact form — confirm own login email change</span><span class="due"></span></div><div class="tr p"><span class="c"><span class="p-paused">PAU</span></span><span class="ti"><span class="dim"></span>SPLIT DEAL-FORM <span class="dim">[1]</span></span><span class="due"></span></div><div class="tr"><span class="c"><span class="p-paused">PAU</span></span><span class="ti">&nbsp;&nbsp;&nbsp;<span class="dim">└ </span>SPEC</span><span class="due"></span></div><div class="tr p"><span class="c"><span class="inv">WRK</span></span><span class="ti"><span class="dim"></span>DEAL NOTIFICATIONS - MENTION USER <span class="dim">[1]</span></span><span class="due"><span class="">30 OCT</span></span></div><div class="tr"><span class="c"><span class="inv">WRK</span></span><span class="ti">&nbsp;&nbsp;&nbsp;<span class="dim">└ </span>FE: Deal notifications - mention user</span><span class="due"></span></div></div>
+</div>
+<div class="side" style="white-space:pre;line-height:1.3"><span class="t">TASK</span><span class="dim">E: REDESIGN CONTACT FORM E2E TEST</span><br><span class="p-triage">TRIAGE</span> · CRM · NO DUE DATE<br><span class="dim">────────────────────────────</span><br>SESSIONS  ▶ 3 REDESIGN CONTACT FO…<br>PRS       <span class="p-latest">#1251</span> <span class="hot">CI FAILING</span><br><span class="dim">────────────────────────────</span><br><span class="inv">⏎ OPEN</span>  <span class="dim">S START  O PRODUCTIVE</span></div>
+</div><div class="sb"><span>⌨</span><span class="dim"></span><span class="r"></span><span>CTX <span class="dim">[</span>█░░░░░░░░░<span class="dim">]</span> 06%</span><span>5H <span class="dim">[</span>█░░░░░░░░░<span class="dim">]</span> 03% ↻21:10</span><span>WK <span class="dim">[</span>█░░░░░░░░░<span class="dim">]</span> 02%</span><span>◆ HAIKU-5.5 · MEDIUM · AUTO</span></div></div></div>
+<div><div class="lbl-s">SESSION</div><div class="scr"><div class="top"><span class="brand">▌WB 193M</span><span class="tab">[1] TODAY</span><span class="tab">[2] LOCAL <span class="dim">0/7</span></span><span class="dim">│</span><span class="tab on">[3] REDESIGN CONTACT FO… ×</span><span class="r"><span>[+]</span><span>[CAF:OFF]</span><span>[⌘K]</span></span></div>
+<div class="sbar"><span class="dim">SESSION</span><span>▌ E: REDESIGN CONTACT FORM E2E TEST <span class="dim">⌘I</span></span><span class="hot">● CI FAILING <span class="dim">⌘⇧I</span></span><span>[+ NEW]</span></div>
+<div class="term"><span style="display:inline-block;vertical-align:top;margin-right:18px"><svg width="70" height="35" viewBox="0 0 70 35" shape-rendering="crispEdges"><rect x="14" y="0" width="7" height="7" fill="#FFB33A"/><rect x="21" y="0" width="7" height="7" fill="#FFB33A"/><rect x="28" y="0" width="7" height="7" fill="#FFB33A"/><rect x="35" y="0" width="7" height="7" fill="#FFB33A"/><rect x="42" y="0" width="7" height="7" fill="#FFB33A"/><rect x="49" y="0" width="7" height="7" fill="#FFB33A"/><rect x="7" y="7" width="7" height="7" fill="#FFB33A"/><rect x="14" y="7" width="7" height="7" fill="#FFB33A"/><rect x="28" y="7" width="7" height="7" fill="#FFB33A"/><rect x="35" y="7" width="7" height="7" fill="#FFB33A"/><rect x="49" y="7" width="7" height="7" fill="#FFB33A"/><rect x="56" y="7" width="7" height="7" fill="#FFB33A"/><rect x="0" y="14" width="7" height="7" fill="#FFB33A"/><rect x="7" y="14" width="7" height="7" fill="#FFB33A"/><rect x="14" y="14" width="7" height="7" fill="#FFB33A"/><rect x="21" y="14" width="7" height="7" fill="#FFB33A"/><rect x="28" y="14" width="7" height="7" fill="#FFB33A"/><rect x="35" y="14" width="7" height="7" fill="#FFB33A"/><rect x="42" y="14" width="7" height="7" fill="#FFB33A"/><rect x="49" y="14" width="7" height="7" fill="#FFB33A"/><rect x="56" y="14" width="7" height="7" fill="#FFB33A"/><rect x="63" y="14" width="7" height="7" fill="#FFB33A"/><rect x="7" y="21" width="7" height="7" fill="#FFB33A"/><rect x="14" y="21" width="7" height="7" fill="#FFB33A"/><rect x="21" y="21" width="7" height="7" fill="#FFB33A"/><rect x="28" y="21" width="7" height="7" fill="#FFB33A"/><rect x="35" y="21" width="7" height="7" fill="#FFB33A"/><rect x="42" y="21" width="7" height="7" fill="#FFB33A"/><rect x="49" y="21" width="7" height="7" fill="#FFB33A"/><rect x="56" y="21" width="7" height="7" fill="#FFB33A"/><rect x="7" y="28" width="7" height="7" fill="#FFB33A"/><rect x="21" y="28" width="7" height="7" fill="#FFB33A"/><rect x="42" y="28" width="7" height="7" fill="#FFB33A"/><rect x="56" y="28" width="7" height="7" fill="#FFB33A"/><rect x="14" y="7" width="7" height="7" fill="#0A0602"/><rect x="49" y="7" width="7" height="7" fill="#0A0602"/></svg></span><span style="display:inline-block">CLAUDE CODE <span class="dim">v2.1.310</span><br><span class="dim">HAIKU 5.5 · CLAUDE TEAM</span><br><span class="dim">~/PRODUCTIVE/WORK/WORKTREES/E2E-TESTS-19985369-CONTACT-FORM-REDESIGN-FLAG</span></span><br><br><br><span class="pr">❯ Reply with just: ok                                                                                                    </span><br><br><span class="p-prod">●</span> ok<br><br><span class="dim">✻ Churned for 1s · done 4:48 PM</span><br><br><span class="pr">❯ Reply with just: ok. (context: 9822475)                                                                                </span><br><br><span class="p-prod">●</span> ok<br><br><span class="dim">✻ Cogitated for 2s · done 4:48 PM</span><br><br><span class="dim">──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</span><br>❯ <span class="cur"></span><br><span class="dim">──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</span><br>  <span class="hot">▸▸ AUTO MODE ON</span> <span class="dim">(SHIFT+TAB TO CYCLE)</span> · PR <span class="p-latest">#1251</span></div>
+<div class="rail"><span>◆</span><span>◆</span></div>
+<div class="sb"><span>⌨</span><span class="">● REDESIGN CONTACT FORM E2… 0M</span><span class="r"></span><span>CTX <span class="dim">[</span>█░░░░░░░░░<span class="dim">]</span> 06%</span><span>5H <span class="dim">[</span>█░░░░░░░░░<span class="dim">]</span> 03% ↻21:10</span><span>WK <span class="dim">[</span>█░░░░░░░░░<span class="dim">]</span> 02%</span><span>◆ HAIKU-5.5 · MEDIUM · AUTO</span></div></div></div>
+</div>
+<div class="cap"><b>1 · MU/TH/UR</b> — the Nostromo's mainframe: one amber phosphor on near-black, scanlines and a soft vignette, VT323 in caps for chrome and lower case only for what you or Claude typed. Statuses are three-letter codes (WRK in reverse video) tinted in soft phosphor colours (green, blue, red, orange, violet), so the list still reads at a glance while amber carries everything else; links are blue, usage bars are block characters, hot red is for what needs you. Cheapest to build (a theme + a font).</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":3104,"height":1010}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

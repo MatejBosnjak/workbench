@@ -23,5 +23,8 @@ Each file is a self-contained HTML mock: the markup sits inside `<x-dc>`, and th
 | `LinkSuggest.dc.html` | Chosen: all three cards. Built as a card under the session bar, not a popover from the Task button | `session-suggest.png` |
 | `LocalTerminal.dc.html` | Chosen: both (service pane as a shell terminal; base-checkout branches in the switcher) | `local.png` |
 | `AwsLogin.dc.html` | Chosen: the full-Local version (! on 2 Local with hover, aws chip, crash hint). Needs you item rejected; no amber state | `local.png` |
+| `CassetteMuthur.dc.html` | Chosen: built as the MU/TH/UR theme (with status colours and lighter scanlines) | `theme-muthur*.png` |
+| `CassetteBeige.dc.html` | Chosen: built as the Brown workstation theme (dark chrome, no bezel; the beige version was rejected) | `theme-brown*.png` |
+| `CassetteConsole.dc.html` | Chosen: built as the Ops console theme | `theme-console*.png` |
 
 When a new exploration is picked: mark its row here (Chosen: X), build it, then `pnpm snap` and update `docs/SPEC.md` in the same commit.

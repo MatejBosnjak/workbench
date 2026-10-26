@@ -8,6 +8,7 @@ import { prKey } from '@shared/pane'
 import { useEffect } from 'react'
 import { rootOf } from '@shared/workstream'
 import type { CaffeinateState, HeldNote, HooksStatus, NavigateTarget, Session, StatusSnapshot } from '@shared/types'
+import { isTheme, type ThemeId } from '@shared/theme'
 
 export type SessionSide = 'task' | 'pr' | null
 
@@ -15,6 +16,27 @@ export type View = { kind: 'today' } | { kind: 'local' } | { kind: 'session'; id
 export type TodayTab = 'needs' | 'tasks' | 'git' | 'reviews'
 
 const LAST_VIEW = 'workbench.lastView'
+const THEME_KEY = 'workbench.theme'
+
+/** The theme as last applied, from localStorage so the first paint already has it; ui:theme in SQLite is the record. */
+function loadTheme(): ThemeId {
+  try {
+    const t = localStorage.getItem(THEME_KEY)
+    return isTheme(t) ? t : 'dusk'
+  } catch {
+    return 'dusk'
+  }
+}
+
+/** Sets data-theme on <html>, which switches the tokens and theme rules in themes.css. */
+export function applyTheme(theme: ThemeId): void {
+  document.documentElement.dataset.theme = theme
+  try {
+    localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // the setting still has it
+  }
+}
 
 function loadView(): View {
   try {
@@ -68,6 +90,10 @@ interface State {
   paneFull: boolean
   /** Each session's sidebar beside its terminal: its task (⌘I) or its PR (⌘⇧I); none until opened. Kept as ui:sessionSides. */
   sessionSides: Record<string, Exclude<SessionSide, null>>
+  /** The app's look (see THEMES). Kept as ui:theme. */
+  theme: ThemeId
+  /** Applies the theme everywhere at once (terminals too) and saves it. */
+  setTheme(theme: ThemeId): void
   /** Completed to-dos hidden in the task sidebar, for every task. Kept as ui:hideDoneTodos. */
   hideDoneTodos: boolean
   setHideDoneTodos(on: boolean): void
@@ -156,6 +182,12 @@ export const useStore = create<State>((set, get) => ({
   pane: null,
   paneFull: false,
   sessionSides: {},
+  theme: loadTheme(),
+  setTheme: (theme) => {
+    applyTheme(theme)
+    set({ theme })
+    void window.workbench.setSetting('ui:theme', theme)
+  },
   hideDoneTodos: false,
   setHideDoneTodos: (hideDoneTodos) => {
     set({ hideDoneTodos })

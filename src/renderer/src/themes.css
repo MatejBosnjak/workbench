@@ -1,0 +1,300 @@
+/*
+ * Cassette-futurism themes (docs/design/explore/Cassette*.dc.html), switched by data-theme on <html>.
+ * Each block first replaces the Dusk tokens, then restyles the shell: top bar, counters, boxes, task rows, status bar.
+ * --term-font / --term-size / --term-line set the terminal face (xterm-theme.ts reads them).
+ */
+:root {
+  --term-font: 'JetBrains Mono', ui-monospace, monospace;
+  --term-size: 13;
+  --term-line: 1.25;
+}
+
+/* The full-window CRT layer: off unless a theme turns it on. */
+.crt-fx { display: none; }
+
+/* ================================================================
+ * MU/TH/UR: one amber phosphor on near-black, codes instead of status names
+ * ================================================================ */
+[data-theme='muthur'] {
+  --bg: #0A0602;
+  --chrome: #0D0803;
+  --panel: #0C0703;
+  --card: #110A04;
+  --raised: #24170A;
+  --popover: #120B04;
+  --line-soft: #22160A;
+  --line: #3A2710;
+  --line-strong: #523612;
+  --line-heavy: #6B4510;
+  --text: #FFC45A;
+  --text-2: #FFB33A;
+  --text-3: #D9962F;
+  --muted: #B07A28;
+  --faint: #8A6020;
+  --accent: #FF5A2E;
+  --on-accent: #0A0602;
+  --accent-bg: #2A0F06;
+  --accent-line: #8A2E14;
+  --accent-ring: rgba(255, 90, 46, 0.16);
+  --warn: #FFD24A;
+  --ok: #7FE0B0;
+  --ok-bg: #0C1A12;
+  --ok-line: #2C5A40;
+  --ok-glow: rgba(127, 224, 176, 0.2);
+  --bad: #FF6A5A;
+  --bad-bg: #2A0D08;
+  --info: #7CC8FF;
+  --info-bg: #0A1520;
+  --link: #7CC8FF;
+  --link-hover: #B5E0FF;
+  --link-line: #2E4C66;
+  --violet: #D0A8FF;
+  --teal: #7FE0D0;
+  --prio-high: rgba(255, 90, 46, 0.13);
+  --prio-mid: rgba(255, 210, 74, 0.09);
+  --prio-low: rgba(255, 179, 58, 0.05);
+  --shadow: rgba(0, 0, 0, 0.75);
+  --scrim: rgba(5, 3, 0, 0.62);
+  --title-glow: none;
+  --accent-shadow: 0 0 10px rgba(255, 90, 46, 0.35);
+  --chrome-edge: none;
+  --bg-img: none;
+  --mono: 'VT323', ui-monospace, monospace;
+  --sans: var(--mono);
+  --display: var(--mono);
+  --term-font: 'VT323', ui-monospace, monospace;
+  --term-size: 18;
+  --term-line: 1.08;
+}
+/* VT323 is small for its size: scale every face to JetBrains Mono's x-height, so fixed sizes and widths keep working. */
+[data-theme='muthur'] * { font-size-adjust: 0.55; }
+[data-theme='muthur'] body { text-shadow: 0 0 2px rgba(255, 170, 40, 0.35), 0 0 10px rgba(255, 140, 0, 0.08); }
+/* Scanlines and a soft vignette over everything; never in the way of the pointer. */
+[data-theme='muthur'] .crt-fx {
+  display: block; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.13) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 65%, rgba(0, 0, 0, 0.4) 100%);
+}
+/* Chrome speaks in capitals; what you or Claude typed keeps its case. */
+[data-theme='muthur'] :is(.topbar .place, .box-title, .counter .box-title, .counter-note, .statusbar, .session-bar .sbar-label, .pop-label, .fchip, .seg-pair, .task-line.parent .task-name, .local-head h1, .pane-head, .chip) { text-transform: uppercase; letter-spacing: 0.04em; }
+[data-theme='muthur'] .box-title, [data-theme='muthur'] .counter .box-title { letter-spacing: 0.1em; }
+[data-theme='muthur'] .topbar .place[aria-current='page'],
+[data-theme='muthur'] .topbar .tab[aria-selected='true'] { background: var(--text-2); color: var(--bg); text-shadow: 0 0 10px rgba(255, 170, 40, 0.6); box-shadow: none; }
+[data-theme='muthur'] .topbar .tab[aria-selected='true'] .tab-close { color: var(--bg); }
+[data-theme='muthur'] .topbar .place[aria-current='page'] .local-icon { filter: brightness(0.15); }
+[data-theme='muthur'] .counter-value { font-weight: 400; letter-spacing: 0; }
+[data-theme='muthur'] .counter.lead.hot .counter-value { text-shadow: 0 0 12px rgba(255, 80, 40, 0.8); }
+[data-theme='muthur'] .counter:nth-child(3) .counter-value { color: var(--info); }
+[data-theme='muthur'] .counter:nth-child(4) .counter-value { color: var(--violet); }
+[data-theme='muthur'] .counter-note { color: var(--muted); }
+/* Status: the code, coloured; Working in reverse video. No dots. */
+[data-theme='muthur'] .task-line .task-mark { display: none; }
+[data-theme='muthur'] .task-status { order: -1; width: 36px; flex: none; padding: 0 4px; text-align: left; font-size: 13px; text-shadow: 0 0 5px color-mix(in srgb, var(--st) 50%, transparent); }
+[data-theme='muthur'] .task-line.row[data-code='WRK'] .task-status { background: var(--st); color: var(--bg); text-shadow: none; }
+[data-theme='muthur'] .task-line.row.sel { background: color-mix(in srgb, var(--text-2) 12%, transparent); box-shadow: inset 0 0 0 1px var(--text-2); }
+[data-theme='muthur'] .task-due.late { color: var(--accent); }
+[data-theme='muthur'] .status-swatch { display: none; }
+[data-theme='muthur'] .status-code { color: var(--st); }
+[data-theme='muthur'] .fchip.status-chip { border-color: transparent; }
+[data-theme='muthur'] .fchip.status-chip.picked { background: var(--text-2); color: var(--bg); }
+[data-theme='muthur'] .fchip.status-chip.picked :is(b, .status-code) { color: var(--bg); }
+[data-theme='muthur'] .task-strip-bar { height: 6px; }
+[data-theme='muthur'] .seg-pair button[aria-pressed='true'] { background: var(--text-2); }
+/* Meters: a block-character bar, lit cells in the meter colour. */
+[data-theme='muthur'] .meter { height: 12px; background: repeating-linear-gradient(90deg, var(--line-strong) 0 4px, transparent 4px 6px); }
+[data-theme='muthur'] .meter > span { -webkit-mask: repeating-linear-gradient(90deg, #000 0 4px, transparent 4px 6px); mask: repeating-linear-gradient(90deg, #000 0 4px, transparent 4px 6px); }
+[data-theme='muthur'] .statusbar { border-top-width: 1px; }
+[data-theme='muthur'] .session-bar { background: var(--chrome); }
+[data-theme='muthur'] .sbar-btn.on { background: var(--raised); }
+
+/* ================================================================
+ * Brown workstation: smoked-brown plastic chrome, keycaps, 70s stripes, LCD meters, a CRT for content
+ * ================================================================ */
+[data-theme='brown'] {
+  --bg: #17120C;
+  --chrome: #211D18;
+  --panel: #19140E;
+  --card: #1D1711;
+  --raised: #2A2219;
+  --popover: #231C15;
+  --line-soft: #241D15;
+  --line: #33291E;
+  --line-strong: #43372A;
+  --line-heavy: #4A3D2A;
+  --text: #F3E2C2;
+  --text-2: #D9CBB0;
+  --text-3: #B5A588;
+  --muted: #A8977A;
+  --faint: #7E705A;
+  --accent: #E87A2E;
+  --on-accent: #FFF1DE;
+  --accent-bg: #3A2312;
+  --accent-line: #8A4A1E;
+  --accent-ring: rgba(232, 122, 46, 0.16);
+  --warn: #F2B45A;
+  --ok: #5FB8A8;
+  --ok-bg: #11201C;
+  --ok-line: #2E5A50;
+  --ok-glow: rgba(95, 184, 168, 0.2);
+  --bad: #E5482D;
+  --bad-bg: #2E1410;
+  --info: #7FA6C9;
+  --info-bg: #161C24;
+  --link: #F2B45A;
+  --link-hover: #FFD28A;
+  --link-line: #6E5226;
+  --violet: #C8A2C8;
+  --teal: #5FB8A8;
+  --prio-high: rgba(229, 72, 45, 0.13);
+  --prio-mid: rgba(242, 180, 90, 0.09);
+  --prio-low: rgba(181, 165, 136, 0.05);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --scrim: rgba(10, 7, 4, 0.6);
+  --title-glow: none;
+  --accent-shadow: 0 0 10px rgba(232, 122, 46, 0.25);
+  --chrome-edge: none;
+  --bg-img: none;
+  --mono: 'Space Mono', ui-monospace, monospace;
+  --sans: var(--mono);
+  --display: var(--mono);
+  --term-font: 'Space Mono', ui-monospace, monospace;
+  --term-size: 12.5;
+  --term-line: 1.3;
+  --stripes: linear-gradient(180deg, #F2B45A 0 25%, #E87A2E 25% 50%, #E5482D 50% 75%, #8C3B1E 75%);
+}
+[data-theme='brown'] body { font-size: 12px; }
+/* The content area is a CRT: a warm radial ground and faint scanlines. */
+[data-theme='brown'] .main { background: radial-gradient(ellipse at 50% 40%, #241C12 0%, #17120C 70%); }
+[data-theme='brown'] .crt-fx { display: block; position: fixed; inset: 0; z-index: 9999; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0 1px, transparent 1px 3px); }
+[data-theme='brown'] .topbar { border-bottom: 1px solid #0D0B08; }
+[data-theme='brown'] .statusbar { border-top: 1px solid #0D0B08; }
+/* ▌wb gets the four sunset stripes. */
+[data-theme='brown'] .mem-btn::before { content: ''; width: 24px; height: 12px; margin-right: 10px; background: var(--stripes); }
+/* Places and tabs are keycaps; the open one is the orange key, pressed. */
+[data-theme='brown'] .topbar .place,
+[data-theme='brown'] .topbar .icon-btn,
+[data-theme='brown'] .topbar .kbar { height: 26px; border: 0; border-radius: 4px; background: linear-gradient(180deg, #3A332A, #2D2820); box-shadow: 0 0 0 1px #14110D, 0 2px 0 #14110D, inset 0 1px 0 rgba(255, 235, 200, 0.08); color: #CDBFA4; }
+[data-theme='brown'] .topbar .place[aria-current='page'],
+[data-theme='brown'] .topbar .tab[aria-selected='true'] { background: linear-gradient(180deg, #C8692A, #B35A20); color: #FFF1DE; box-shadow: 0 0 0 1px #6E3210, 0 1px 0 #6E3210; transform: translateY(1px); font-weight: 700; }
+[data-theme='brown'] .topbar .tab[aria-selected='true'] { border-radius: 4px 4px 0 0; }
+[data-theme='brown'] .topbar .tab[aria-selected='true'] .tab-close { color: #FFE2C4; }
+[data-theme='brown'] .session-bar { background: var(--chrome); border-bottom: 1px solid #0D0B08; }
+[data-theme='brown'] .sbar-btn.on { background: var(--raised); }
+/* Counters: a stripe colour down the left of each, the number in it. */
+[data-theme='brown'] .counter { border-color: var(--line-heavy); padding-left: 16px; }
+[data-theme='brown'] .counter::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+[data-theme='brown'] .counter:nth-child(1) { --c: #F2B45A; }
+[data-theme='brown'] .counter:nth-child(2) { --c: #E87A2E; }
+[data-theme='brown'] .counter:nth-child(3) { --c: #E5482D; }
+[data-theme='brown'] .counter:nth-child(4) { --c: #8C3B1E; }
+[data-theme='brown'] .counter:not(:nth-child(4)) .counter-value { color: var(--c) !important; }
+[data-theme='brown'] .counter.lead.hot { border-color: var(--line-heavy); }
+[data-theme='brown'] .box-title, [data-theme='brown'] .counter .box-title { color: var(--warn); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; font-weight: 700; }
+[data-theme='brown'] .status-swatch { border-radius: 0; }
+[data-theme='brown'] .task-mark.milestone { border-radius: 0; }
+[data-theme='brown'] .task-line.row.sel { background: rgba(232, 122, 46, 0.18); }
+[data-theme='brown'] .seg-pair button[aria-pressed='true'] { background: var(--accent); color: var(--on-accent); }
+/* Meters on an LCD strip: dark segments on grey-green glass. */
+[data-theme='brown'] .sb-meters { border-left: 0; padding: 0 8px; gap: 0; }
+[data-theme='brown'] .sb-meter { border-right: 0; margin: 5px 0; padding: 0 10px; background: linear-gradient(180deg, #5E6753, #6B7560); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45); color: #1E2618; text-shadow: none; }
+[data-theme='brown'] .sb-meter :is(.sb-k, .sb-v, .faint) { color: #1E2618 !important; }
+[data-theme='brown'] .sb-meter .meter { height: 10px; background: repeating-linear-gradient(90deg, rgba(30, 38, 24, 0.16) 0 3px, transparent 3px 5px); }
+[data-theme='brown'] .sb-meter .meter > span { background: repeating-linear-gradient(90deg, #1E2618 0 3px, transparent 3px 5px) !important; }
+
+/* ================================================================
+ * Ops console: slate panels on a perforated chassis, Dymo tape titles, seven-segment counts, lamps, toggles
+ * ================================================================ */
+[data-theme='console'] {
+  --bg: #1B1E1C;
+  --chrome: #252926;
+  --panel: #202421;
+  --card: #232724;
+  --raised: #2C302D;
+  --popover: #262A27;
+  --line-soft: #282C29;
+  --line: #333834;
+  --line-strong: #3A3F3B;
+  --line-heavy: #4A4F4B;
+  --text: #F1EDDD;
+  --text-2: #DCD8C8;
+  --text-3: #BDB9AA;
+  --muted: #8F8C80;
+  --faint: #6F6D63;
+  --accent: #F5A524;
+  --on-accent: #1B1E1C;
+  --accent-bg: #2E2816;
+  --accent-line: #7A5A1E;
+  --accent-ring: rgba(245, 165, 36, 0.16);
+  --warn: #F5C842;
+  --ok: #7FD68A;
+  --ok-bg: #16241A;
+  --ok-line: #2E5A38;
+  --ok-glow: rgba(127, 214, 138, 0.2);
+  --bad: #FF5B45;
+  --bad-bg: #2E1714;
+  --info: #6FA8FF;
+  --info-bg: #17202E;
+  --link: #5FD3C6;
+  --link-hover: #A5EEE5;
+  --link-line: #2C5A55;
+  --violet: #C9B5FF;
+  --teal: #5FD3C6;
+  --prio-high: rgba(255, 91, 69, 0.12);
+  --prio-mid: rgba(245, 200, 66, 0.08);
+  --prio-low: rgba(189, 185, 170, 0.05);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --scrim: rgba(8, 10, 9, 0.6);
+  --title-glow: none;
+  --accent-shadow: 0 0 10px rgba(245, 165, 36, 0.3);
+  --chrome-edge: none;
+  --bg-img: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  --mono: 'Share Tech Mono', ui-monospace, monospace;
+  --sans: var(--mono);
+  --display: var(--mono);
+  --term-font: 'Share Tech Mono', ui-monospace, monospace;
+  --term-size: 14;
+  --term-line: 1.2;
+}
+[data-theme='console'] body { font-size: 13.5px; }
+[data-theme='console'] .today, [data-theme='console'] .local { background-image: var(--bg-img); background-size: 6px 6px; }
+/* A 70s cream → orange → rust → brown stripe under the top bar. */
+[data-theme='console'] .topbar { border-bottom: 0; }
+[data-theme='console'] .topbar::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 4px; z-index: 3; pointer-events: none; background: linear-gradient(90deg, #E8D9A8 0 25%, #E39B2D 25% 50%, #C8501E 50% 75%, #6E2F1A 75%); }
+[data-theme='console'] .topbar + .session-bar, [data-theme='console'] .topbar + .main { margin-top: 4px; }
+[data-theme='console'] .topbar .place { border: 1px solid var(--line-strong); background: var(--panel); text-transform: uppercase; letter-spacing: 0.06em; }
+[data-theme='console'] .topbar .place[aria-current='page'],
+[data-theme='console'] .topbar .tab[aria-selected='true'] { border-color: #E39B2D; background: #2A2A20; color: var(--text); box-shadow: inset 0 0 0 1px #E39B2D; }
+/* Titles on embossed Dymo label tape. */
+[data-theme='console'] .box-title,
+[data-theme='console'] .counter .box-title { top: -11px; padding: 1px 8px 0; background: #141414; color: #F1F1EC; font-weight: 400; letter-spacing: 0.16em; text-transform: uppercase; border-radius: 2px; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.6); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8), 0 -1px 0 rgba(255, 255, 255, 0.15); }
+[data-theme='console'] .counter.lead.hot .box-title { background: #9E1F1A; }
+[data-theme='console'] .box { background: var(--panel); border-color: var(--line); }
+[data-theme='console'] .box.active { border-color: var(--line-heavy); }
+[data-theme='console'] .box-aside { background: var(--bg); }
+/* Counters: screwed-on plates with an LED window. */
+[data-theme='console'] .counter { background: var(--card); border-color: var(--line); align-items: center; padding-top: 18px; }
+[data-theme='console'] .counter::before,
+[data-theme='console'] .counter::after { content: ''; position: absolute; top: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--line-heavy); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.6); }
+[data-theme='console'] .counter::before { left: 5px; }
+[data-theme='console'] .counter::after { right: 5px; }
+[data-theme='console'] .counter-value { padding: 6px 8px; background: #0C0A0A; border: 1px solid #000; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9); line-height: 1; color: #F5A524 !important; --seg-off: #2A2010; text-shadow: none !important; }
+[data-theme='console'] .counter.lead.hot .counter-value { color: #FF4433 !important; --seg-off: #2A1512; }
+[data-theme='console'] .seg7 { display: block; filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 40%, transparent)); }
+[data-theme='console'] .seg7 .on { fill: currentColor; }
+[data-theme='console'] .seg7 .off { fill: var(--seg-off); }
+/* Statuses are bezel lamps; status names in small caps. */
+[data-theme='console'] .task-mark:not(.ctx-mark) { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-heavy), 0 0 7px var(--st); }
+[data-theme='console'] .task-mark.not-started { box-shadow: 0 0 0 1px var(--line-heavy); }
+[data-theme='console'] .task-status { text-transform: uppercase; letter-spacing: 0.06em; }
+[data-theme='console'] .task-line.row.sel { background: #2C2B22; box-shadow: inset 3px 0 0 #E39B2D; }
+/* Filter chips are toggle switches. */
+[data-theme='console'] .fchip.status-chip { background: var(--panel); border-color: var(--line); }
+[data-theme='console'] .fchip.status-chip::before { content: ''; width: 16px; height: 9px; border-radius: 5px; background: radial-gradient(circle at 4.5px 50%, #7A7F7B 3.5px, transparent 4px), #0E100F; box-shadow: inset 0 1px 2px #000; flex-shrink: 0; }
+[data-theme='console'] .fchip.status-chip.picked { border-color: #E39B2D; background: var(--panel); }
+[data-theme='console'] .fchip.status-chip.picked::before { background: radial-gradient(circle at 11.5px 50%, #E39B2D 3.5px, transparent 4px), #0E100F; }
+[data-theme='console'] .status-swatch { border-radius: 50%; box-shadow: 0 0 6px var(--st); }
+[data-theme='console'] .seg-pair button[aria-pressed='true'] { background: #E39B2D; color: var(--on-accent); }
+/* Meters are LED ladders. */
+[data-theme='console'] .meter { height: 12px; background: repeating-linear-gradient(90deg, #2E322F 0 5px, transparent 5px 7px); }
+[data-theme='console'] .meter > span { background: repeating-linear-gradient(90deg, var(--ok) 0 5px, transparent 5px 7px) !important; filter: drop-shadow(0 0 3px var(--ok)); }
+[data-theme='console'] .session-bar { background: var(--chrome); }
+[data-theme='console'] .sbar-btn.on { background: var(--raised); }

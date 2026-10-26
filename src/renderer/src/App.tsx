@@ -1,5 +1,6 @@
 import { useEffect, type CSSProperties } from 'react'
 import type { MenuCommand } from '@shared/types'
+import { isTheme } from '@shared/theme'
 import { ExternalPanel } from './components/ExternalPanel'
 import { LocalView } from './components/LocalView'
 import { PrSide, SessionBar, sessionPrs, SideResizer, TaskSide } from './components/TaskSide'
@@ -58,6 +59,8 @@ function onMenu(cmd: MenuCommand): void {
       return stepMarks(cmd.delta)
     case 'focus':
       return void useStore.getState().toggleFocus()
+    case 'theme':
+      return useStore.getState().setTheme(cmd.theme)
     case 'palette':
       return useStore.getState().setPalette(!useStore.getState().paletteOpen)
     case 'cycle-tab': {
@@ -82,6 +85,7 @@ export function App() {
     void window.workbench.getSetting<Record<string, number>>('ui:snoozed', {}).then((sn) => useStore.setState({ snoozed: Object.fromEntries(Object.entries(sn).filter(([, t]) => t > Date.now())) }))
     void window.workbench.getSetting<Record<string, 'task' | 'pr'>>('ui:sessionSides', {}).then((sessionSides) => useStore.setState({ sessionSides }))
     void window.workbench.getSetting<Partial<Record<'task' | 'pr', number>>>('ui:sideWidths', {}).then((sideWidths) => useStore.setState({ sideWidths }))
+    void window.workbench.getSetting<string>('ui:theme', useStore.getState().theme).then((t) => isTheme(t) && t !== useStore.getState().theme && useStore.getState().setTheme(t))
     void window.workbench.getSetting<boolean>('ui:hideDoneTodos', false).then((hideDoneTodos) => useStore.setState({ hideDoneTodos }))
     void window.workbench.runpr.snapshot().then(setRunpr)
     const offRun = window.workbench.runpr.onChanged(setRunpr)
@@ -151,6 +155,7 @@ export function App() {
 
   return (
     <div className={`app${focus ? ' focus' : ''}`}>
+      <div className="crt-fx" aria-hidden="true" />
       <TopBar onNew={() => void newSession()} />
       {view.kind === 'session' && active && !active.external && <SessionBar session={active} />}
       <main className={`main${side ? ` with-side side-${side}${full ? ' side-full' : ''}` : ''}`} style={sideWidth ? ({ '--side-w': `min(${sideWidth}px, calc(100% - 360px))` } as CSSProperties) : undefined}>

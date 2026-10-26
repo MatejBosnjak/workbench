@@ -33,6 +33,7 @@ import { Repo } from './store/repo'
 import { Suggester } from './suggest'
 import { Workstreams } from './workstreams'
 import { slug, withoutRepoPrefix } from '@shared/workstream'
+import { isTheme, THEMES, type ThemeId } from '@shared/theme'
 
 app.setName('Workbench')
 
@@ -142,7 +143,7 @@ async function confirmGithubSignOut(): Promise<void> {
   if (res.response === 0) await paneRef.signOut()
 }
 
-function buildMenu(): void {
+function buildMenu(theme: ThemeId): void {
   const tabs: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
     label: i === 0 ? 'Today' : i === 1 ? 'Local' : i === 8 ? 'Last Session' : `Tab ${i + 1}`,
     accelerator: `CmdOrCtrl+${i + 1}`,
@@ -160,6 +161,11 @@ function buildMenu(): void {
           { label: 'Uninstall Hooks…', click: () => void confirmUninstall().then(hooksChanged) },
           { type: 'separator' },
           { label: 'Sign Out of GitHub…', click: () => void confirmGithubSignOut() },
+          { type: 'separator' },
+          {
+            label: 'Theme',
+            submenu: THEMES.map((t) => ({ label: t.name, type: 'radio' as const, checked: t.id === theme, click: () => send({ type: 'theme', theme: t.id }) })),
+          },
           { type: 'separator' },
           { role: 'hide' },
           { role: 'hideOthers' },
@@ -660,6 +666,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('settings:get', (_e, key: string, fallback: unknown) => (key.startsWith('ui:') ? repo.getSetting(key, fallback) : fallback))
   ipcMain.handle('settings:set', (_e, key: string, value: unknown) => {
     if (key.startsWith('ui:')) repo.setSetting(key, value)
+    if (key === 'ui:theme' && isTheme(value)) buildMenu(value)
   })
   ipcMain.handle('status:get', () => sessions.statusSnapshot())
   ipcMain.handle('hooks:status', () => currentStatus(installPaths()))
@@ -706,7 +713,8 @@ void app.whenReady().then(() => {
     stopSignalServer(signals, socketPath())
   })
 
-  buildMenu()
+  const theme = repo.getSetting<unknown>('ui:theme', 'dusk')
+  buildMenu(isTheme(theme) ? theme : 'dusk')
   win = createWindow()
   win.on('closed', () => (win = null))
 })

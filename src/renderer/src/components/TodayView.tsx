@@ -16,6 +16,8 @@ import { GitView, ReviewsView } from './GitView'
 import { runPr } from './RunPr'
 import { NeedPreview } from './NeedPreview'
 import { Avatar, TaskDetails } from './TaskDetails'
+import { SevenSeg } from './SevenSeg'
+import { statusCode, type ThemeId } from '@shared/theme'
 import { TaskPreview, taskPrimary } from './TaskPreview'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -25,6 +27,15 @@ export const statusColor = (t: Pick<Task, 'statusColorId'>) => statusVivid({ col
 
 const isBugProject = (name: string) => /bug/i.test(name)
 const GROUP_KEY = 'workbench.taskGroup'
+
+/** A status as task rows and chips print it: MU/TH/UR prints three-letter codes, the rest the name in lower case. */
+export const statusText = (name: string | null | undefined, theme: ThemeId) => (theme === 'muthur' ? statusCode(name) : (name || 'No status').toLowerCase())
+
+/** A counter's number: seven-segment digits on the Ops console, two digits on MU/TH/UR, else as is. */
+function CounterNumber({ value, lead, theme }: { value: string; lead: boolean; theme: ThemeId }) {
+  if (theme === 'console') return <SevenSeg value={value} height={lead ? 38 : 28} />
+  return <>{theme === 'muthur' && /^\d$/.test(value) ? `0${value}` : value}</>
+}
 
 export function dueLabel(d: string | null): { text: string; late: boolean } | null {
   if (!d) return null
@@ -70,7 +81,8 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
     setTodayTab,
     draft,
     paneFull,
-  } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, paneFull: s.paneFull })))
+    theme,
+  } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, paneFull: s.paneFull, theme: s.theme })))
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 60_000)
@@ -142,7 +154,7 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
             <button key={c.id} className={`counter${c.id === 'needs' ? ` lead${needs.length ? ' hot' : ''}` : ''}${c.to === tab ? ' on' : ''}`} disabled={!c.to} onClick={() => c.to && setTodayTab(c.to)}>
               <span className="box-title">{c.title}</span>
               <span className="counter-value" style={c.tone ? ({ color: c.tone, '--glow': c.tone } as CSSProperties) : undefined}>
-                {c.value}
+                <CounterNumber value={c.value} lead={c.id === 'needs'} theme={theme} />
                 {c.unit && <span className="counter-unit">{c.unit}</span>}
               </span>
               <span className="counter-note">
@@ -206,6 +218,7 @@ function TaskStrip({
   groupBy: 'project' | 'status'
   setGroupBy(g: 'project' | 'status'): void
 }) {
+  const theme = useStore((st) => st.theme)
   const total = statuses.reduce((n, s) => n + s.count, 0) || 1
   const on = (name: string) => !only.length || only.includes(name)
   const toggle = (name: string) => setOnly(only.includes(name) ? only.filter((x) => x !== name) : [...only, name])
@@ -229,6 +242,7 @@ function TaskStrip({
           return (
             <button key={s.name} className={`fchip status-chip${picked ? ' picked' : ''}`} style={{ '--st': s.color } as CSSProperties} aria-pressed={picked} onClick={() => toggle(s.name)}>
               <span className="status-swatch" />
+              {theme === 'muthur' && <span className="status-code">{statusCode(s.name)}</span>}
               {s.name} <b>{s.count}</b>
             </button>
           )
@@ -317,8 +331,8 @@ function Home({
   sleeping: NeedItem[]
   active: boolean
 }) {
-  const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed } = useStore(
-    useShallow((s) => ({ sessions: s.sessions, peekTask: s.peekTask, setPeekTask: s.setPeekTask, setTodayTab: s.setTodayTab, show: s.show, snooze: s.snooze, snoozed: s.snoozed })),
+  const { sessions, peekTask, setPeekTask, setTodayTab, show, snooze, snoozed, theme } = useStore(
+    useShallow((s) => ({ sessions: s.sessions, peekTask: s.peekTask, setPeekTask: s.setPeekTask, setTodayTab: s.setTodayTab, show: s.show, snooze: s.snooze, snoozed: s.snoozed, theme: s.theme })),
   )
   const sleep = (n: NeedItem, forever = false) => snooze(n.key, forever ? UNTIL_CHANGED : tomorrowMorning())
   const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)
@@ -539,6 +553,7 @@ function Home({
                     id={`task-${t.id}`}
                     className={`task-line row${shape.kids ? ' parent' : ''}${t.myTodos ? ' todo-only' : ''}${sel ? ' sel' : ''}`}
                     style={{ '--st': statusColor(t) } as CSSProperties}
+                    data-code={theme === 'muthur' ? statusCode(t.statusName) : undefined}
                     title={t.myTodos ? `${t.statusName} · assigned to ${t.assignedTo?.name}; ${t.myTodos === 1 ? 'one open to-do is' : `${t.myTodos} open to-dos are`} yours` : t.statusName}
                     onClick={() => (setPane('tasks'), setPeekTask(sel ? null : t.id))}
                     onDoubleClick={() => void taskPrimary(t, snapshot, sessions, show)}
@@ -551,7 +566,7 @@ function Home({
                       {parent && <span className="faint">{`  ${parent.milestone ? '◆' : '◇'} ${parent.title}`}</span>}
                     </span>
                     {!!t.myTodos && <span className="task-todos">☐ {t.myTodos === 1 ? '1 to-do' : `${t.myTodos} to-dos`}</span>}
-                    <span className="task-status">{(t.statusName || 'No status').toLowerCase()}</span>
+                    <span className="task-status">{statusText(t.statusName, theme)}</span>
                     <span className={`task-due${due?.late ? ' late' : ''}`}>{due?.text ?? ''}</span>
                     <span className="task-sess">
                       {linked[0] ? (

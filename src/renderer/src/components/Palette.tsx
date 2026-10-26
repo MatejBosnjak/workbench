@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { RecentSession, Session, SessionState } from '@shared/types'
 import { prRepo } from '@shared/git'
 import { rootOf } from '@shared/workstream'
+import { THEMES } from '@shared/theme'
 import { navigate, openWorkstream, useOverlay, useStore } from '../store'
 import { useShallow } from 'zustand/react/shallow'
 
 interface Item {
   key: string
-  group: 'Run in session' | 'Sessions' | 'Recently closed' | 'Workstreams' | 'Tasks' | 'PRs' | 'Actions'
+  group: 'Run in session' | 'Sessions' | 'Recently closed' | 'Workstreams' | 'Tasks' | 'PRs' | 'Actions' | 'Themes'
   title: string
   detail: string
   state?: SessionState
@@ -28,7 +29,7 @@ function ago(ms: number): string {
 /** Typing these into a session rewrites the global defaults in ~/.claude/settings.json; the picker covers them. */
 const BLOCKED = /^\/(model|effort)\b/
 /** Searchable groups that only show once something is typed. */
-const SEARCH_ONLY = new Set<Item['group']>(['Workstreams', 'Tasks', 'PRs'])
+const SEARCH_ONLY = new Set<Item['group']>(['Workstreams', 'Tasks', 'PRs', 'Themes'])
 const PER_GROUP = 8
 
 /** Every query word must appear somewhere in the text. */
@@ -36,7 +37,9 @@ const matches = (q: string, text: string) => q.toLowerCase().split(/\s+/).filter
 
 export function Palette({ onNew }: { onNew(pick: boolean): void }) {
   useOverlay(true)
-  const { sessions, show, setPalette, view, tasks, git, setTodayTab, setPeekTask } = useStore(useShallow((s) => ({ sessions: s.sessions, show: s.show, setPalette: s.setPalette, view: s.view, tasks: s.tasks, git: s.git, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })))
+  const { sessions, show, setPalette, view, tasks, git, setTodayTab, setPeekTask, theme, setTheme } = useStore(
+    useShallow((s) => ({ sessions: s.sessions, show: s.show, setPalette: s.setPalette, view: s.view, tasks: s.tasks, git: s.git, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask, theme: s.theme, setTheme: s.setTheme })),
+  )
   const [query, setQuery] = useState('')
   const [recent, setRecent] = useState<RecentSession[]>([])
   const [index, setIndex] = useState(0)
@@ -72,6 +75,14 @@ export function Palette({ onNew }: { onNew(pick: boolean): void }) {
     const actions: Item[] = [
       { key: 'new', group: 'Actions', title: 'New session', detail: 'In the default folder', hint: '⌘T', run: () => onNew(false) },
       { key: 'new-in', group: 'Actions', title: 'New session in folder…', detail: 'Pick a folder', hint: '⇧⌘T', run: () => onNew(true) },
+      ...THEMES.map((t): Item => ({
+        key: `theme:${t.id}`,
+        group: 'Themes',
+        title: `Theme: ${t.name}`,
+        detail: t.id === theme ? `${t.note} · current` : t.note,
+        hint: '↵ switch',
+        run: () => setTheme(t.id),
+      })),
     ]
     const mine = (tasks?.tasks ?? []).filter((t) => !t.context)
     const roots = [...new Set(mine.filter((t) => t.parentId || t.milestone).map((t) => rootOf(t.id, tasks!.tasks)))]
@@ -123,7 +134,7 @@ export function Palette({ onNew }: { onNew(pick: boolean): void }) {
       return n <= PER_GROUP
     })
     return [...slash, ...(query.startsWith('/') ? [] : capped)]
-  }, [sessions, recent, query, show, onNew, tasks, git, view, setTodayTab, setPeekTask])
+  }, [sessions, recent, query, show, onNew, tasks, git, view, setTodayTab, setPeekTask, theme, setTheme])
 
   useEffect(() => setIndex(0), [query])
   useEffect(() => {

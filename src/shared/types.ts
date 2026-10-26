@@ -1,3 +1,4 @@
+import type { ThemeId } from './theme'
 import type { AgentSettings, ApplyResult } from './agent'
 import type { DraftTarget, GitSnapshot } from './git'
 import type { Workstream } from './workstream'
@@ -120,6 +121,7 @@ export type MenuCommand =
   | { type: 'pr-side' }
   | { type: 'mark-step'; delta: 1 | -1 }
   | { type: 'focus' }
+  | { type: 'theme'; theme: ThemeId }
 
 export type TabMenuPick = 'close' | 'others' | 'left' | 'right' | 'all'
 

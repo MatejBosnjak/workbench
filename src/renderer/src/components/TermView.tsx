@@ -6,7 +6,7 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import type { PortInput, PortMessage } from '@shared/types'
 import { onPort } from '../ports'
 import { openPrLink, useStore } from '../store'
-import { xtermTheme } from '../xterm-theme'
+import { termFont, xtermTheme } from '../xterm-theme'
 import { PrCard, type CardAnchor } from './PrCard'
 
 export interface TermViewProps {
@@ -64,10 +64,9 @@ export function TermView(props: TermViewProps) {
   const hideCard = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
+    const font = termFont()
     const t = new XTerm({
-      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-      fontSize: 13,
-      lineHeight: 1.25,
+      ...font,
       cursorBlink: true,
       allowProposedApi: true,
       scrollback: props.scrollback ?? 5_000,
@@ -148,7 +147,7 @@ export function TermView(props: TermViewProps) {
     })
 
     let disposed = false
-    void document.fonts.load("13px 'JetBrains Mono'").finally(() => {
+    void document.fonts.load(`${font.fontSize}px ${font.fontFamily}`).finally(() => {
       if (disposed || !el.current) return
       t.open(el.current)
       try {
@@ -186,6 +185,21 @@ export function TermView(props: TermViewProps) {
     if (aliveRef.current && !alive && t && exitMessage) t.write(`\r\n\x1b[2m[${exitMessage}]\x1b[0m\r\n`)
     aliveRef.current = alive
   }, [alive, exitMessage])
+
+  // A theme switch restyles open terminals in place: colours, face and size, then a refit for the new cell size.
+  const theme = useStore((s) => s.theme)
+  const themed = useRef(theme)
+  useEffect(() => {
+    const t = term.current
+    if (!t || themed.current === theme) return
+    themed.current = theme
+    const font = termFont()
+    void document.fonts.load(`${font.fontSize}px ${font.fontFamily}`).finally(() => {
+      t.options.theme = xtermTheme()
+      Object.assign(t.options, font)
+      if (el.current?.offsetParent) fit.current?.fit()
+    })
+  }, [theme])
 
   const showTick = useStore((s) => s.showTick)
   useEffect(() => {

@@ -128,7 +128,7 @@ await shot('workstream', async () => {
 await page.click('.ws-place-close').catch(() => {})
 // Service and shell panes are login shells; give them time to print a prompt.
 await shot('local', async () => {
-  await click('.place:has-text("Local")')
+  await click('.place[aria-label^="Local"]')
   await wait(4000)
 })
 

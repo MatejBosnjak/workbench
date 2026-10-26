@@ -171,6 +171,8 @@ export interface WorkbenchApi {
   onCaffeinate(cb: (s: CaffeinateState) => void): () => void
   prInfo(url: string): Promise<PrInfo | null>
   openExternal(url: string): Promise<void>
+  /** A dropped file's path on disk (File.path is gone since Electron 32). */
+  pathForFile(file: File): string
   /** Answers a link suggestion (see Suggestion in shared/tasks). */
   suggest: { answer(id: string, answer: 'yes' | 'pr-only' | 'todo' | 'no'): Promise<void> }
   tasks: {

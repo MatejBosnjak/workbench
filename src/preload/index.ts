@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { Workstream } from '@shared/workstream'
@@ -40,6 +40,7 @@ const api: WorkbenchApi = {
   onCaffeinate: (cb) => on('caf:changed', (_e, s: CaffeinateState) => cb(s)),
   prInfo: (url) => ipcRenderer.invoke('gh:pr', url),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
+  pathForFile: (file) => webUtils.getPathForFile(file),
   suggest: { answer: (id, answer) => ipcRenderer.invoke('suggest:answer', id, answer) },
   tasks: {
     snapshot: () => ipcRenderer.invoke('tasks:snapshot'),

@@ -20,6 +20,9 @@ import { applyTheme, useStore } from './store'
 
 applyTheme(useStore.getState().theme)
 
+// A file dropped outside a terminal would otherwise navigate the window to it.
+for (const type of ['dragover', 'drop']) document.addEventListener(type, (e) => e.preventDefault())
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

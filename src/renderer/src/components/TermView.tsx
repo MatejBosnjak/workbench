@@ -46,6 +46,9 @@ const termsChanged = () => termListeners.forEach((cb) => cb())
 const URL_RE = /https?:\/\/[^\s"'<>()\[\]{}]+[^\s"'<>()\[\]{}.,;:!?]/g
 const PR_RE = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/
 
+// Dropped paths are typed the way Terminal.app does: shell-escaped, space-separated.
+const shellEscape = (path: string) => path.replace(/[^\w@%+=:,./-]/g, '\\$&')
+
 function openLink(e: MouseEvent, url: string): void {
   if (PR_RE.test(url)) openPrLink(url, e.metaKey)
   else void window.workbench.openExternal(url)
@@ -210,7 +213,24 @@ export function TermView(props: TermViewProps) {
 
   return (
     <>
-      <div className={className} hidden={hideWhenInactive && !active} ref={el} onMouseDown={() => term.current?.focus()} />
+      <div
+        className={className}
+        hidden={hideWhenInactive && !active}
+        ref={el}
+        onMouseDown={() => term.current?.focus()}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+        }}
+        onDrop={(e) => {
+          const paths = [...e.dataTransfer.files].map((f) => window.workbench.pathForFile(f)).filter(Boolean)
+          if (!paths.length) return
+          e.preventDefault()
+          term.current?.paste(paths.map(shellEscape).join(' ') + ' ')
+          term.current?.focus()
+        }}
+      />
       {card && <PrCard anchor={card} onEnter={() => clearTimeout(hideCard.current)} onLeave={() => setCard(null)} />}
     </>
   )

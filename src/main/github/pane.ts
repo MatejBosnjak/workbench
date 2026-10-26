@@ -1,4 +1,4 @@
-import { clipboard, dialog, session, shell, WebContentsView, type BrowserWindow } from 'electron'
+import { clipboard, dialog, Menu, session, shell, WebContentsView, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
 import { evictionOrder, paneRoute, POOL, prKey, type PaneKey, type PaneState } from '@shared/pane'
 
 export const PARTITION = 'persist:github'
@@ -24,6 +24,8 @@ const SUBMIT_HOOK = `(() => {
   if (window.__wbSubmitHook) return
   window.__wbSubmitHook = true
   document.addEventListener('submit', () => console.log('__workbench_submit__'), true)
+  // A mouse's side buttons go back and forward, as in a browser.
+  document.addEventListener('mouseup', (e) => { if (e.button === 3 || e.button === 4) { e.preventDefault(); console.log(e.button === 3 ? '__workbench_back__' : '__workbench_forward__') } }, true)
 })()`
 
 /**
@@ -228,7 +230,10 @@ export class GitHubPane {
     })
     wc.on('console-message', (e) => {
       if (e.message === '__workbench_submit__') setTimeout(() => this.events.activity(key), 2500)
+      if (e.message === '__workbench_back__' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack()
+      if (e.message === '__workbench_forward__' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward()
     })
+    wc.on('context-menu', (_e, p) => this.contextMenu(wc, p))
     // While GitHub has focus, Workbench keeps only its ⌘ shortcuts.
     wc.on('before-input-event', (e, input) => {
       if (input.type !== 'keyDown' || !input.meta || input.control || input.alt) return
@@ -246,6 +251,38 @@ export class GitHubPane {
       this.events.key(action)
     })
     return { key, view, lastUsed: Date.now() }
+  }
+
+  /** Right-click: a browser's link and editing items, plus back / forward / reload. No Inspect. */
+  private contextMenu(wc: Electron.WebContents, p: Electron.ContextMenuParams): void {
+    const items: MenuItemConstructorOptions[] = []
+    const sep: MenuItemConstructorOptions = { type: 'separator' }
+    if (p.linkURL) items.push({ label: 'Open Link in Browser', click: () => void shell.openExternal(p.linkURL) }, { label: 'Copy Link Address', click: () => clipboard.writeText(p.linkURL) }, sep)
+    if (p.isEditable) {
+      const f = p.editFlags
+      items.push(
+        { label: 'Undo', enabled: f.canUndo, click: () => wc.undo() },
+        { label: 'Redo', enabled: f.canRedo, click: () => wc.redo() },
+        sep,
+        { label: 'Cut', enabled: f.canCut, click: () => wc.cut() },
+        { label: 'Copy', enabled: f.canCopy, click: () => wc.copy() },
+        { label: 'Paste', enabled: f.canPaste, click: () => wc.paste() },
+        { label: 'Paste and Match Style', enabled: f.canPaste, click: () => wc.pasteAndMatchStyle() },
+        { label: 'Select All', click: () => wc.selectAll() },
+        sep,
+      )
+    } else if (p.selectionText.trim()) items.push({ label: 'Copy', click: () => wc.copy() }, sep)
+    if (p.mediaType === 'image' && p.srcURL) items.push({ label: 'Copy Image', click: () => wc.copyImageAt(p.x, p.y) }, { label: 'Copy Image Address', click: () => clipboard.writeText(p.srcURL) }, sep)
+    items.push(
+      { label: 'Back', accelerator: 'CmdOrCtrl+[', enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() },
+      { label: 'Forward', accelerator: 'CmdOrCtrl+]', enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() },
+      { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => wc.reload() },
+      sep,
+      { label: 'Copy Page URL', accelerator: 'CmdOrCtrl+L', click: () => clipboard.writeText(wc.getURL()) },
+      { label: 'Open Page in Browser', accelerator: 'CmdOrCtrl+Enter', click: () => void shell.openExternal(wc.getURL()) },
+    )
+    const win = this.win()
+    Menu.buildFromTemplate(items).popup(win ? { window: win } : {})
   }
 
   private activate(l: Live): void {

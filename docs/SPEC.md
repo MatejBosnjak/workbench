@@ -221,6 +221,7 @@ Image: `docs/design/current/github-pane.png`. Code: `GitPane.tsx`, `PrLinks.tsx`
 - **Replies:** opening a PR never clears "reply needed"; my reply being last, or `m`, does. The PR is re-fetched when the page navigates and after a comment is submitted.
 - **Draft reply with Claude:** `claude -p --model sonnet` writes the reply (read-only tools in my checkout of the PR's branch, else no tools); Workbench opens the thread, clicks Reply and fills GitHub's box. I post with GitHub's Comment button. If the box can't be found, the draft goes to the clipboard and the pane scrolls to the thread.
 - **Keys** while it has focus: plain keys and Esc go to GitHub; ⌘J back to the list (leaves full width), ⌘[ / ⌘] back / forward, ⌘R reload, ⌘L copy URL, ⌘↩ browser, ⌘= / ⌘- / ⌘0 zoom (on top of the app zoom, default 115%, 70–200%, remembered), ⌘K and ⌘1–9 as everywhere.
+- **Right-click** gives a browser's menu without Inspect: Open Link in Browser / Copy Link Address on a link, Undo … Select All in a text box, Copy on a selection, Copy Image on an image, then Back, Forward, Reload, Copy Page URL, Open Page in Browser. A mouse's side buttons go back and forward.
 
 ## Links: tasks, PRs, sessions
 

@@ -164,10 +164,10 @@ button { font: inherit; color: inherit; }
 .sb-middle { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 10px; padding: 0 12px; }
 .sb-middle > .sb-chip { flex-shrink: 0; }
 .sb-meters { display: flex; height: 100%; flex-shrink: 0; border-left: 1px solid var(--line-heavy); }
-.sb-meter { position: relative; display: flex; align-items: center; gap: 6px; padding: 0 9px; height: 100%; border-right: 1px solid var(--line-heavy); }
-.sb-k { color: var(--text-3); width: 20px; }
-.sb-v { color: var(--text); width: 30px; text-align: right; }
-.sb-reset { width: 40px; }
+.sb-meter { position: relative; display: flex; align-items: center; gap: 5px; padding: 0 8px; height: 100%; border-right: 1px solid var(--line-heavy); }
+.sb-k { color: var(--text-3); }
+.sb-v { color: var(--text); width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+.sb-reset { width: 6ch; }
 .meter { position: relative; height: 6px; background: var(--line-heavy); display: flex; flex-shrink: 0; }
 .meter > i { position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none; }
 /* Quarter cuts, ctx thresholds, and how much of a limit's window has passed: kept faint so the fill reads first. */

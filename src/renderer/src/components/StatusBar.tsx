@@ -149,7 +149,7 @@ export function StatusBar({ children }: { children?: ReactNode }) {
           <span className="sb-k">ctx</span>
           <Meter
             pct={ctx ?? 0}
-            width={64}
+            width={40}
             color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'}
             strength={[35, 100]}
             loading={ctx == null && !!session?.alive && limitsExpected}
@@ -169,13 +169,13 @@ export function StatusBar({ children }: { children?: ReactNode }) {
         </span>
         <span className="sb-meter" title={five ? `5h limit ${Math.round(five.pct)}%${five.resetsAt ? ` · resets ${clock(five.resetsAt)} · ${Math.round((elapsed(five, FIVE_HOURS, now) ?? 0) * 100)}% of the window gone (the light mark)` : ''}` : '5h limit'}>
           <span className="sb-k">5h</span>
-          <Meter pct={five?.pct ?? 0} width={64} color="var(--accent)" strength={[30, 80]} loading={!five && limitsExpected} pace={elapsed(five, FIVE_HOURS, now)} />
+          <Meter pct={five?.pct ?? 0} width={40} color="var(--accent)" strength={[30, 80]} loading={!five && limitsExpected} pace={elapsed(five, FIVE_HOURS, now)} />
           <span className="sb-v">{pct(five?.pct)}</span>
           <span className="faint sb-reset">{five?.resetsAt ? `↻${clock(five.resetsAt)}` : ''}</span>
         </span>
         <span className="sb-meter" title={week ? `Week ${Math.round(week.pct)}%${week.resetsAt ? ` · resets ${day(week.resetsAt)} · ${Math.round((elapsed(week, WEEK, now) ?? 0) * 100)}% of the week gone (the light mark)` : ''}` : 'Week limit'}>
           <span className="sb-k">wk</span>
-          <Meter pct={week?.pct ?? 0} width={64} color="var(--info)" strength={[25, 60]} loading={!week && limitsExpected} pace={elapsed(week, WEEK, now)} />
+          <Meter pct={week?.pct ?? 0} width={40} color="var(--info)" strength={[25, 60]} loading={!week && limitsExpected} pace={elapsed(week, WEEK, now)} />
           <span className="sb-v">{pct(week?.pct)}</span>
         </span>
       </span>

@@ -33,6 +33,8 @@ export interface ServiceState {
   behind: number | null
   /** A "Run alongside" copy; removed once stopped. */
   transient: boolean
+  /** Why it crashed, when it's something Workbench can tell, e.g. "AWS login expired". */
+  note?: string | null
   /** Its terminal is open (a shell in its folder, or the command itself), whether or not the service runs. */
   terminal?: boolean
 }
@@ -47,6 +49,19 @@ export interface LocalSnapshot {
   profiles: Profile[]
   profile: string
   infra: InfraService[]
+  /** The AWS SSO login the stack uses; null without an sso-session in ~/.aws/config. */
+  aws: AwsLogin | null
+}
+
+export interface AwsLogin {
+  /** The sso-session name in ~/.aws/config. */
+  session: string
+  /** `unknown`: couldn't tell (offline, aws missing); `login`: `aws sso login` is waiting for the browser. */
+  status: 'ok' | 'expired' | 'unknown' | 'login'
+  /** When the cached access token runs out (ms); the SDK refreshes it while the session lives. */
+  until: number | null
+  /** The device code `aws sso login` printed, to match in the browser. */
+  code: string | null
 }
 
 export interface InfraService {

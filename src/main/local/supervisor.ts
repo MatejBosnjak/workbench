@@ -9,6 +9,7 @@ import type { Repo } from '../store/repo'
 import { infraStatus, startInfra } from './brew'
 import { behindDefault, currentBranch, gitOut, isDirty, listBranches, listWorktrees, readWtrc, removeWorktree } from './git'
 import { readMarks, serviceShell } from './shell'
+import { AWS_EXPIRED, Aws } from './aws'
 import type { LocalConfig } from './config'
 
 const serviceId = (name: string) => `svc:${name}`
@@ -25,6 +26,9 @@ export class Supervisor {
   private shells = new Set<string>()
   private lines = new Map<string, string>()
   private ended = new Map<string, () => void>()
+  /** The last output of each service, to tell why it crashed. */
+  private tails = new Map<string, string>()
+  private aws: Aws
 
   constructor(
     private config: LocalConfig,
@@ -37,8 +41,9 @@ export class Supervisor {
       (id, code) => this.onExit(id, code),
       undefined,
       undefined,
-      (id, data) => (id.startsWith('svc:') ? this.onShellOutput(id.slice(4), data) : data),
+      (id, data) => (id.startsWith('svc:') ? this.onServiceOutput(id.slice(4), data) : data),
     )
+    this.aws = new Aws(() => this.emit())
     for (const def of config.services) this.states.set(def.name, this.initial(def, false))
     // brew is slow to answer; show the chips straight away.
     this.infra = config.infra.map((name) => ({ name, status: 'unknown' }))
@@ -54,6 +59,7 @@ export class Supervisor {
       profiles: this.config.profiles,
       profile: this.repo.getSetting('localProfile', this.config.profiles[0]?.id ?? 'full'),
       infra: this.infra,
+      aws: this.aws.get(),
     }
   }
 
@@ -122,8 +128,13 @@ export class Supervisor {
     this.running_(s)
   }
 
+  awsLogin(): Promise<void> {
+    return this.aws.startLogin()
+  }
+
   private running_(s: ServiceState): void {
-    Object.assign(s, { status: 'running', exitCode: null, startedAt: Date.now(), healthy: s.def.port ? false : null })
+    this.tails.delete(s.name)
+    Object.assign(s, { status: 'running', exitCode: null, startedAt: Date.now(), healthy: s.def.port ? false : null, note: null })
     this.emit()
   }
 
@@ -184,8 +195,9 @@ export class Supervisor {
     this.emit()
   }
 
-  /** Takes the shell's start / exit markers out of a service terminal's output, and follows them. */
-  private onShellOutput(name: string, data: string): string {
+  /** Keeps the tail of a service's output, takes its shell's start / exit markers out, and follows them. */
+  private onServiceOutput(name: string, data: string): string {
+    this.tails.set(name, ((this.tails.get(name) ?? '') + data).slice(-16_000))
     const { data: out, marks } = readMarks(data)
     if (!marks.length) return data
     let shown = ''
@@ -221,9 +233,10 @@ export class Supervisor {
     Object.assign(s, { status: stopped ? 'stopped' : 'crashed', exitCode: code, healthy: null })
     this.ended.get(name)?.()
     this.ended.delete(name)
+    const aws = !stopped && this.crashedOnAws(s)
     this.emit()
     const how = stopped ? 'stopped' : `exited · code ${code}`
-    return `\r\n\x1b[2m[${name} ${how} · Start or ↑ ⏎ runs it again]\x1b[0m\r\n`
+    return `\r\n\x1b[2m[${name} ${how} · Start or ↑ ⏎ runs it again]\x1b[0m\r\n${aws ? '\x1b[33m[AWS login expired · click the aws chip to log in, then Start]\x1b[0m\r\n' : ''}`
   }
 
   async restart(name: string): Promise<void> {
@@ -389,6 +402,7 @@ export class Supervisor {
 
   dispose(): void {
     this.timers.forEach(clearInterval)
+    this.aws.dispose()
     this.pty.killAll()
   }
 
@@ -431,8 +445,17 @@ export class Supervisor {
     if (!this.isUp(s)) return this.emit()
     const stopped = s.status === 'stopping'
     Object.assign(s, { status: stopped || code === 0 ? 'stopped' : 'crashed', exitCode: code, healthy: null })
+    if (s.status === 'crashed') this.crashedOnAws(s)
     if (s.transient && (stopped || code === 0)) this.states.delete(name)
     this.emit()
+  }
+
+  /** A crash whose output has an AWS expired-token error: noted on the service, and the login is checked now. */
+  private crashedOnAws(s: ServiceState): boolean {
+    const hit = AWS_EXPIRED.test(this.tails.get(s.name) ?? '')
+    s.note = hit ? 'AWS login expired' : null
+    if (hit) void this.aws.check()
+    return hit
   }
 
   private async checkHealth(): Promise<void> {

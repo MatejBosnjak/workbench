@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from 'react'
-import type { LocalSnapshot, ServiceState } from '@shared/local'
+import type { AwsLogin, LocalSnapshot, ServiceState } from '@shared/local'
 import { Panes } from './Panes'
 import { WorktreeSwitcher } from './WorktreeSwitcher'
 import { RunPanel } from './RunPr'
@@ -15,7 +15,7 @@ function uptime(s: ServiceState, now: number): string {
 }
 
 function stateText(s: ServiceState): string {
-  if (s.status === 'crashed') return `exited · code ${s.exitCode}`
+  if (s.status === 'crashed') return s.note ? `crashed · ${s.note}` : `exited · code ${s.exitCode}`
   if (s.status === 'running' && s.def.port) return s.healthy ? `running · :${s.def.port}` : `starting · :${s.def.port}`
   return STATE[s.status]
 }
@@ -38,7 +38,7 @@ export const LocalView = memo(function LocalView({ snapshot, active }: { snapsho
   }, [active, snapshot === null])
 
   if (!snapshot) return null
-  const { services, profiles, profile, infra } = snapshot
+  const { services, profiles, profile, infra, aws } = snapshot
   const inProfile = services.filter((s) => s.def.profiles.includes(profile) || s.transient)
   const missing = inProfile.filter((s) => s.status !== 'running' && s.status !== 'stopping' && !s.transient)
   const anyRunning = services.some((s) => s.status === 'running')
@@ -105,6 +105,7 @@ export const LocalView = memo(function LocalView({ snapshot, active }: { snapsho
                   {i.name.replace(/@.*/, '')}
                 </button>
               ))}
+              {aws && <AwsChip aws={aws} />}
             </div>
           </div>
         </section>
@@ -165,5 +166,33 @@ function BranchIcon() {
       <path d="M6 8.5v7" />
       <path d="M18 10.5c0 4-6 3-11 5.5" />
     </svg>
+  )
+}
+
+const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+/** The AWS SSO login with the infra chips: green while it holds, red once expired; a click runs `aws sso login`. */
+function AwsChip({ aws }: { aws: AwsLogin }) {
+  const label =
+    aws.status === 'login'
+      ? `aws · ${aws.code ?? 'browser…'}`
+      : aws.status === 'expired'
+        ? 'aws · expired · log in'
+        : aws.status === 'ok'
+          ? 'aws'
+          : 'aws · ?'
+  const title =
+    aws.status === 'login'
+      ? `Confirm in the browser${aws.code ? ` (code ${aws.code})` : ''} · click to cancel`
+      : aws.status === 'expired'
+        ? `AWS login (sso-session ${aws.session}) expired${aws.until ? ` at ${clock(aws.until)}` : ''} · click to log in`
+        : aws.status === 'ok'
+          ? `AWS login (sso-session ${aws.session}) is valid${aws.until ? `; token until ${clock(aws.until)}, refreshed automatically` : ''} · click to log in again`
+          : `Couldn't check the AWS login (offline?) · click to log in`
+  return (
+    <button className={`chip aws-chip aws-${aws.status}`} title={title} onClick={() => void window.workbench.local.awsLogin()}>
+      <span className="chip-dot" />
+      {label}
+    </button>
   )
 }

@@ -575,6 +575,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('local:close-pane', (_e, id: string) => local.closePane(id))
   ipcMain.handle('local:worktrees', (_e, name: string) => local.worktrees(name))
   ipcMain.handle('local:switch', (_e, name: string, path: string, run: boolean) => local.switchWorktree(name, path, run))
+  ipcMain.handle('local:aws-login', () => local.awsLogin())
   ipcMain.handle('local:branches', (_e, name: string) => local.branches(name))
   ipcMain.handle('local:checkout', async (_e, name: string, branch: string, run: boolean) => {
     let stash = false

@@ -284,6 +284,8 @@ export interface WorkbenchApi {
     worktrees(name: string): Promise<Worktree[]>
     switchWorktree(name: string, path: string, run: boolean): Promise<void>
     branches(name: string): Promise<Branch[]>
+    /** `aws sso login` for the stack's sso-session; again while it waits cancels it. */
+    awsLogin(): Promise<void>
     /** Checks out a branch in the service's base checkout; asks first when it has changes. */
     checkoutBranch(name: string, branch: string, run: boolean): Promise<void>
     runAlongside(name: string, path: string): Promise<string | null>

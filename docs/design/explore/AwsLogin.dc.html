@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AWS login</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.app{position:relative;width:1512px;height:860px;background:#0E0D12;color:#ECE8F2;font-family:'JetBrains Mono',monospace;font-size:13px;display:flex;flex-direction:column;overflow:hidden;border:1px solid #3A3647}
+.top{height:44px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px 0 94px;background:#14131A;border-bottom:1px solid #25232E}
+.place{border:1px solid #2E2B39;padding:4px 12px;color:#CDC7D8;position:relative}
+.place.on{border-color:#A69FB4;color:#ECE8F2;font-weight:700}
+.bang{position:absolute;right:-7px;top:-7px;width:15px;height:15px;border-radius:50%;background:#EE6F86;color:#120E16;font-weight:800;font-size:10.5px;display:grid;place-items:center;box-shadow:0 0 0 2px #14131A}
+.tip{position:absolute;left:254px;top:40px;width:330px;background:#1A1921;border:1px solid #3A3647;box-shadow:0 18px 44px rgba(0,0,0,.6);padding:10px 12px;font-size:12px;z-index:5;line-height:1.55}
+.tip b{color:#EE6F86}
+.tbtn{border:1px solid #2E2B39;width:34px;height:30px;display:grid;place-items:center;color:#A69FB4}
+.main{flex:1;display:flex;flex-direction:column;padding:16px 20px 14px;gap:14px;min-height:0}
+.hdr{display:flex;align-items:center;gap:18px}
+.hdr h1{font-size:20px;margin:0;font-weight:600;letter-spacing:.02em}
+.seg{display:flex;border:1px solid #2E2B39;padding:3px}
+.seg span{padding:3px 8px;color:#A69FB4}.seg span.on{background:#1E1C26;color:#ECE8F2;font-weight:700}
+.btn{border:1px solid #2E2B39;padding:4px 10px;color:#A69FB4}
+.btn.p{background:#A07EEA;color:#120E16;border-color:#A07EEA;font-weight:700}
+.body{flex:1;display:flex;gap:14px;min-height:0}
+.list{width:250px;display:flex;flex-direction:column;gap:4px}
+.svc{padding:8px 12px;border:1px solid transparent}
+.svc.sel{border-color:#2E2B39;background:#121117}
+.svc .n{display:flex;align-items:center;gap:8px;font-weight:600}
+.svc .s{color:#8E879E;font-size:12px;padding-left:15px}
+.dot{width:7px;height:7px;border-radius:50%;background:#4A4558;display:inline-block}
+.g{background:#5FD0B0}.r{background:#EE6F86}
+.infra{margin-top:auto;border-top:1px solid #25232E;padding-top:12px}
+.lbl{color:#A69FB4;font-size:10.5px;letter-spacing:.08em;display:block;padding:0 2px 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid #2E2B39;padding:2px 8px;display:inline-flex;gap:6px;align-items:center;color:#CDC7D8;font-size:12px}
+.chip .dot{width:6px;height:6px}
+.chip.exp{border-color:#6A2E3C;background:#2A151D;color:#EE6F86}
+.chip.exp .dot{background:#EE6F86}
+.right{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+.bar{display:flex;align-items:center;gap:12px}
+.br{border:1px solid #4A3A72;background:#211A30;padding:4px 10px;display:flex;gap:6px}
+.f{color:#6A647A}.bad{color:#EE6F86}.w{color:#E8B07A}.ok{color:#5FD0B0}.c{color:#8FD3EA}
+.pane{flex:1;border:1px solid #25232E;display:flex;flex-direction:column;min-height:0}
+.ph{height:30px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid #25232E;color:#A69FB4;font-size:11px}
+.term{flex:1;padding:10px 12px;white-space:pre;line-height:1.6;font-size:12px;color:#CDC7D8}
+.ib{border:1px solid #6A2E3C;background:#2A151D;color:#EE6F86;padding:0 6px}
+.sb{height:38px;flex-shrink:0;border-top:1px solid #25232E;display:flex;align-items:center;padding:0 14px;color:#6A647A;font-size:12px;gap:20px}
+.cap{color:#A69FB4;max-width:1500px;font-size:12.5px;line-height:1.6}
+.cap b{color:#ECE8F2}
+.ann{position:absolute;border:1.5px dashed #A07EEA;pointer-events:none}
+</style>
+</helmet>
+<div style="width:1600px;padding:44px;display:flex;flex-direction:column;gap:20px;background:#0E0D12;color:#ECE8F2;font-family:'JetBrains Mono',monospace">
+<div style="color:#A07EEA;font-weight:700;letter-spacing:.06em">LOCAL · AWS LOGIN EXPIRED (hovering the ! on 2 Local)</div>
+<div class="app">
+<div class="top">
+<span style="color:#ECE8F2;font-weight:700"><span style="color:#A07EEA">▌</span>wb <span class="f" style="font-weight:400">345M</span></span>
+<span style="width:20px"></span>
+<span class="place">1 Today</span>
+<span class="place on">2 Local <span class="w">2/7</span><span class="bang">!</span></span>
+<span style="width:1px;height:22px;background:#2E2B39;margin:0 6px"></span>
+<span class="place">3 rate card sync</span>
+<span style="flex:1"></span><span class="tbtn">+</span><span class="tbtn">☕</span><span class="tbtn">⌘K</span>
+</div>
+<div class="tip"><b>AWS login expired</b> · 23h ago (25 Oct 11:43)<br><span class="f">sso-session productive · AI and api use it</span><br><span class="f">Click the aws chip in Local to log in</span></div>
+
+<div class="main">
+<div class="hdr"><h1>Local services</h1><span class="seg"><span class="on">prd · full</span><span>Frontend only</span><span>AI work</span><span>Exports &amp; PDF</span></span><span style="flex:1"></span><span class="btn">Stop all</span><span class="btn p">Start missing (5)</span></div>
+<div class="body">
+<div class="list">
+<div class="svc"><div class="n"><span class="dot g"></span>app<span style="flex:1"></span><span class="f" style="font-weight:400;font-size:12px">2h</span></div><div class="s ok">running</div></div>
+<div class="svc"><div class="n"><span class="dot g"></span>api<span style="flex:1"></span><span class="f" style="font-weight:400;font-size:12px">2h</span></div><div class="s ok">running</div></div>
+<div class="svc"><div class="n"><span class="dot"></span>e2e-tests</div><div class="s">stopped</div></div>
+<div class="svc"><div class="n"><span class="dot"></span>exporter</div><div class="s">stopped</div></div>
+<div class="svc"><div class="n"><span class="dot"></span>pdf-generator</div><div class="s">stopped</div></div>
+<div class="svc"><div class="n"><span class="dot"></span>pdf-viewer</div><div class="s">stopped</div></div>
+<div class="svc sel"><div class="n"><span class="dot r"></span>AI</div><div class="s bad">crashed · AWS login expired</div></div>
+<div class="infra"><span class="lbl">INFRA · BREW SERVICES</span><div class="chips">
+<span class="chip"><span class="dot g"></span>mysql</span><span class="chip"><span class="dot g"></span>redis</span><span class="chip"><span class="dot g"></span>memcached</span><span class="chip"><span class="dot"></span>meilisearch</span><span class="chip"><span class="dot g"></span>nginx</span><span class="chip exp"><span class="dot"></span>aws · expired · log in</span>
+</div></div>
+</div>
+<div class="right">
+<div class="bar"><span class="br">⑂ develop ⌄</span><span class="f" style="font-size:12px">ai-agent · 3 behind develop</span><span style="flex:1"></span><span class="btn" style="color:#ECE8F2">Start</span></div>
+<div class="pane">
+<div class="ph"><span class="dot r"></span>1 · DEV_API_ENV=production pnpm start <span class="bad">· crashed · exit 1</span></div>
+<div class="term"><span class="c">➜</span>  <span class="c">ai-agent</span> git:(<span class="bad">develop</span>) DEV_API_ENV=production pnpm start
+&gt; ai-agent@0.0.0 start
+[agent] loading config for production…
+<span class="bad">CredentialsProviderError: Token is expired. To refresh this SSO session run 'aws sso login' with the corresponding profile.</span>
+<span class="bad">    at SSOOIDCClient.send (node_modules/@aws-sdk/…)</span>
+
+<span class="f">[AI exited · code 1 · Start or ↑ ⏎ runs it again]</span>
+<span class="w">[AWS login expired · click the aws chip to log in, then Start]</span>
+<span class="c">➜</span>  <span class="c">ai-agent</span> git:(<span class="bad">develop</span>) <span style="background:#ECE8F2"> </span></div>
+</div>
+</div>
+</div>
+</div>
+<div class="sb"><span>⌨</span><span>no session</span><span style="flex:1"></span><span>ctx ▬▬ —</span><span>5h ▬▬ —</span><span>wk ▬▬ —</span><span style="color:#A69FB4">◆ opus-5.5 · <span class="w">auto</span> · bypass</span></div>
+</div>
+<div class="cap"><b>The ! on 2 Local</b> shows while the AWS SSO token is expired (red) and hovering says when and what uses it; clicking 2 Local goes there as usual. <b>The aws chip</b> sits with the infra chips: green "aws · until 18:40", amber under 30 min, red "expired · log in"; a click runs <b>aws sso login --sso-session productive</b> (browser opens; chip shows "confirm in browser…" until done). <b>A crashed service</b> whose log has an AWS expired-token error while the login is expired gets "crashed · AWS login expired" in the list and one dim hint line in its terminal. No Needs you item.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

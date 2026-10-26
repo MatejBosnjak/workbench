@@ -78,6 +78,12 @@ button { font: inherit; color: inherit; }
 .places { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .place[aria-current='page'] { border-color: var(--text-3); background: var(--raised); color: var(--text); font-weight: 700; }
 .place-count { color: var(--warn); }
+.place { position: relative; }
+.place-bang { position: absolute; right: -7px; top: -7px; width: 15px; height: 15px; border-radius: 50%; background: var(--bad); color: var(--on-accent); font-size: 10.5px; font-weight: 800; line-height: 15px; text-align: center; box-shadow: 0 0 0 2px var(--chrome); }
+.place-bang-tip { display: none; position: absolute; left: 0; top: 22px; z-index: 50; width: 300px; padding: 10px 12px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); color: var(--text-2); font-size: 12px; font-weight: 400; line-height: 1.55; text-align: left; white-space: normal; }
+.place-bang-tip b { color: var(--bad); }
+.place-bang-tip span { display: block; color: var(--muted); }
+.place-bang:hover .place-bang-tip { display: block; }
 .place[aria-current='page'] .place-count { color: inherit; }
 .divider { width: 1px; height: 28px; background: var(--line-heavy); margin: 0 10px; flex-shrink: 0; }
 
@@ -340,6 +346,12 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .infra-ok .chip-dot { background: var(--ok); }
 .infra-bad .chip-dot { background: var(--bad); }
 .infra-off { border-style: dashed; }
+.aws-ok .chip-dot { background: var(--ok); }
+.aws-expired { border-color: color-mix(in srgb, var(--bad) 45%, transparent); background: var(--bad-bg); color: var(--bad); }
+.aws-expired .chip-dot { background: var(--bad); }
+.aws-login { border-color: var(--accent-line); background: var(--accent-bg); color: var(--text); }
+.aws-login .chip-dot { background: var(--accent); animation: aws-pulse 1s infinite; }
+@keyframes aws-pulse { 50% { opacity: 0.3; } }
 
 .svc-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .svc-detail-head { display: flex; align-items: center; gap: 12px; min-height: 32px; }

@@ -159,6 +159,17 @@ export function TopBar({ onNew }: { onNew: () => void }) {
         <button className="seg-btn place" aria-current={view.kind === 'local' ? 'page' : undefined} title={inProfile.length ? `${up} of ${inProfile.length} services running` : undefined} onClick={() => show({ kind: 'local' })}>
           2 Local
           {inProfile.length > 0 && <span className="place-count">{` ${up}/${inProfile.length}`}</span>}
+          {local?.aws?.status === 'expired' && (
+            <span className="place-bang" aria-label="AWS login expired">
+              !
+              <span className="place-bang-tip" role="tooltip">
+                <b>AWS login expired</b>
+                {local.aws.until ? ` · ${new Date(local.aws.until).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+                <span>sso-session {local.aws.session}</span>
+                <span>Click the aws chip in Local to log in</span>
+              </span>
+            </span>
+          )}
         </button>
         {wsPlace && (
           <span className="seg-btn place ws-place" aria-current={view.kind === 'workstream' ? 'page' : undefined}>

@@ -124,6 +124,7 @@ const api: WorkbenchApi = {
     closePane: (id) => ipcRenderer.invoke('local:close-pane', id),
     worktrees: (name) => ipcRenderer.invoke('local:worktrees', name),
     switchWorktree: (name, path, run) => ipcRenderer.invoke('local:switch', name, path, run),
+    awsLogin: () => ipcRenderer.invoke('local:aws-login'),
     branches: (name) => ipcRenderer.invoke('local:branches', name),
     checkoutBranch: (name, branch, run) => ipcRenderer.invoke('local:checkout', name, branch, run),
     runAlongside: (name, path) => ipcRenderer.invoke('local:alongside', name, path),

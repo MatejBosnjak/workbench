@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { askedForChanges, gitEvents, groupByStage, groupReviews, mergeChecks, mergeScore, needsReply, type Conversation, type Pr } from './git'
+import { askedForChanges, gitEvents, groupByStage, groupReviews, mergeChecks, mergeScore, needsReply, parsePrUrl, type Conversation, type Pr } from './git'
 
 let n = 0
 const pr = (p: Partial<Pr>): Pr => ({
@@ -114,5 +114,12 @@ describe('gitEvents', () => {
     const botPr = { ...pr({ author: 'dependabot', authorBot: true }), requested: true }
     const keys = gitEvents({ viewer: 'me', mine: [p, pr({ draft: true, ci: 'fail' })], reviews: [asked, botPr], seen: {} }).map((e) => e.key)
     expect(keys).toEqual(['msg:t-0', `cr:R1`, `ci:${p.id}:abc`, `rr:${asked.id}`])
+  })
+})
+
+describe('parsePrUrl', () => {
+  it('cleans a pasted PR URL and rejects anything else', () => {
+    expect(parsePrUrl(' https://github.com/productiveio/frontend/pull/30301/files?w=1 ')).toEqual({ owner: 'productiveio', repo: 'frontend', number: 30301, url: 'https://github.com/productiveio/frontend/pull/30301' })
+    expect(parsePrUrl('https://github.com/productiveio/frontend/issues/3')).toBeNull()
   })
 })

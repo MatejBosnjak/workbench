@@ -1071,6 +1071,17 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .prl-ext { padding: 0 8px; }
 .prl-sep { border-top: 1px solid var(--line-heavy); margin: 4px 0; }
 .prl-new { color: var(--link); }
+.lk-menu { width: 420px; }
+.lk-input { margin: 4px 4px 6px; height: 28px; padding: 0 8px; background: var(--bg); border: 1px solid var(--accent); color: var(--text); font: inherit; font-size: 12px; outline: none; }
+.lk-list { display: flex; flex-direction: column; max-height: 340px; overflow-y: auto; }
+.lk-item.hl { background: var(--raised); color: var(--text); }
+.lk-item.off { color: var(--faint); cursor: default; }
+.lk-item.off:hover { background: transparent; color: var(--faint); }
+.lk-ref { width: 34px; flex: none; color: var(--text-3); }
+.lk-ci { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.lk-task { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; align-self: stretch; }
+.lk-task .prl-status { max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
+.ts-tabs .lk-add { color: var(--link); }
 
 /* Link chips (Chips.tsx): one look for a task (▍status, Productive logo, title), a PR (GitHub logo, title, CI dot) and a
    session (the tab's state dot, title), wherever one links to another. A cut-off chip grows out to its full title. */

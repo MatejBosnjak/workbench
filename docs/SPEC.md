@@ -91,6 +91,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Checkbox rows aren't wrapped in a `<label>` when their text holds links or sits next to a write: only the box itself is a hit target.
 - My PRs and Reviews rows share one layout (rail, title over people, stacked checks, Run app column), so the two lists read the same.
 - Window-like buttons take macOS traffic-light colours, softly tinted at rest (80% toward the muted text) and full on hover: × red (close), unlink yellow, ⤢ green. Tab × stays grey. Unlink is one icon everywhere (a link with a slash): PR sidebar, task sidebar, session rows.
+- Pickers that link things (a PR to a session, a PR to a task) are one pattern: a menu with a filter box, rows in the list's own look (repo + title + CI dot, or status rail + title + status), already-linked rows dimmed, ↑↓ ↵ esc, and a hint line at the bottom.
 
 ## Shell: TopBar, StatusBar, keys
 
@@ -193,6 +194,7 @@ Image: `docs/design/current/today-prs.png`. Code: `GitView.tsx` (GitView, PrRow)
 - Repo chips, **Newest first** (remembered) and **Hide drafts**. Grouped by stage, nearest to merge first: Ready to merge, In review, Changes requested (not yet addressed), Draft. A PR opened from a link that isn't in my lists gets a temporary **Opened** group.
 - **Row:** a rail in the stage colour; repo and title (the number in the repo's tooltip); the task chip; `↩ N` when replies wait on me (opens the first in Needs you); age. Under the title the **reviewers**: avatar ringed by state (grey waiting, green approved, red changes, blue commented), login, state; a requested reviewer is waiting even if they reviewed before; a PR that needs a review with nobody asked shows `! no reviewer` in amber (not on drafts). On the right the checks one under another, each ✓ / ✕ / · (CI or CI running, merge or conflict, threads or `N threads`; no CI counts as passing; the full text in the tooltip), then the `n/4` score (how many of the four merge checks pass: CI, reviews, conflicts, threads) with ▶ Run app under it on frontend PRs, without the worktree hint. 4/4 rows get a faint green tint. Within a stage: highest score, then most recently updated; with Newest first, most recently opened.
 - ⏎ / click opens in the pane, ⌘-click the browser, `m` marks replies seen.
+- Any of these PRs can also be linked to a session or a task by hand (see Session PR sidebar and GitHub pane); a pasted PR URL is cleaned to `github.com/<owner>/<repo>/pull/<n>` first.
 
 ## Today › Reviews
 
@@ -204,11 +206,11 @@ Image: `docs/design/current/today-reviews.png`. Code: `GitView.tsx` (ReviewsView
 
 ## GitHub pane
 
-Image: `docs/design/current/github-pane.png`. Code: `GitPane.tsx`, `PrLinks.tsx`, `src/main/github/pane.ts`, `src/shared/pane.ts`.
+Image: `docs/design/current/github-pane.png`. Code: `GitPane.tsx`, `PrLinks.tsx`, `LinkPicker.tsx`, `src/main/github/pane.ts`, `src/shared/pane.ts`.
 
 - An Electron `WebContentsView` (not an iframe) drawn over the right panel of My PRs / Reviews, or full width (⤢), or in a session's PR sidebar. One native view is shared; a still image stands in while an overlay or menu covers it.
 - **Strip:** repo and title (the title gives way when tight), state, a CI dot (wording in its tooltip), `↩ N` replies needed, the **Task ▾** and **Session ▾** buttons (capped at 200px), ▶ Run app (frontend), ‹ › history, ↗ browser (⌘↩), ⤢, ×.
-  - **Task ▾**: the first task's rail, Productive logo and title (`+N`); the menu lists the PR's tasks with status. Click shows it in My tasks; ↗ opens Productive.
+  - **Task ▾**: the first task's rail, Productive logo and title (`+N`); the menu lists the PR's tasks with status. Click shows it in My tasks; ↗ opens Productive. Its last item, **+ link to a task…**, turns the menu into a picker of my tasks (status rail and status; the PR's tasks dimmed); ↵ stores the link in `pr_tasks`, so the PR shows on that task and its sessions. A PR that names none of my tasks gets a **link task…** button before `+ new ✻` that opens the same picker.
   - **Session ▾**: the best session's mark and title (`+N`); the menu lists sessions linked to those tasks plus any session working on this frontend PR, live first. Click switches (reopening a closed tab); "+ new ✻ for this task". With a task but no session, the button is `+ new ✻` directly.
   - **A PR that names none of my tasks** (a review, say) gets `+ new ✻` in their place (and "+ new ✻ for this PR" in Session ▾ once it has sessions): a new session named after the PR, connected to it by hand, its first prompt prefilled with `lets look at this PR <url>`.
 - **Opening.** A click or ⏎ on a PR row. Any productiveio PR link elsewhere (terminal, cards, workstream) switches to My PRs or Reviews with it selected. ⌘-click always opens the browser. All of `github.com/productiveio/*` stays in the pane; other sites and new windows go to the browser.
@@ -266,7 +268,7 @@ Image: `docs/design/current/session-task-side.png`. Code: `TaskSide.tsx` (TaskSi
 
 Image: `docs/design/current/session-pr-side.png`. Code: `TaskSide.tsx` (PrSide), `GitPane.tsx`.
 
-- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. In the header's tools, the yellow unlink icon (where ‹ › are elsewhere; the same icon as the task sidebar's) takes the shown PR off this session for good, however it got there (by hand, Run app, a linked task): it's kept as a dismissal (`suggest_dismissed`, key `pr:<url>`), so it isn't suggested again either; connecting it by hand later clears that. With no PR left the sidebar closes. Framed like the task sidebar: a box with the PR's repo, title, state and CI set into its top border and the tools (unlink, browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
+- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several, and a **+ link PR** chip at the end of the row. It opens a picker: filter my PRs and review requests (PRs already on the session are dimmed, marked linked), or paste any GitHub PR URL (`/files` and queries are stripped); ↑↓ ↵ esc. The pick is stored in `session_prs`. A session with no PR shows **link PR…** in the session bar, which opens the same picker. In the header's tools, the yellow unlink icon (where ‹ › are elsewhere; the same icon as the task sidebar's) takes the shown PR off this session for good, however it got there (by hand, Run app, a linked task): it's kept as a dismissal (`suggest_dismissed`, key `pr:<url>`), so it isn't suggested again either; connecting it by hand later clears that. With no PR left the sidebar closes. Framed like the task sidebar: a box with the PR's repo, title, state and CI set into its top border and the tools (unlink, browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
 - **Per session:** each session remembers its own sidebar (task, PR or none; `ui:sessionSides`), closed until opened. The PR sidebar shows only while the session has a PR; ⌘⇧I does nothing without one.
 - **Width (both sidebars):** drag the left edge to resize (←/→ when it has focus); double-click resets to the default. Each sidebar remembers its width (`ui:sideWidths`), never narrower than 320px or leaving the terminal less than 360px. The GitHub pane waits behind a still while dragging.
 

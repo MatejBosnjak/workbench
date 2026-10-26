@@ -12,6 +12,7 @@ import { GitHubIcon, NewSessionButton, ProductiveIcon } from './Chips'
 import { GitPane } from './GitPane'
 import { LinkSuggest } from './LinkSuggest'
 import { TaskDetails } from './TaskDetails'
+import { LinkPrButton } from './LinkPicker'
 import { TaskPreview } from './TaskPreview'
 
 /** Tasks linked to the session, latest link first. */
@@ -93,6 +94,12 @@ export function SessionBar({ session }: { session: Session }) {
           <span className="faint">⌘⇧I</span>
         </button>
       )}
+      {!pr && (
+        <LinkPrButton sessionId={session.id} className="sbar-btn pad">
+          <GitHubIcon />
+          <span className="muted">link PR…</span>
+        </LinkPrButton>
+      )}
       {task && <NewSessionButton taskId={task.id} />}
       <LinkSuggest session={session} />
       <SessionCup session={session} />
@@ -113,15 +120,17 @@ export function PrSide({ session }: { session: Session }) {
 
   return (
     <aside className="pr-side">
-      {prs.length > 1 && (
-        <div className="ts-tabs">
-          {prs.map((p) => (
+      <div className="ts-tabs">
+        {prs.length > 1 &&
+          prs.map((p) => (
             <button key={p.url} className={`sb-chip${p.url === current?.url ? ' on' : ''}`} title={p.title} onClick={() => void window.workbench.pane.open(p.url)}>
               {p.title}
             </button>
           ))}
-        </div>
-      )}
+        <LinkPrButton sessionId={session.id} className="sb-chip lk-add">
+          + link PR
+        </LinkPrButton>
+      </div>
       {prs.length === 0 ? <span className="faint">No PR for this session.</span> : <GitPane active side onClose={() => setSessionSide(null)} onUnlink={(url) => void window.workbench.tasks.unlinkPr(session.id, url)} />}
     </aside>
   )

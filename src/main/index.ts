@@ -3,7 +3,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
-import type { DraftTarget, GitSnapshot, Pr } from '@shared/git'
+import { parsePrUrl, prRepo, shortRepo, type DraftTarget, type GitSnapshot, type Pr } from '@shared/git'
 import type { Person, SessionPrLink } from '@shared/tasks'
 import type { HooksStatus, MenuCommand, NavigateTarget, TabMenuPick } from '@shared/types'
 import { Caffeinate } from './caffeinate'
@@ -490,6 +490,19 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
+  // Linking by hand: a PR from my lists, or any PR URL pasted in.
+  ipcMain.handle('tasks:linkPr', (_e, sessionId: string, text: string) => {
+    const u = parsePrUrl(text)
+    if (!u) return
+    const pr = [...git.mine, ...git.reviews].find((p) => p.url === u.url)
+    repo.addSessionPr(sessionId, { url: u.url, label: pr ? prRepo(pr) : shortRepo(u.repo), title: pr?.title ?? `PR #${u.number}` })
+    tasksChanged()
+  })
+  ipcMain.handle('tasks:linkPrTask', (_e, url: string, taskId: string) => {
+    repo.addPrTask(url, taskId)
+    gitChanged()
+    tasksChanged()
+  })
   ipcMain.handle('tasks:unlinkPr', (_e, sessionId: string, url: string) => {
     repo.unlinkSessionPr(sessionId, url)
     tasksChanged()

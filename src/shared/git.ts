@@ -96,6 +96,13 @@ export const isBot = (login: string, typename?: string) => typename === 'Bot' ||
 
 const SHORT: Record<string, string> = { frontend: 'fe', 'ai-agent': 'ai', 'e2e-tests': 'e2e' }
 export const shortRepo = (name: string) => SHORT[name] ?? name
+
+/** A GitHub PR URL, from a paste that may carry a tab (/files) or query: owner, repo, number, and the clean URL. */
+export function parsePrUrl(text: string): { owner: string; repo: string; number: number; url: string } | null {
+  const m = /github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)/.exec(text)
+  return m ? { owner: m[1]!, repo: m[2]!, number: Number(m[3]), url: `https://github.com/${m[1]}/${m[2]}/pull/${m[3]}` } : null
+}
+
 /** "fe #30278": for tooltips, prompts and anything a machine reads. On screen a PR is its repo and title (prRepo). */
 export const prRef = (p: Pick<Pr, 'repoName' | 'number'>) => `${shortRepo(p.repoName)} #${p.number}`
 /** A PR's repo as it reads on screen ("fe", "api"), next to its title; numbers stay out of sight. */

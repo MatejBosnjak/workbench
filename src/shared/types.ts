@@ -181,6 +181,10 @@ export interface WorkbenchApi {
     unlink(sessionId: string, taskId: string): Promise<void>
     /** Takes a PR off the session for good, however it was linked. */
     unlinkPr(sessionId: string, url: string): Promise<void>
+    /** Puts a PR on the session by hand: one from my lists, or any pasted PR URL. */
+    linkPr(sessionId: string, url: string): Promise<void>
+    /** Connects a PR to a task by hand (pr_tasks): it then shows on the task and its sessions. */
+    linkPrTask(url: string, taskId: string): Promise<void>
     summarize(taskId: string): Promise<string>
     /** Description, to-dos and the workflow's statuses, fetched fresh. */
     detail(taskId: string): Promise<TaskDetail>

@@ -7,6 +7,7 @@ import { statusVivid, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { useOverlay, useStore } from '../store'
 import { goToSession, MarkGlyph, NewSessionButton, ProductiveIcon, Spark } from './Chips'
+import { LinkTaskList } from './LinkPicker'
 
 /** The PR's tasks (from its branch and description) and the sessions linked to them or working on the PR, live first. */
 export function prLinks(
@@ -28,10 +29,11 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
   const { tasks, sessions, runpr, show, setTodayTab, setPeekTask } = useStore(
     useShallow((s) => ({ tasks: s.tasks, sessions: s.sessions, runpr: s.runpr, show: s.show, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask })),
   )
-  const [menu, setMenuState] = useState<'task' | 'session' | null>(null)
+  // 'pick': the Task ▾ menu turned into a picker of my tasks to link the PR to.
+  const [menu, setMenuState] = useState<'task' | 'session' | 'pick' | null>(null)
   // Where the open menu hangs: under its button's right edge, in window coordinates.
   const [at, setAt] = useState<{ top: number; right: number } | null>(null)
-  const setMenu = (m: 'task' | 'session' | null, el?: HTMLElement) => {
+  const setMenu = (m: 'task' | 'session' | 'pick' | null, el?: HTMLElement) => {
     if (m && el) {
       const r = el.getBoundingClientRect()
       setAt({ top: r.bottom + 4, right: window.innerWidth - r.right })
@@ -61,9 +63,21 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
     const s = await window.workbench.tasks.startForPr({ url: prUrl, label: pr ? prRepo(pr) : shortRepo(prUrl.split('/')[4] ?? ''), title: pr?.title ?? `PR #${n}` })
     if (s) show({ kind: 'session', id: s.id })
   }
+  const pickMenu = menu === 'pick' && (
+    <Menu at={at}>
+      <LinkTaskList prUrl={prUrl} linked={prTasks.map((t) => t.id)} onDone={() => setMenu(null)} />
+    </Menu>
+  )
   if (!prTasks.length && !linked.length)
     return (
       <span className="prl">
+        <span className="prl-wrap">
+          <button className={`prl-btn${menu === 'pick' ? ' on' : ''}`} aria-expanded={menu === 'pick'} title="Link this PR to one of my tasks" onClick={(e) => setMenu(menu === 'pick' ? null : 'pick', e.currentTarget)}>
+            <ProductiveIcon />
+            <span className="muted">link task…</span>
+          </button>
+          {pickMenu}
+        </span>
         <button type="button" className="new-sess" title="New session about this PR" aria-label="New session about this PR" onClick={() => void startForPr()}>
           + new <Spark />
         </button>
@@ -119,8 +133,13 @@ export function PrLinks({ pr, prUrl }: { pr: Pr | undefined; prUrl: string }) {
                   </button>
                 </span>
               ))}
+              <span className="prl-sep" />
+              <button role="menuitem" className="prl-item prl-new" onClick={() => setMenuState('pick')}>
+                + link to a task…
+              </button>
             </Menu>
           )}
+          {pickMenu}
         </span>
       )}
       {!best && first ? (

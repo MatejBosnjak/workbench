@@ -164,7 +164,7 @@ export function TaskSide({ session }: { session: Session }) {
           </div>
         </Box>
       )}
-      {id && task && snapshot && <TaskPreview task={task} snapshot={snapshot} onClose={close} />}
+      {id && task && snapshot && <TaskPreview task={task} snapshot={snapshot} onClose={close} onUnlink={() => void window.workbench.tasks.unlink(session.id, task.id)} />}
       {id && <TaskDetails taskId={id} withTitle={!task} />}
     </aside>
   )

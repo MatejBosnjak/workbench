@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { prRef, prRepo, shortRepo, type Pr } from '@shared/git'
 import { FE_REPO } from '@shared/runpr'
 import { useStore } from '../store'
+import { UnlinkIcon } from './Chips'
 import { PrLinks } from './PrLinks'
 import { RunAppButton } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
@@ -134,9 +135,7 @@ export function GitPane({
       {onUnlink ? (
         key && (
           <button className="key-btn tl-unlink" title="Unlink this PR from the session" aria-label="Unlink this PR from the session" onClick={() => onUnlink(key)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 4 8M8 12h3M4 4l16 16" />
-            </svg>
+            <UnlinkIcon />
           </button>
         )
       ) : (

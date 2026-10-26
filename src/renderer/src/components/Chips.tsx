@@ -19,6 +19,15 @@ export function ProductiveIcon() {
   )
 }
 
+/** A link with a slash through it: takes something off a session. */
+export function UnlinkIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 4 8M8 12h3M4 4l16 16" />
+    </svg>
+  )
+}
+
 export function GitHubIcon() {
   return (
     <svg className="chip-icon" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">

@@ -89,7 +89,7 @@ Image: every screenshot below. Code: `src/renderer/src/theme.css`, `styles.css`.
 - Popovers open under the button that opens them, right-aligned to it (the TopBar cup's, the session bar cup's): popover colour, a heavy line and a shadow.
 - Checkbox rows aren't wrapped in a `<label>` when their text holds links or sits next to a write: only the box itself is a hit target.
 - My PRs and Reviews rows share one layout (rail, title over people, stacked checks, Run app column), so the two lists read the same.
-- Window-like buttons take macOS traffic-light colours, softly tinted at rest (80% toward the muted text) and full on hover: × red (close), unlink yellow, ⤢ green. Tab × stays grey.
+- Window-like buttons take macOS traffic-light colours, softly tinted at rest (80% toward the muted text) and full on hover: × red (close), unlink yellow, ⤢ green. Tab × stays grey. Unlink is one icon everywhere (a link with a slash): PR sidebar, task sidebar, session rows.
 
 ## Shell: TopBar, StatusBar, keys
 
@@ -177,7 +177,7 @@ Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `Task
 
 - **Card** (box titled `<project> › <task list>`): the parent (opens its workstream), the title (links to Productive, underlined in the status colour) with the **status button** (Productive's pastel tag; ▾ menu of the workflow's statuses, keyboard-navigable; a pick applies at once, no confirm), due and last activity.
 - **PR** row: PR chips (▶ Run app on frontend ones); GitHub links in the Productive description, to-dos and comments read `frontend PR` (the URL in the tooltip); **sessions (N)** with **link ✻** to link an open session by hand.
-- Linked sessions: mark, time, first prompt; × unlinks. **left off**: Summarize / refresh runs `claude -p --model haiku` over the latest linked transcript's tail; cached per session.
+- Linked sessions: mark, time, first prompt; a yellow unlink icon (always shown) unlinks. **left off**: Summarize / refresh runs `claude -p --model haiku` over the latest linked transcript's tail; cached per session.
 - On the box's bottom edge: **+ new ✻** (always a new session) and **⏎ continue** (switch to the live session, open the latest tab, or resume it; hidden with no session).
 - **Productive box** below it: description (URLs clickable); **to-dos** with done count, `+` add form (text, assignee from my colleagues or unassigned), hide/show done; each to-do has a checkbox and an assignee avatar with a searchable people picker. On someone else's task, my open to-dos are highlighted. **comments** newest first under a composer that's one quiet line until focused, then three lines with `@` tagging (tags notify), post, and **draft with Claude**.
 - Writes: comments, adding a to-do and ticking a to-do ask first with a native confirm showing the exact text and target. Only the checkbox ticks a to-do; clicking its text or a link in it does not. Status picks and to-do assignee picks apply directly (the pick is the approval).
@@ -258,14 +258,14 @@ Image: `docs/design/current/session.png` (rail), `docs/design/current/session-le
 
 Image: `docs/design/current/session-task-side.png`. Code: `TaskSide.tsx` (TaskSide).
 
-- At the right of the terminal, 34% of the window by default (420–560px): the task card and Productive box (as in Today). Several linked tasks: chips at the top pick one. No task: a filter and a list (titles only) of my tasks to link.
+- At the right of the terminal, 34% of the window by default (420–560px): the task card and Productive box (as in Today). Several linked tasks: chips at the top pick one. No task: a filter and a list (titles only) of my tasks to link. The card's header tools match the PR sidebar: a yellow unlink takes the task off this session, then a soft red ×; the Today card keeps a plain ×.
 - Readability: the title at 14px without the status underline (it shows on hover); the parent on one line; labels (PR, sessions, left off, description, to-dos, comments) in a quieter tone than their content, with space between sections. URLs in descriptions, to-dos and comments read short: a GitHub PR or issue as `repo#n`, others without `https://`; the full URL is the tooltip.
 
 ## Session PR sidebar (⌘⇧I)
 
 Image: `docs/design/current/session-pr-side.png`. Code: `TaskSide.tsx` (PrSide), `GitPane.tsx`.
 
-- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. In the header's tools, the unlink icon (where ‹ › are elsewhere) takes the shown PR off this session for good, however it got there (by hand, Run app, a linked task): it's kept as a dismissal (`suggest_dismissed`, key `pr:<url>`), so it isn't suggested again either; connecting it by hand later clears that. With no PR left the sidebar closes. Framed like the task sidebar: a box with the PR's repo, title, state and CI set into its top border and the tools (unlink, browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
+- 45% wide by default: the GitHub pane on the session's PR, with chips to pick between several. In the header's tools, the yellow unlink icon (where ‹ › are elsewhere; the same icon as the task sidebar's) takes the shown PR off this session for good, however it got there (by hand, Run app, a linked task): it's kept as a dismissal (`suggest_dismissed`, key `pr:<url>`), so it isn't suggested again either; connecting it by hand later clears that. With no PR left the sidebar closes. Framed like the task sidebar: a box with the PR's repo, title, state and CI set into its top border and the tools (unlink, browser ⤢ ×, ▶ Run app for frontend) at its right; no Task ▾ / Session ▾ links, since the session bar already shows both. × closes the sidebar.
 - **Per session:** each session remembers its own sidebar (task, PR or none; `ui:sessionSides`), closed until opened. The PR sidebar shows only while the session has a PR; ⌘⇧I does nothing without one.
 - **Width (both sidebars):** drag the left edge to resize (←/→ when it has focus); double-click resets to the default. Each sidebar remembers its width (`ui:sideWidths`), never narrower than 320px or leaving the terminal less than 360px. The GitHub pane waits behind a still while dragging.
 

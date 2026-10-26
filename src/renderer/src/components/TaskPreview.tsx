@@ -5,7 +5,7 @@ import { statusColors, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { openWorkstream, useStore, type View } from '../store'
 import { Box } from './Box'
-import { goToSession, MarkGlyph, NewSessionButton, PrChip, Spark } from './Chips'
+import { goToSession, MarkGlyph, NewSessionButton, PrChip, Spark, UnlinkIcon } from './Chips'
 import { RunAppButton } from './RunPr'
 import { StatusSelect } from './TaskDetails'
 import { ago, dueLabel } from './TodayView'
@@ -39,7 +39,8 @@ const when = (ms: number) => {
   return new Date().toDateString() === d.toDateString() ? `Today ${time}` : `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${time}`
 }
 
-export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot: TasksSnapshot; onClose(): void }) {
+/** onUnlink: in a session's sidebar, takes this task off the session (with traffic-light tools, like the PR sidebar). */
+export function TaskPreview({ task, snapshot, onClose, onUnlink }: { task: Task; snapshot: TasksSnapshot; onClose(): void; onUnlink?(): void }) {
   const { sessions, show, git } = useStore(useShallow((s) => ({ sessions: s.sessions, show: s.show, git: s.git })))
   const prs = taskPrs(task.id, git)
   const [busy, setBusy] = useState(false)
@@ -66,7 +67,22 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
   }
 
   return (
-    <Box title={`${task.projectName}${task.taskListName ? ` › ${task.taskListName}` : ''}`} className="peek has-edge" aside={<button className="icon-btn" aria-label="Close task" onClick={onClose}>×</button>}>
+    <Box title={`${task.projectName}${task.taskListName ? ` › ${task.taskListName}` : ''}`} className="peek has-edge" aside={
+        onUnlink ? (
+          <span className="gp-tools">
+            <button className="key-btn tl-unlink" title="Unlink this task from the session" aria-label="Unlink this task from the session" onClick={onUnlink}>
+              <UnlinkIcon />
+            </button>
+            <button className="key-btn tl-close" title="Close" aria-label="Close task" onClick={onClose}>
+              ×
+            </button>
+          </span>
+        ) : (
+          <button className="icon-btn" aria-label="Close task" onClick={onClose}>
+            ×
+          </button>
+        )
+      }>
       {parent && (
         <button className="peek-parent" title={`${parent.title} · open workstream`} onClick={() => openWorkstream(task.id)}>
           {parent.milestone ? '◆' : '◇'} {parent.title}
@@ -134,8 +150,8 @@ export function TaskPreview({ task, snapshot, onClose }: { task: Task; snapshot:
             </span>
             <span className="peek-prompt">{l.firstPrompt ?? l.title}</span>
           </button>
-          <button className="icon-btn unlink" aria-label="Unlink session" title="Unlink" onClick={() => void window.workbench.tasks.unlink(l.id, task.id)}>
-            ×
+          <button className="icon-btn unlink tl-unlink" aria-label="Unlink session" title="Unlink this session from the task" onClick={() => void window.workbench.tasks.unlink(l.id, task.id)}>
+            <UnlinkIcon size={13} />
           </button>
         </div>
       ))}

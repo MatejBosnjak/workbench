@@ -515,8 +515,7 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .peek-session.live .peek-when { color: var(--text-2); }
 .peek-when { width: 112px; flex-shrink: 0; white-space: pre; }
 .peek-prompt { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; }
-.unlink { width: 18px; height: 18px; font-size: 13px; visibility: hidden; }
-.peek-session:hover .unlink { visibility: visible; }
+.unlink { width: 20px; height: 20px; }
 .link-pick { display: flex; flex-direction: column; border: 1px solid var(--line-heavy); padding: 4px; background: var(--popover); }
 .peek-summary { color: var(--text-3); line-height: 1.55; }
 .peek-actions { display: flex; align-items: center; gap: 14px; margin-top: 16px; }

@@ -46,6 +46,7 @@ Shared (pure, tested)    src/shared: tasks, git, links, marks, runpr, pane, memo
 ```
 
 - **Hooks.** Settings → Install hooks backs up `~/.claude/settings.json`, adds only Workbench's marked entries for SessionStart, UserPromptSubmit, PostToolUse, Notification, Stop and SessionEnd, and offers Uninstall. Each entry runs a tiny client that sends `<kind> <wbId>` plus the JSON payload to the socket; with no socket it exits at once, silently. `WORKBENCH_SESSION_ID` tells Workbench's own tabs apart from external sessions.
+- **`wb` and the workbench skill.** Install also writes `wb` next to the hook clients and the `workbench` skill to `~/.claude/skills/workbench/` (Uninstall removes it; until it's there the `⚠ hooks` chip asks for a reinstall). Workbench tabs get `wb` on their PATH. `wb` sends one line, `cmd <wbId> <name> <args>`, over the same socket (`nc`, no Node) and prints the text reply: `status` (this tab's task(s) with id, status, project, URL; its PRs with CI, review decision, reviewers, branch; cwd and branch), `tasks [filter]`, `prs [filter]`, `link-pr` / `unlink-pr <url>`, `link-task <id|url>` / `unlink-task <id>`. Links are Workbench's own (`session_prs`, task links); nothing is posted to GitHub or Productive. The skill applies only when `WORKBENCH_SESSION_ID` is set, and tells Claude to read `wb status` when asked what the session is about and to `wb link-pr` a PR it just opened with `gh pr create`. Code: `src/main/wb.ts`, `resources/bin/wb`, `resources/skills/workbench/SKILL.md`.
 - **Statusline.** The statusline becomes a wrapper that forwards the JSON (context %, 5h / week limits, model, effort) to the socket, then runs the previous statusline command unchanged. Uninstall restores it.
 - **Tab state** from hook events: running (prompt submitted, or PostToolUse after a permission prompt), waiting (Notification), failed (non-zero exit), idle (Stop / not running).
 - **Data.** `~/Library/Application Support/Workbench/workbench.db`, migrations append-only with `user_version` (7 now):
@@ -104,7 +105,7 @@ Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear
   - Tabs: double-click renames (a manual name sticks over claude's terminal title; clearing it unlocks), drag to reorder, middle-click closes, hover shows state, title and cwd. Tabs of sessions holding the Mac awake (by hand or Auto) show the cup at 13px; Lid closed only while the Mac really is.
   - **Overflow:** tabs never wrap or shrink; the strip scrolls sideways with no scrollbar. Hovering within 56px of an edge scrolls that way (faster nearer the edge; the cursor shows the direction only while there's more), the vertical wheel scrolls it, edges fade while tabs hide beyond them, and a `+N ▾` menu lists tabs out of view. The current tab always scrolls fully into view.
   - **+N** counts tabs out of view and, when any of them waits on you, adds a violet `●k` and a violet left border, so a waiting session never hides in the overflow.
-- **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot (same colours as its tab), name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks or the statusline aren't installed (click installs); then the meters and the picker.
+- **StatusBar** (38px, fixed-width cells so nothing moves): ⌨ shortcuts, the active session's state dot (same colours as its tab), name and age; in the middle the Run PR chip and a `⚠ hooks` chip when hooks, the statusline or the workbench skill aren't installed (click installs); then the meters and the picker.
   - **ctx** (green, full-strength gradient; amber ≥ 60% with a `/compact` button that runs it, red ≥ 75%), **5h** (purple, `↻HH:MM` reset), **wk** (blue). 48px bars; the gradient's strength ranks them. Until a first value arrives the track shows a faint sweep and the value reads `—`. Hover shows the full text.
 - **Keys** (only when no terminal or text field has focus):
 
@@ -224,7 +225,7 @@ Image: `docs/design/current/github-pane.png`. Code: `GitPane.tsx`, `PrLinks.tsx`
 
 Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `session.png`. Code: `src/shared/links.ts`, `Chips.tsx`, `linker.ts`.
 
-- Worked out once in `links.ts` for every view (task row, card, session bar, GitHub pane, PR lists, Needs you), so they always agree.
+- Worked out once in `links.ts` for every view (task row, card, session bar, GitHub pane, PR lists, Needs you) and for `wb status`, so they always agree. A session's PRs (`sessionPrs`) live there too, shared by the renderer and the main process.
 - **Task chip:** status rail, Productive logo, title. Click shows it in My tasks; ⌘-click opens Productive.
 - **PR chip:** GitHub logo, title, CI dot. Click opens the pane; ⌘-click the browser.
 - **Session mark:** ● running / ● waiting / ● failed in the tab colours, ○ idle (tab open, claude exited), ↺ closed (resume). "Best" session = live first, then most recent.
@@ -240,7 +241,7 @@ Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `s
 
 Image: `docs/design/current/session.png`. Code: `Terminal.tsx`, `TermView.tsx`, `TaskSide.tsx` (SessionBar), `ExternalPanel.tsx`, `PrCard.tsx`, `src/main/sessions.ts`, `pty-host.ts`.
 
-- **Spawning.** `claude` (or `claude --resume <id>`) in a pty, with `--model` / `--effort` / `--permission-mode` from the session's settings. Default cwd `~/Productive/work` (setting `defaultCwd`); a task session starts in the task's worktree when there is one. Fork (from a workstream) starts `--resume <id> --fork-session` in a new tab.
+- **Spawning.** `claude` (or `claude --resume <id>`) in a pty, with `--model` / `--effort` / `--permission-mode` from the session's settings. Default cwd `~/Productive/work` (setting `defaultCwd`); a task session starts in the task's worktree when there is one. Fork (from a workstream) starts `--resume <id> --fork-session` in a new tab. The session's env carries `WORKBENCH_SESSION_ID` and puts Workbench's bin folder (with `wb`) first on PATH.
 - **Terminal:** xterm.js with WebGL, 10,000 lines of scrollback; main keeps replay history so a reopened view redraws (a pty's owner may rewrite output before it's kept, as Local strips its service shell's markers). Shift+⏎ sends a newline to claude; ⌘C copies a selection. URLs are links: productiveio PR links open the GitHub pane (⌘-click the browser) and show a hover card with repo, title, state, review decision, checks and ▶ Run app (open frontend PRs); other URLs open the browser.
 - **Session bar** (38px, raised, under the TopBar, only for Workbench sessions):
   - **Task button:** a 6px status rail (the status shows only as its colour; the name is in the tooltip), Productive logo, title, `⌘I` → task sidebar. No task: "link task…".

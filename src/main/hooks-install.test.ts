@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFile
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { HOOK_EVENTS, install, planInstall, planUninstall, readSettings, status, uninstall, type ClaudeSettings } from './hooks-install'
+import { currentStatus, HOOK_EVENTS, install, planInstall, planUninstall, readSettings, status, uninstall, type ClaudeSettings } from './hooks-install'
 
 const BIN = '/Users/me/Library/Application Support/Workbench/bin'
 
@@ -56,7 +56,7 @@ describe('install / uninstall on disk', () => {
     const settings = join(dir, 'settings.json')
     const original = JSON.stringify(userSettings(), null, 2) + '\n'
     writeFileSync(settings, original)
-    const paths = { settings, binDir: join(dir, 'bin'), dataDir: dir, socket: join(dir, 's.sock'), templates: resolve('resources/bin') }
+    const paths = { settings, binDir: join(dir, 'bin'), dataDir: dir, socket: join(dir, 's.sock'), templates: resolve('resources/bin'), skillsDir: join(dir, 'skills'), skillTemplates: resolve('resources/skills') }
 
     const backup = install(paths)
     expect(readFileSync(backup!, 'utf8')).toBe(original)
@@ -65,10 +65,14 @@ describe('install / uninstall on disk', () => {
     expect(hook).toContain(`SOCK='${join(dir, 's.sock')}'`)
     expect(statSync(join(dir, 'bin', 'wb-hook')).mode & 0o111).toBeTruthy()
     expect(readFileSync(join(dir, 'statusline-command'), 'utf8')).toBe('bash ~/.claude/statusline-command.sh')
+    expect(readFileSync(join(dir, 'bin', 'wb'), 'utf8')).toContain(`SOCK='${join(dir, 's.sock')}'`)
+    expect(readFileSync(join(dir, 'skills', 'workbench', 'SKILL.md'), 'utf8')).toContain(join(dir, 'bin', 'wb'))
+    expect(currentStatus(paths).skill).toBe(true)
 
     uninstall(paths)
     expect(readFileSync(settings, 'utf8')).toBe(original)
     expect(existsSync(join(dir, 'statusline-command'))).toBe(false)
+    expect(existsSync(join(dir, 'skills', 'workbench'))).toBe(false)
     expect(readdirSync(dir).filter((f) => f.includes('workbench-backup'))).toHaveLength(2)
   })
 })

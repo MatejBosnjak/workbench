@@ -51,18 +51,39 @@ export function parseMessage(raw: string): Signal | null {
   return { kind, wbId: wbId || null, payload } as Signal
 }
 
-export function startSignalServer(socket: string, onSignal: (s: Signal) => void): Server {
+/** A `wb` command from inside a session: one line, `cmd <wbId> <name> <args…>`, answered with text. */
+export function parseCommand(line: string): { wbId: string; name: string; args: string[] } | null {
+  const [kind, wbId, name, ...args] = line.trim().split(/\s+/)
+  return kind === 'cmd' && wbId && name ? { wbId, name, args } : null
+}
+
+export type CommandHandler = (wbId: string, name: string, args: string[]) => Promise<string>
+
+export function startSignalServer(socket: string, onSignal: (s: Signal) => void, onCommand?: CommandHandler): Server {
   mkdirSync(dirname(socket), { recursive: true })
   if (existsSync(socket)) unlinkSync(socket) // stale from a crash
-  const server = createServer((conn) => {
+  // Half-open: a client that closes its side after sending (nc) still gets the reply.
+  const server = createServer({ allowHalfOpen: true }, (conn) => {
     const chunks: Buffer[] = []
     let size = 0
+    let answered = false
     conn.on('data', (d: Buffer) => {
       size += d.length
       if (size > MAX_BYTES) return conn.destroy()
       chunks.push(d)
+      // A command is answered as soon as its line is in; the client (nc) waits for the reply and the close.
+      const raw = Buffer.concat(chunks).toString('utf8')
+      if (!answered && onCommand && raw.startsWith('cmd ') && raw.includes('\n')) {
+        answered = true
+        const c = parseCommand(raw.slice(0, raw.indexOf('\n')))
+        const reply = c ? onCommand(c.wbId, c.name, c.args) : Promise.resolve('error: bad command line')
+        void reply
+          .catch((e: Error) => `error: ${e.message}`)
+          .then((text) => conn.end(text.endsWith('\n') ? text : text + '\n'))
+      }
     })
     conn.on('end', () => {
+      if (answered) return
       conn.end()
       const sig = parseMessage(Buffer.concat(chunks).toString('utf8'))
       if (sig) onSignal(sig)

@@ -119,8 +119,8 @@ export function StatusBar({ children }: { children?: ReactNode }) {
 
       <span className="sb-middle">
         <RunPrChip />
-        {hooks && !(hooks.hooks && hooks.statusline) && (
-          <button className="sb-chip warn" title="Workbench hooks aren't installed, so tab states and limits don't update. Click to install." onClick={() => void window.workbench.installHooks()}>
+        {hooks && !(hooks.hooks && hooks.statusline && hooks.skill !== false) && (
+          <button className="sb-chip warn" title={hooks.hooks && hooks.statusline ? "The workbench skill isn't installed, so Claude in a tab doesn't know about wb. Click to install." : "Workbench hooks aren't installed, so tab states and limits don't update. Click to install."} onClick={() => void window.workbench.installHooks()}>
             ⚠ hooks
           </button>
         )}

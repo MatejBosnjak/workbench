@@ -18,6 +18,10 @@ export interface InstallPaths {
   socket: string
   /** Bundled script templates. */
   templates: string
+  /** ~/.claude/skills: where the workbench skill goes. */
+  skillsDir: string
+  /** Bundled skills (resources/skills). */
+  skillTemplates: string
 }
 
 interface HookCommand {
@@ -91,7 +95,17 @@ export function readSettings(file: string): ClaudeSettings {
 }
 
 export function currentStatus(p: InstallPaths): HooksStatus {
-  return status(readSettings(p.settings))
+  return { ...status(readSettings(p.settings)), skill: existsSync(join(p.skillsDir, SKILL, 'SKILL.md')) }
+}
+
+/** The skill that teaches Claude in a Workbench tab about `wb`; installed and removed with the hooks. */
+const SKILL = 'workbench'
+
+export function writeSkill(p: InstallPaths): void {
+  const dir = join(p.skillsDir, SKILL)
+  mkdirSync(dir, { recursive: true })
+  const body = readFileSync(join(p.skillTemplates, SKILL, 'SKILL.md'), 'utf8').replaceAll('@@WB@@', join(p.binDir, 'wb'))
+  writeFileSync(join(dir, 'SKILL.md'), body)
 }
 
 /** Backs up settings.json, installs the client scripts, and adds Workbench's entries. Returns the backup path. */
@@ -105,6 +119,7 @@ export function install(p: InstallPaths): string | null {
     writeFileSync(join(p.dataDir, ORIGINAL_CMD), replaced?.command ?? '')
   }
   writeScripts(p)
+  writeSkill(p)
   writeJsonAtomic(p.settings, next)
   return backup
 }
@@ -117,13 +132,14 @@ export function uninstall(p: InstallPaths): string | null {
   writeJsonAtomic(p.settings, planUninstall(settings, original))
   rmSync(origFile, { force: true })
   rmSync(join(p.dataDir, ORIGINAL_CMD), { force: true })
+  rmSync(join(p.skillsDir, SKILL), { recursive: true, force: true })
   return backup
 }
 
 /** Copies the client scripts into binDir with this machine's paths filled in. */
 export function writeScripts(p: InstallPaths): void {
   mkdirSync(p.binDir, { recursive: true })
-  for (const name of ['wb-hook', 'wb-statusline']) {
+  for (const name of ['wb-hook', 'wb-statusline', 'wb']) {
     const body = readFileSync(join(p.templates, name), 'utf8')
       .replaceAll('@@SOCKET@@', p.socket)
       .replaceAll('@@ORIGINAL@@', join(p.dataDir, ORIGINAL_CMD))

@@ -61,6 +61,8 @@ export interface StatusSnapshot {
 export interface HooksStatus {
   hooks: boolean
   statusline: boolean
+  /** The workbench skill (teaches Claude in a tab about `wb`) is in ~/.claude/skills. */
+  skill?: boolean
 }
 
 /** Main → renderer pushes over a session's MessagePort. */

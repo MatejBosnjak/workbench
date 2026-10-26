@@ -20,6 +20,8 @@ export interface SessionEvents {
   hook?(id: string, event: string, payload: HookPayload): void
   /** Terminal output of a Workbench tab. */
   output?(id: string, data: string): void
+  /** Put first on a session's PATH: where `wb` lives, so Claude in a tab can call it. */
+  binDir?: string
 }
 
 export class Sessions {
@@ -224,7 +226,7 @@ export class Sessions {
         file: claude,
         args,
         cwd: existsSync(row.cwd) ? row.cwd : homedir(),
-        env: { ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor', WORKBENCH_SESSION_ID: id },
+        env: { ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor', WORKBENCH_SESSION_ID: id, ...(this.events.binDir ? { PATH: `${this.events.binDir}:${env.PATH ?? ''}` } : {}) },
         ...size,
       })
       this.repo.update(id, { state: 'idle', lastEventAt: Date.now() })

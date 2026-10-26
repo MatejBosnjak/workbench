@@ -1,0 +1,12 @@
+#!/bin/sh
+# wb: lets Claude in a Workbench tab ask Workbench about its session (task, PRs) and link things. `wb help` lists commands.
+# One line goes to Workbench's socket and the reply comes back as text. Links live in Workbench only.
+SOCK='@@SOCKET@@'
+if [ ! -S "$SOCK" ]; then echo "wb: Workbench isn't running." >&2; exit 1; fi
+case "$WORKBENCH_SESSION_ID" in
+  ''|-) echo "wb: not inside a Workbench session (WORKBENCH_SESSION_ID is unset)." >&2; exit 1 ;;
+esac
+reply=$(printf 'cmd %s %s\n' "$WORKBENCH_SESSION_ID" "${*:-help}" | nc -U -w 10 "$SOCK")
+[ -n "$reply" ] || { echo "wb: no answer from Workbench." >&2; exit 1; }
+printf '%s\n' "$reply"
+case "$reply" in error:*) exit 1 ;; esac

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { prRepo, type Ci, type GitSnapshot } from '@shared/git'
-import type { RunPrSnapshot } from '@shared/runpr'
-import { sessionTaskIds } from '@shared/links'
+import type { Ci } from '@shared/git'
+import { sessionPrs, sessionTaskIds } from '@shared/links'
 import { statusVivid, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { useShallow } from 'zustand/react/shallow'
@@ -18,34 +17,7 @@ import { TaskPreview } from './TaskPreview'
 /** Tasks linked to the session, latest link first. */
 export const sessionTasks = (snapshot: TasksSnapshot | null, sessionId: string): string[] => sessionTaskIds(snapshot, sessionId)
 
-/** The session's PRs: ones connected to it by hand, the frontend PR its branch belongs to, and those linked to its tasks; not ones unlinked by hand. */
-export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: GitSnapshot | null, runpr: RunPrSnapshot | null): SessionPr[] {
-  const ids = new Set(sessionTasks(tasks, sessionId))
-  const all = [...(git?.mine ?? []), ...(git?.reviews ?? [])]
-  const out = new Map<string, SessionPr>()
-  // Connected by hand (a link suggestion) first: the PR this session opened.
-  for (const l of tasks?.sessionPrs ?? []) {
-    if (l.sessionId !== sessionId) continue
-    const p = all.find((x) => x.url === l.url)
-    out.set(l.url, { url: l.url, label: l.label, title: p?.title ?? l.title, branch: p?.branch ?? '', ci: p?.ci ?? null })
-  }
-  const focus = runpr?.focus[sessionId]
-  if (focus && !out.has(focus.url)) {
-    const p = all.find((x) => x.url === focus.url)
-    out.set(focus.url, { url: focus.url, label: 'fe', title: focus.title, branch: focus.branch, ci: p?.ci ?? null })
-  }
-  for (const p of all) if (p.taskRefs.some((t) => ids.has(t)) && !out.has(p.url)) out.set(p.url, { url: p.url, label: prRepo(p), title: p.title, branch: p.branch, ci: p.ci })
-  for (const h of tasks?.hiddenPrs ?? []) if (h.sessionId === sessionId) out.delete(h.url)
-  return [...out.values()]
-}
-
-export interface SessionPr {
-  url: string
-  label: string
-  title: string
-  branch: string
-  ci: Ci | null
-}
+export { sessionPrs, type SessionPr } from '@shared/links'
 
 const CI_LABEL: Record<Ci, [string, string]> = {
   pass: ['CI passing', 'var(--ok)'],

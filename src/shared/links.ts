@@ -1,4 +1,5 @@
-import type { GitSnapshot, Pr } from './git'
+import { prRepo, type Ci, type GitSnapshot, type Pr } from './git'
+import type { RunPrSnapshot } from './runpr'
 import type { Task, TasksSnapshot } from './tasks'
 import type { Session } from './types'
 
@@ -86,4 +87,33 @@ export function prSessions(pr: Pr | undefined, prUrl: string, tasks: TasksSnapsh
     out.push({ id: s.id, title: s.title, firstPrompt: null, mark: markOf(s), open: true, at: s.lastEventAt, via: 'works on this PR' })
   }
   return out.sort(byLiveThenRecent)
+}
+
+/** The session's PRs: ones connected to it by hand, the frontend PR its branch belongs to, and those linked to its tasks; not ones unlinked by hand. */
+export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: GitSnapshot | null, runpr: RunPrSnapshot | null): SessionPr[] {
+  const ids = new Set(sessionTaskIds(tasks, sessionId))
+  const all = [...(git?.mine ?? []), ...(git?.reviews ?? [])]
+  const out = new Map<string, SessionPr>()
+  // Connected by hand (a link suggestion) first: the PR this session opened.
+  for (const l of tasks?.sessionPrs ?? []) {
+    if (l.sessionId !== sessionId) continue
+    const p = all.find((x) => x.url === l.url)
+    out.set(l.url, { url: l.url, label: l.label, title: p?.title ?? l.title, branch: p?.branch ?? '', ci: p?.ci ?? null })
+  }
+  const focus = runpr?.focus[sessionId]
+  if (focus && !out.has(focus.url)) {
+    const p = all.find((x) => x.url === focus.url)
+    out.set(focus.url, { url: focus.url, label: 'fe', title: focus.title, branch: focus.branch, ci: p?.ci ?? null })
+  }
+  for (const p of all) if (p.taskRefs.some((t) => ids.has(t)) && !out.has(p.url)) out.set(p.url, { url: p.url, label: prRepo(p), title: p.title, branch: p.branch, ci: p.ci })
+  for (const h of tasks?.hiddenPrs ?? []) if (h.sessionId === sessionId) out.delete(h.url)
+  return [...out.values()]
+}
+
+export interface SessionPr {
+  url: string
+  label: string
+  title: string
+  branch: string
+  ci: Ci | null
 }

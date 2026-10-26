@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
 import { parsePrUrl, prRepo, shortRepo, type DraftTarget, type GitSnapshot, type Pr } from '@shared/git'
@@ -13,12 +14,12 @@ import { Drafts } from './drafts'
 import { prInfo } from './github'
 import { GitPoller } from './github/poller'
 import { GitHubPane, DEFAULT_ZOOM } from './github/pane'
-import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, type InstallPaths } from './hooks-install'
+import { currentStatus, HOOK_EVENTS, install, readSettings, uninstall, writeScripts, writeSkill, type InstallPaths } from './hooks-install'
 import { loadConfig } from './local/config'
 import { Supervisor } from './local/supervisor'
 import { Linker } from './linker'
 import { MarksReader } from './marks'
-import { createWorktree, planWorktree, repoRoots } from './local/git'
+import { createWorktree, currentBranch, planWorktree, repoRoots } from './local/git'
 import { Notifier } from './notify'
 import { FocusTracker } from './focus-pr'
 import { RunPr } from './local/run-pr'
@@ -26,6 +27,7 @@ import { TasksPoller } from './productive/tasks'
 import { Sessions } from './sessions'
 import { shellEnv, which } from './shell-env'
 import { startSignalServer, stopSignalServer } from './signal-server'
+import { runWb } from './wb'
 import { openDb } from './store/db'
 import { Repo } from './store/repo'
 import { Suggester } from './suggest'
@@ -45,6 +47,8 @@ const installPaths = (): InstallPaths => ({
   dataDir: dataDir(),
   socket: socketPath(),
   templates: app.isPackaged ? join(process.resourcesPath, 'bin') : join(app.getAppPath(), 'resources', 'bin'),
+  skillsDir: join(dirname(process.env.WORKBENCH_CLAUDE_SETTINGS ?? join(homedir(), '.claude', 'settings.json')), 'skills'),
+  skillTemplates: app.isPackaged ? join(process.resourcesPath, 'skills') : join(app.getAppPath(), 'resources', 'skills'),
 })
 
 const BACKGROUND = process.env.WORKBENCH_BACKGROUND === '1'
@@ -96,7 +100,9 @@ async function confirmInstall(): Promise<HooksStatus> {
       `• Wraps your statusline so Workbench gets context and usage numbers. Your current command still runs and prints as before:`,
       `  ${before.statusLine?.command ?? '(none)'}`,
       '',
-      'Only entries marked "# workbench" are added; Uninstall removes exactly those.',
+      `• Adds the "workbench" skill to ${installPaths().skillsDir}, so Claude in a Workbench tab knows its task and PRs (through the wb command).`,
+      '',
+      'Only entries marked "# workbench" are added; Uninstall removes exactly those, and the skill.',
     ].join('\n'),
   })
   if (res.response !== 0) return currentStatus(p)
@@ -210,6 +216,7 @@ void app.whenReady().then(() => {
   )
   let lastStatus = ''
   const sessions = new Sessions(repo, {
+    binDir: installPaths().binDir,
     sessionsChanged: () => {
       const list = sessions.list()
       caffeinate.sessionsChanged(list)
@@ -381,9 +388,43 @@ void app.whenReady().then(() => {
     return url ? { prompt: `lets look at this task ${url} `, title: withoutRepoPrefix(task?.title ?? workstreams.title(taskId) ?? 'Task') } : null
   }
 
-  const signals = startSignalServer(socketPath(), (sig) => sessions.handleSignal(sig))
-  // Keep installed client scripts in step with this build.
-  if (currentStatus(installPaths()).hooks) writeScripts(installPaths())
+  // Linking by hand (the pickers, or `wb` from inside a session): a PR from my lists, or any PR URL pasted in.
+  const linkPr = (sessionId: string, text: string) => {
+    const u = parsePrUrl(text)
+    if (!u) return
+    const pr = [...git.mine, ...git.reviews].find((p) => p.url === u.url)
+    repo.addSessionPr(sessionId, { url: u.url, label: pr ? prRepo(pr) : shortRepo(u.repo), title: pr?.title ?? `PR #${u.number}` })
+    tasksChanged()
+  }
+  const unlinkPr = (sessionId: string, url: string) => {
+    repo.unlinkSessionPr(sessionId, url)
+    tasksChanged()
+  }
+  const signals = startSignalServer(
+    socketPath(),
+    (sig) => sessions.handleSignal(sig),
+    (wbId, name, args) =>
+      runWb(
+        {
+          session: (id) => sessions.get(id) ?? undefined,
+          tasks: tasksSnapshot,
+          git: gitSnapshot,
+          runpr: () => runpr.snapshot(),
+          branch: (cwd) => (existsSync(cwd) ? currentBranch(cwd) : Promise.resolve(null)),
+          linkPr,
+          unlinkPr,
+          linkTask: (sessionId, taskId) => linker.link(sessionId, taskId, 'linked with wb', 'manual'),
+          unlinkTask: (sessionId, taskId) => linker.unlink(sessionId, taskId),
+        },
+        wbId,
+        name,
+        args,
+      ),
+  )
+  // Keep installed client scripts (and the skill, once installed) in step with this build.
+  const installed = currentStatus(installPaths())
+  if (installed.hooks) writeScripts(installPaths())
+  if (installed.skill) writeSkill(installPaths())
 
   ipcMain.handle('sessions:list', () => sessions.list())
   ipcMain.handle('sessions:create', async (_e, opts?: { cwd?: string; pick?: boolean }) => {
@@ -490,23 +531,13 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
-  // Linking by hand: a PR from my lists, or any PR URL pasted in.
-  ipcMain.handle('tasks:linkPr', (_e, sessionId: string, text: string) => {
-    const u = parsePrUrl(text)
-    if (!u) return
-    const pr = [...git.mine, ...git.reviews].find((p) => p.url === u.url)
-    repo.addSessionPr(sessionId, { url: u.url, label: pr ? prRepo(pr) : shortRepo(u.repo), title: pr?.title ?? `PR #${u.number}` })
-    tasksChanged()
-  })
+  ipcMain.handle('tasks:linkPr', (_e, sessionId: string, text: string) => linkPr(sessionId, text))
   ipcMain.handle('tasks:linkPrTask', (_e, url: string, taskId: string) => {
     repo.addPrTask(url, taskId)
     gitChanged()
     tasksChanged()
   })
-  ipcMain.handle('tasks:unlinkPr', (_e, sessionId: string, url: string) => {
-    repo.unlinkSessionPr(sessionId, url)
-    tasksChanged()
-  })
+  ipcMain.handle('tasks:unlinkPr', (_e, sessionId: string, url: string) => unlinkPr(sessionId, url))
   ipcMain.handle('tasks:summarize', (_e, taskId: string) => linker.summarize(taskId))
   const marks = new MarksReader()
   ipcMain.handle('sessions:marks', async (_e, id: string) => {

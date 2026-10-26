@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Session tiles, live</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.h{color:#ECE8F2;font-weight:700;font-size:14px}
+.win{position:relative;width:1440px;height:236px;border:1px solid #3A3647;background:#0E0D12;overflow:hidden;flex-shrink:0}
+.top{height:36px;display:flex;align-items:stretch;background:#14131A;border-bottom:1px solid #25232E;font-size:12px}
+.pl{display:flex;align-items:center;padding:0 12px;color:#A69FB4;white-space:nowrap}
+.pl.wb{color:#ECE8F2;font-weight:700;padding-left:86px}
+.pl.wb i{display:inline-block;width:3px;height:13px;background:#A07EEA;margin-right:3px;font-style:normal}
+.div{width:1px;margin:8px 8px;background:#3A3647}
+.strip{flex:1;min-width:0;display:flex;align-items:stretch;overflow:hidden}
+.tab{position:relative;flex-shrink:0;display:flex;align-items:center;gap:7px;max-width:180px;padding:0 9px 0 13px;color:#A69FB4;white-space:nowrap;border:0;background:transparent;font:inherit;cursor:pointer;overflow:hidden;transition:background-color .4s,box-shadow .4s,color .4s,max-width .4s,opacity .4s,padding .4s}
+.tab .t{overflow:hidden;text-overflow:ellipsis}
+.tab .n{color:#6A647A}
+.tab .x{color:#6A647A;padding:0 2px}
+.tab + .tab::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:1px;background:#3A3647}
+.tab.on::before,.tab.on + .tab::before{display:none}
+.tab.closing{max-width:0;opacity:0;padding-left:0;padding-right:0}
+.tab.new{animation:tin .5s ease-out}
+@keyframes tin{from{max-width:0;opacity:0;padding-left:0;padding-right:0}to{max-width:180px;opacity:1}}
+@keyframes pop{from{transform:scale(.2);opacity:0}}
+@keyframes fade{from{opacity:0}}
+/* NOW: state colours */
+.now .tab::after{content:'';position:absolute;left:5px;top:10px;bottom:10px;width:3px;border-radius:2px;background:transparent;transition:background .4s,width .4s}
+.now .tab.r::after{width:2px;left:6px;background:rgba(111,195,224,.55)}
+.now .tab.w::after{background:#A07EEA}
+.now .tab.f::after{background:#EE6F86}
+.now .tab.w{color:#ECE8F2;background:rgba(160,126,234,.10)}
+.now .tab.on{background:#1E1C26;color:#ECE8F2;box-shadow:inset 1px 0 0 #3A3647,inset -1px 0 0 #3A3647}
+.now .tab.on.w{box-shadow:inset 1px 0 0 #A07EEA,inset -1px 0 0 #A07EEA,0 0 12px rgba(160,126,234,.25)}
+/* NEW: session tiles */
+.nu .tab{padding-left:9px}
+.nu .tile{min-width:18px;height:17px;padding:0 3px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--c);color:#0E0D12;border-radius:2px;flex-shrink:0;transition:background .4s}
+.nu .tab.i{color:#8E879E}
+.nu .tab.w{color:#ECE8F2;font-weight:700}
+.nu .tab.on{background:#1E1C26;color:#ECE8F2;box-shadow:inset 0 -2px 0 var(--c)}
+.q{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#ECE8F2;color:#0E0D12;font-size:10px;font-weight:700;flex-shrink:0;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+.run{color:#8E879E;letter-spacing:1px;flex-shrink:0;animation:fade .35s}
+.fail{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;box-shadow:inset 0 0 0 1.5px #ECE8F2;color:#ECE8F2;font-size:10px;font-weight:700;flex-shrink:0;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+.endb{display:flex;align-items:center;gap:22px;padding:0 18px 0 12px;color:#6A647A;flex-shrink:0}
+.sb{height:38px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid #25232E;background:#1E1C26;font-size:12px;color:#CDC7D8}
+.tl{min-width:18px;height:17px;padding:0 3px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0E0D12;border-radius:2px;flex-shrink:0;transition:background .4s}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .4s}
+.term{padding:12px 18px;color:#6A647A;font-size:12px;line-height:1.7}
+.stb{height:26px;display:flex;align-items:center;gap:10px;padding:0 14px;border-top:1px solid #25232E;background:#14131A;font-size:11.5px;color:#CDC7D8;position:absolute;left:0;right:0;bottom:0}
+.dim{color:#6A647A}
+.ctl{display:flex;gap:8px;align-items:center}
+.btn{height:30px;padding:0 14px;border:1px solid #3A3647;background:#17161D;color:#CDC7D8;font:inherit;font-size:12px;cursor:pointer}
+.btn:hover{background:#1E1C26;color:#ECE8F2}
+.lbl{font-size:11px;color:#8E879E;letter-spacing:.06em;text-transform:uppercase}
+.item{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border:1px solid #25232E;background:#121117;color:#8E879E;transition:background .4s,border-color .4s,color .4s,box-shadow .4s}
+.item b{color:#A69FB4;font-weight:600;transition:color .4s}
+.item.on{background:#1E1C26;border-color:#A69FB4;color:#CDC7D8}
+.item.on b{color:#ECE8F2}
+.item.lose.on{box-shadow:inset 3px 0 0 #E8B07A}
+.item.gain.on{box-shadow:inset 3px 0 0 #5FD0B0}
+.ev{display:flex;gap:10px;align-items:center;padding:8px 12px;background:#17161D;color:#ECE8F2;font-size:12.5px;animation:fade .4s}
+</style>
+</helmet>
+<div style="width: 2400px; height: 900px; box-sizing: border-box; padding: 56px; display: flex; gap: 48px; background: #0E0D12; color: #ECE8F2; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.55">
+
+<div style="display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; justify-content: space-between; align-items: center; width: 1442px">
+<div style="font-size: 22px; font-weight: 700">State colours → session tiles <span class="dim" style="font-size: 13px; font-weight: 400">· same sessions, live</span></div>
+<div class="ctl">
+<button type="button" class="btn" onClick="{{toggle}}">{{playLabel}}</button>
+<button type="button" class="btn" onClick="{{next}}">Step ›</button>
+<button type="button" class="btn" onClick="{{reset}}">Reset</button>
+</div>
+</div>
+
+<div class="ev"><span class="tl" style="background: {{ev.c}}">{{ev.n}}</span><span>{{ev.text}}</span></div>
+
+<sc-for list="{{variants}}" as="v" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div class="lbl">{{v.label}}</div>
+<div class="win">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="{{v.stripCls}}">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+<button type="button" class="{{t.cls}}" style="{{t.style}}" onClick="{{t.pick}}" title="{{t.title}}">
+<sc-if value="{{v.tiles}}" hint-placeholder-val="{{false}}"><span class="tile">{{t.n}}</span></sc-if>
+<sc-if value="{{v.plain}}" hint-placeholder-val="{{true}}"><span class="n">{{t.n}}</span></sc-if>
+<span class="t">{{t.title}}</span>
+<sc-if value="{{v.tiles}}" hint-placeholder-val="{{false}}">
+<sc-if value="{{t.isW}}" hint-placeholder-val="{{false}}"><span class="q">?</span></sc-if>
+<sc-if value="{{t.isR}}" hint-placeholder-val="{{false}}"><span class="run">···</span></sc-if>
+<sc-if value="{{t.isF}}" hint-placeholder-val="{{false}}"><span class="fail">!</span></sc-if>
+</sc-if>
+<sc-if value="{{t.on}}" hint-placeholder-val="{{false}}"><span class="x">×</span></sc-if>
+</button>
+</sc-for>
+</span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="sb" style="{{v.sbStyle}}">
+<sc-if value="{{v.tiles}}" hint-placeholder-val="{{false}}"><span class="tl" style="background: {{cur.c}}">{{cur.n}}</span></sc-if>
+<span>{{cur.title}}</span><span class="dim">⌘I</span><span class="dim">│</span><span class="dim">{{cur.stateText}}</span>
+</div>
+<div class="term">❯ {{cur.prompt}}<br>{{cur.line}}</div>
+<div class="stb"><span>⌨</span><span class="dim">│</span>
+<sc-if value="{{v.plain}}" hint-placeholder-val="{{true}}"><span class="dot" style="background: {{cur.stateCol}}"></span></sc-if>
+<sc-if value="{{v.tiles}}" hint-placeholder-val="{{false}}"><span class="tl" style="background: {{cur.c}}">{{cur.n}}</span></sc-if>
+<span>{{cur.title}}</span></div>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px; width: 800px; padding-top: 52px">
+<div class="h">What we lose <span class="dim" style="font-weight:400">· lights up when the demo shows it</span></div>
+<sc-for list="{{lose}}" as="it" hint-placeholder-count="5">
+<div class="{{it.cls}}"><b>{{it.title}}</b><span>{{it.text}}</span></div>
+</sc-for>
+<div class="h" style="margin-top: 14px">What we gain</div>
+<sc-for list="{{gain}}" as="it" hint-placeholder-count="3">
+<div class="{{it.cls}}"><b>{{it.title}}</b><span>{{it.text}}</span></div>
+</sc-for>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2400,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = Object.assign({ playing: true }, this.initial());
+}
+P() {
+return [['clay','#B5806C'],['ochre','#A89160'],['moss','#7E9867'],['teal','#5F9A94'],['slate','#7088A8'],['rose','#A97A8C'],['stone','#9C9484']];
+}
+LOSE() {
+return [
+{ k: 'peri', title: 'Needs-you pop in peripheral vision', text: 'Now a waiting tab is the only violet thing on the strip (bar, wash, glow). A white ? among coloured tiles has to be looked for.' },
+{ k: 'violet', title: 'One colour for “needs you” everywhere', text: 'Violet means waiting on the Needs-you number, status-bar dot, Focus and bookmarks. The tabs would be the one place it doesn’t.' },
+{ k: 'alarm', title: 'Failed and running at a glance', text: 'A red bar becomes a boxed !, a dim blue bar becomes ···. Same information, much quieter.' },
+{ k: 'dot', title: 'State dot in the status bar', text: 'It takes the tab’s state colour today. With tiles it shows the session tile instead, so state is only in words there.' },
+{ k: 'cur', title: 'The current tab as the only raised thing', text: 'With every tab coloured, the raised current tab stands out less; its tile-coloured underline carries more of the load.' }
+];
+}
+GAIN() {
+return [
+{ k: 'apart', title: 'Lookalike titles split', text: 'The three “Redesign contact form…” tabs and the two “Claude Code” tabs are different colours.' },
+{ k: 'follow', title: 'The tile follows the session', text: 'Same tile in the tab, session bar, status bar, ⌘K, +N, Focus: you learn “the teal one” once.' },
+{ k: 'newc', title: 'New sessions never clash with neighbours', text: 'A new tab takes the tile furthest from the tabs next to it.' }
+];
+}
+initial() {
+return {
+tabs: [
+{ id: 'a', title: 'E: Redesign contact form E2E test', ci: 0, st: 'i', prompt: 'run it headless against latest', line: '● Ready when you are.' },
+{ id: 'b', title: 'Redesign contact form – flag cleanup', ci: 3, st: 'i', prompt: 'remove the contactFormRedesign flag checks', line: '● Removed 14 checks across 9 files.' },
+{ id: 'c', title: 'Claude Code', ci: 6, st: 'i', prompt: 'which repos use the old date picker?', line: '● frontend and booking-widget.' },
+{ id: 'd', title: 'API: reject custom document templates', ci: 4, st: 'r', prompt: 'also cover the PATCH path', line: '⎿ Bash bundle exec rspec spec/requests…' },
+{ id: 'e', title: 'Redesign contact form – API validation', ci: 1, st: 'i', prompt: 'add 422 for empty company name', line: '● Added the validation and a request spec.' },
+{ id: 'f', title: 'Claude Code', ci: 5, st: 'r', prompt: 'why does forecast double count leave?', line: '⎿ Read app/services/forecast.rb' }
+],
+cur: 'b', step: 0, nextId: 0, opened1: null, opened2: null,
+ev: { text: 'Six sessions; three start “Redesign contact form”, two are “Claude Code”.', ci: 3, id: 'b' },
+hl: ['apart']
+};
+}
+script() {
+return [
+{ id: 'd', st: 'w', text: 'asks a question', line: 'Allow Bash(bin/rails db:migrate)? 1 Yes 2 No', hl: ['peri', 'violet'] },
+{ id: 'f', st: 'i', text: 'finished its turn', line: '● The query joins absences twice.', hl: ['apart'] },
+{ open: { title: 'Fix flaky invoice spec', prompt: 'loop the spec 50×', line: '⎿ Bash for i in {1..50}; do rspec …' }, hl: ['newc', 'alarm'] },
+{ id: 'd', select: true, text: 'you switch to it', hl: ['cur', 'dot', 'follow'] },
+{ id: 'd', st: 'r', text: 'you answer; it runs again', line: '⎿ Bash bin/rails db:migrate', hl: ['alarm', 'dot'] },
+{ id: '$1', st: 'f', text: 'failed', line: 'API Error: overloaded', hl: ['alarm'] },
+{ id: 'a', st: 'w', text: 'asks a question', line: 'Allow Bash(pnpm e2e --headless)? 1 Yes 2 No', hl: ['peri', 'violet'] },
+{ open: { title: 'Review: Budget burn chart', prompt: 'review the burn chart PR', line: '⎿ Bash gh pr diff …' }, hl: ['newc'] },
+{ id: 'a', select: true, text: 'you switch to it', hl: ['cur', 'follow'] },
+{ id: 'a', st: 'r', text: 'you answer; it runs', line: '⎿ Bash pnpm e2e --headless', hl: ['dot'] },
+{ id: '$2', st: 'w', text: 'asks: approve or request changes?', line: 'Post the review as Approve? 1 Yes 2 No', hl: ['peri', 'violet'] },
+{ id: '$1', close: true, text: 'you close it', hl: [] },
+{ id: 'd', st: 'i', text: 'finished its turn', line: '● PATCH now rejects custom templates too.', hl: ['alarm'] },
+{ id: '$2', select: true, text: 'you switch to it', hl: ['cur', 'dot'] },
+{ id: '$2', st: 'r', text: 'you answer; it posts the review', line: '⎿ Bash gh pr review --approve', hl: ['alarm'] },
+{ id: 'a', st: 'i', text: 'finished its turn', line: '● 12 passed.', hl: [] },
+{ id: '$2', st: 'i', text: 'finished its turn', line: '● Approved.', hl: [] },
+{ id: '$2', close: true, text: 'you close it', hl: [] },
+{ id: 'b', select: true, text: 'back to flag cleanup', hl: ['apart', 'follow'] }
+];
+}
+componentDidMount() {
+this.timer = setInterval(() => { if (this.state.playing) this.advance(); }, 2200);
+}
+componentWillUnmount() {
+clearInterval(this.timer);
+(this.later || []).forEach((t) => clearTimeout(t));
+}
+after(ms, fn) {
+this.later = this.later || [];
+this.later.push(setTimeout(fn, ms));
+}
+pickColour(tabs) {
+const n = this.P().length;
+const live = tabs.filter((t) => !t.closing);
+const near = live.slice(-2).map((t) => t.ci);
+let best = 0, bestScore = -1e9;
+for (let i = 0; i < n; i++) {
+const d = near.length ? Math.min.apply(null, near.map((j) => Math.min(Math.abs(i - j), n - Math.abs(i - j)))) : n;
+const used = live.filter((t) => t.ci === i).length;
+const score = d * 10 - used * 25;
+if (score > bestScore) { bestScore = score; best = i; }
+}
+return { ci: best, near: near };
+}
+resolve(id, s) {
+if (id === '$1') return s.opened1;
+if (id === '$2') return s.opened2;
+return id;
+}
+advance() {
+const sc = this.script();
+const s = this.state;
+if (s.step >= sc.length) { this.setState(this.initial()); return; }
+const ev = sc[s.step];
+const P = this.P();
+let tabs = s.tabs.slice();
+const patch = { step: s.step + 1, hl: ev.hl || [] };
+if (ev.open) {
+const pc = this.pickColour(tabs);
+const id = 'n' + (s.nextId + 1);
+tabs.push({ id: id, title: ev.open.title, ci: pc.ci, st: 'r', prompt: ev.open.prompt, line: ev.open.line, isNew: true });
+patch.nextId = s.nextId + 1;
+if (s.opened1) patch.opened2 = id; else patch.opened1 = id;
+const nb = pc.near.map((i) => P[i][0]).join(' and ');
+patch.ev = { id: id, ci: pc.ci, text: 'New session: ' + ev.open.title + ' takes ' + P[pc.ci][0] + (nb ? ', furthest from ' + nb : '') };
+this.after(700, () => this.setState({ tabs: this.state.tabs.map((t) => t.id === id ? Object.assign({}, t, { isNew: false }) : t) }));
+} else {
+const id = this.resolve(ev.id, Object.assign({}, s, patch));
+const t = tabs.find((x) => x.id === id);
+if (!t) { this.setState(patch); return; }
+if (ev.close) {
+tabs = tabs.map((x) => x.id === id ? Object.assign({}, x, { closing: true }) : x);
+this.after(450, () => this.setState({ tabs: this.state.tabs.filter((x) => x.id !== id) }));
+if (s.cur === id) patch.cur = 'b';
+} else if (ev.select) {
+patch.cur = id;
+} else {
+tabs = tabs.map((x) => x.id === id ? Object.assign({}, x, { st: ev.st, line: ev.line || x.line }) : x);
+}
+patch.ev = { id: id, ci: t.ci, text: t.title + ' · ' + ev.text };
+}
+patch.tabs = tabs;
+this.setState(patch);
+}
+renderVals() {
+const P = this.P();
+const s = this.state;
+const live = s.tabs;
+const stateText = { i: 'idle', r: 'running', w: 'waiting on you', f: 'failed' };
+const stateCol = { i: '#6A647A', r: '#6FC3E0', w: '#A07EEA', f: '#EE6F86' };
+const nOf = (id) => { const i = live.filter((t) => !t.closing).findIndex((t) => t.id === id); return i < 0 ? '' : String(i + 3); };
+let k = 0;
+const tabs = live.map((t) => ({
+n: t.closing ? '' : String((k++) + 3),
+title: t.title,
+cls: 'tab ' + t.st + (t.id === s.cur ? ' on' : '') + (t.closing ? ' closing' : '') + (t.isNew ? ' new' : ''),
+style: '--c: ' + P[t.ci][1],
+isW: t.st === 'w', isR: t.st === 'r', isF: t.st === 'f', on: t.id === s.cur,
+pick: () => { if (!t.closing) this.setState({ cur: t.id, hl: ['cur', 'dot', 'follow'], ev: { id: t.id, ci: t.ci, text: t.title + ' · you click it' } }); }
+}));
+const c = live.find((t) => t.id === s.cur) || live[0];
+const cur = { title: c.title, c: P[c.ci][1], n: nOf(c.id), prompt: c.prompt, line: c.line, stateText: stateText[c.st], stateCol: stateCol[c.st] };
+const variants = [
+{ label: 'Now · colour means state', stripCls: 'strip now', tiles: false, plain: true, sbStyle: '' },
+{ label: 'New · colour means session (Dusk tiles), state as ? ··· !', stripCls: 'strip nu', tiles: true, plain: false, sbStyle: 'box-shadow: inset 0 2px 0 ' + P[c.ci][1] }
+];
+const hl = s.hl || [];
+const lose = this.LOSE().map((it) => ({ title: it.title, text: it.text, cls: 'item lose' + (hl.indexOf(it.k) >= 0 ? ' on' : '') }));
+const gain = this.GAIN().map((it) => ({ title: it.title, text: it.text, cls: 'item gain' + (hl.indexOf(it.k) >= 0 ? ' on' : '') }));
+const ev = { text: s.ev.text, c: P[s.ev.ci][1], n: nOf(s.ev.id) || '·' };
+return {
+tabs: tabs, cur: cur, variants: variants, lose: lose, gain: gain, ev: ev,
+playLabel: s.playing ? '❚❚ Pause' : '▶ Play',
+toggle: () => this.setState({ playing: !this.state.playing }),
+next: () => this.advance(),
+reset: () => this.setState(this.initial())
+};
+}
+}
+</script>
+</body>
+</html>

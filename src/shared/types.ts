@@ -28,6 +28,8 @@ export interface Session {
   model: string | null
   effort: string | null
   permissionMode: string | null
+  /** Index into the theme's session palette (sessionColor.ts); tells tabs apart, never state. */
+  color: number
 }
 
 /** Live data from the statusline, per session. */

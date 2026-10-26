@@ -43,6 +43,13 @@
     "title-glow": "0 0 10px rgba(160,126,234,0.22)",
     "accent-shadow": "0 0 10px rgba(160,126,234,0.25)",
     "chrome-edge": "0 1px 0 rgba(160,126,234,0.4)",
-    "bg-img": "linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px)"
+    "bg-img": "linear-gradient(180deg, rgba(14,13,18,0) 0%, rgba(14,13,18,0) 65%, rgba(160,126,234,0.035) 100%), repeating-linear-gradient(90deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px), repeating-linear-gradient(0deg, rgba(180,142,235,0.022) 0 1px, transparent 1px 56px)",
+    "sess-0": "#B5806C",
+    "sess-1": "#A89160",
+    "sess-2": "#7E9867",
+    "sess-3": "#5F9A94",
+    "sess-4": "#7088A8",
+    "sess-5": "#A97A8C",
+    "sess-6": "#9C9484"
   }
 }

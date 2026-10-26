@@ -1,6 +1,7 @@
 import type { Draft, DraftTarget } from '@shared/git'
 import type { SessionPrLink } from '@shared/tasks'
 import type { SessionState } from '@shared/types'
+import { pickSessionColor } from '@shared/sessionColor'
 import type { Db } from './db'
 
 export interface SessionRow {
@@ -18,6 +19,7 @@ export interface SessionRow {
   permissionMode: string | null
   forkFrom?: string | null
   titleLocked?: boolean
+  color?: number | null
 }
 
 type Patch = Partial<Omit<SessionRow, 'id' | 'startedAt'>>
@@ -35,6 +37,7 @@ const COLUMNS: Record<keyof Patch, string> = {
   permissionMode: 'permission_mode',
   forkFrom: 'fork_from',
   titleLocked: 'title_locked',
+  color: 'color',
 }
 
 interface RawSession {
@@ -52,6 +55,7 @@ interface RawSession {
   permission_mode: string | null
   fork_from: string | null
   title_locked: number
+  color: number | null
   tab_order: number | null
 }
 
@@ -70,6 +74,7 @@ const fromRaw = (r: RawSession): SessionRow => ({
   permissionMode: r.permission_mode,
   forkFrom: r.fork_from,
   titleLocked: r.title_locked === 1,
+  color: r.color,
 })
 
 export class Repo {
@@ -79,7 +84,24 @@ export class Repo {
     const rows = this.db
       .prepare('SELECT * FROM sessions WHERE tab_order IS NOT NULL ORDER BY tab_order')
       .all() as RawSession[]
+    // Tabs opened before colours existed get one now, in tab order.
+    if (rows.some((r) => r.color === null)) {
+      const set = this.db.prepare('UPDATE sessions SET color = ? WHERE id = ?')
+      const seen: number[] = []
+      this.db.transaction(() => {
+        for (const r of rows) {
+          if (r.color === null) set.run((r.color = pickSessionColor(seen)), r.id)
+          seen.push(r.color)
+        }
+      })()
+    }
     return rows.map(fromRaw)
+  }
+
+  /** A tab that opens (new or reopened) without a colour takes the one that suits its place, last in the strip. */
+  private colorTab(id: string): void {
+    const open = (this.db.prepare('SELECT color FROM sessions WHERE tab_order IS NOT NULL AND id != ? AND color IS NOT NULL ORDER BY tab_order').all(id) as { color: number }[]).map((r) => r.color)
+    this.db.prepare('UPDATE sessions SET color = ? WHERE id = ? AND color IS NULL').run(pickSessionColor(open), id)
   }
 
   /** Closed tabs, most recent first. */
@@ -114,10 +136,12 @@ export class Repo {
          ON CONFLICT(id) DO UPDATE SET tab_order = excluded.tab_order`,
       )
       .run({ ...s, forkFrom: s.forkFrom ?? null, external: s.external ? 1 : 0, tabOrder: this.nextOrder() })
+    this.colorTab(s.id)
   }
 
   reopenTab(id: string): void {
     this.db.prepare('UPDATE sessions SET tab_order = ? WHERE id = ? AND tab_order IS NULL').run(this.nextOrder(), id)
+    this.colorTab(id)
   }
 
   update(id: string, patch: Patch): void {

@@ -109,7 +109,7 @@ export class Sessions {
     }
     this.repo.insertTab(row)
     this.events.sessionsChanged()
-    return this.toSession(row)
+    return this.get(row.id) ?? this.toSession(row)
   }
 
   /**
@@ -446,9 +446,10 @@ export class Sessions {
   }
 
   private toSession(r: SessionRow): Session {
-    const { claudeId: _c, transcriptPath: _t, titleLocked: _l, ...rest } = r
+    const { claudeId: _c, transcriptPath: _t, titleLocked: _l, color, ...rest } = r
     return {
       ...rest,
+      color: color ?? 0,
       alive: r.external ? this.externalAlive.has(r.id) : this.pty.has(r.id),
       takeOver: this.takeOvers.has(r.id) || undefined,
     }

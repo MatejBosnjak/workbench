@@ -14,6 +14,7 @@ const s = (id: string, state: Session['state'], alive = true): Session => ({
   model: null,
   effort: null,
   permissionMode: null,
+  color: 0,
 })
 const h = (sessionId: string, until: CafHold['until'], mode: CafHold['mode'] = 'on'): CafHold => ({ sessionId, mode, until, since: 0, auto: false })
 

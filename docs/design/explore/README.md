@@ -26,5 +26,9 @@ Each file is a self-contained HTML mock: the markup sits inside `<x-dc>`, and th
 | `CassetteMuthur.dc.html` | Chosen: built as the MU/TH/UR theme (with status colours and lighter scanlines) | `theme-muthur*.png` |
 | `CassetteBeige.dc.html` | Chosen: built as the Brown workstation theme (dark chrome, no bezel; the beige version was rejected) | `theme-brown*.png` |
 | `CassetteConsole.dc.html` | Chosen: built as the Ops console theme | `theme-console*.png` |
+| `SessionTabsFind.dc.html` | Explored: A–E ways to tell many tabs apart (labels, groups, badges, rail, switcher); led to colour per session | `session.png` |
+| `SessionTabsColor.dc.html` | Chosen: **1 · colour bar**, built at 2px; chip and tinted tabs rejected | `session.png`, `theme-*-session.png` |
+| `SessionTabsThemes.dc.html` | Chosen: per-theme palettes and MU/TH/UR sigils; the number-in-a-tile shape was not built (the bar was picked) | `theme-*-session.png` |
+| `SessionTabsLive.dc.html` | Reference: now vs new, animated, with what we lose and gain | — |
 
 When a new exploration is picked: mark its row here (Chosen: X), build it, then `pnpm snap` and update `docs/SPEC.md` in the same commit.

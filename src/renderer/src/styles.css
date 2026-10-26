@@ -807,8 +807,8 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tabs { overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex-shrink: 0; max-width: 190px; }
-/* Editor tabs: no boxes. Each tab runs the bar's full height with its state as a left border; the current tab takes the
-   session bar's colour and reaches down into it, tinted violet. A waiting tab is tinted violet with a violet border. */
+/* Editor tabs: no boxes. Each tab runs the bar's full height with a thin bar in its session colour at the left; colour
+   tells sessions apart, state is a glyph (? ··· !). The current tab takes the session bar's colour and joins it. */
 .topbar .seg-btn { border-color: transparent; }
 .topbar .seg-btn:not(.tab) { height: 26px; }
 .topbar .mem-btn { height: 26px; }
@@ -817,20 +817,21 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .cafb-btn:not(.caf-on):not(.caf-lid) { border-color: transparent; }
 .cafb-btn:not(.caf-on):not(.caf-lid):hover { background: var(--raised); }
 .tabs { gap: 0; align-self: stretch; align-items: stretch; height: calc(100% + 1px); margin-bottom: -1px; }
-.tab { --st: var(--faint); height: auto; max-width: 180px; padding: 0 6px 0 13px; border: 0; color: var(--text-3); font-size: 12px; }
-.tab.st-running { --st: var(--info); }
-.tab.st-waiting { --st: var(--accent); }
-.tab.st-failed { --st: var(--bad); }
-.tab.st-idle { --st: var(--faint); }
-/* Idle tabs are split by hairlines and carry no mark. Only what needs me stands out: waiting most, then failed; running barely. */
+.tab { --sc: var(--faint); height: auto; max-width: 180px; padding: 0 6px 0 12px; border: 0; color: var(--text-3); font-size: 12px; }
+/* Tabs are split by hairlines. */
 .topbar .tab:not([aria-selected='true']) + .tab:not([aria-selected='true'])::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 1px; background: var(--line-heavy); }
-.topbar .tab::after { content: ''; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--st); visibility: hidden; }
-.topbar .tab.st-running::after, .topbar .tab.st-waiting::after, .topbar .tab.st-failed::after { visibility: visible; }
-.topbar .tab.st-running::after { width: 2px; left: 6px; background: color-mix(in srgb, var(--info) 55%, transparent); }
+.topbar .tab .sess-mark { position: absolute; left: 5px; top: 10px; bottom: 10px; width: 2px; border-radius: 1px; background: var(--sc); }
+.tab.st-waiting { color: var(--text); font-weight: 600; }
 .topbar .tab:hover { background: color-mix(in srgb, var(--raised) 50%, transparent); color: var(--text-2); }
 /* The current tab takes the session bar's colour and joins it, like a browser tab. */
-.topbar .tab[aria-selected='true'] { background: var(--raised); color: var(--text); box-shadow: inset 1px 0 0 var(--line-heavy), inset -1px 0 0 var(--line-heavy); }
-.tab.st-waiting:not([aria-selected='true']) { color: var(--text); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.topbar .tab[aria-selected='true'] { background: var(--raised); color: var(--text); box-shadow: inset 1px 0 0 var(--line-heavy), inset -1px 0 0 var(--line-heavy), inset 0 2px 0 var(--sc); }
+/* A session's colour mark outside the strip (+N menu, status bar), and its state glyph. MU/TH/UR prints a sigil instead. */
+.sess-mark { display: inline-block; flex-shrink: 0; width: 2px; height: 14px; border-radius: 1px; background: var(--sc); }
+.sess-sigil { display: none; }
+.st-glyph { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; font-weight: 700; line-height: 1; }
+.st-q { width: 14px; height: 14px; border-radius: 50%; background: var(--text); color: var(--bg); }
+.st-run { color: var(--muted); font-weight: 400; letter-spacing: 1px; }
+.st-fail { width: 14px; height: 14px; box-shadow: inset 0 0 0 1.5px var(--text); color: var(--text); }
 .tab-more.waiting { color: var(--text-2); }
 .tab-more-wait { color: var(--accent); }
 .tab[aria-selected='true'] .tab-title { opacity: 1; }
@@ -845,9 +846,8 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tab-menu-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border: 0; background: transparent; color: var(--text-2); cursor: pointer; text-align: left; white-space: nowrap; }
 .tab-menu-item .faint { margin-left: auto; }
 .tab-menu-item:hover, .tab-menu-item.on { background: var(--raised); color: var(--text); }
-.tab-menu-item.st-running { box-shadow: inset 2px 0 0 var(--info); }
-.tab-menu-item.st-waiting { box-shadow: inset 2px 0 0 var(--accent); }
-.tab-menu-item.st-failed { box-shadow: inset 2px 0 0 var(--bad); }
+.tab-menu-item.st-waiting { color: var(--text); font-weight: 600; }
+.tab-menu-title { min-width: 0; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
 .tab-menu-n { color: var(--faint); width: 18px; }
 .pr-wrap.sel { background: var(--raised); box-shadow: inset 3px 0 0 var(--text); }
 .pr-wrap { border-top: 1px solid var(--line-soft); }

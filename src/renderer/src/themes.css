@@ -306,3 +306,34 @@
 /* Segmented meters already show their scale: no quarter cuts; the pace mark takes the theme's ink. */
 :is([data-theme='muthur'], [data-theme='brown'], [data-theme='console']) .meter-q { display: none; }
 [data-theme='brown'] .sb-meter .meter-pace { background: #1E2618; }
+
+/* ================================================================
+ * Session colours: muted, apart from the bright task-status colours (Dusk's are in theme.css)
+ * ================================================================ */
+/* MU/TH/UR stays one phosphor: a block sigil before the title instead of a coloured bar. */
+[data-theme='muthur'] .sess-mark { width: auto; height: auto; background: none; color: var(--text); }
+[data-theme='muthur'] .topbar .tab .sess-mark { position: static; margin-right: 6px; }
+[data-theme='muthur'] .topbar .tab { padding-left: 8px; }
+[data-theme='muthur'] .topbar .tab[aria-selected='true'] .sess-mark { color: var(--bg); }
+[data-theme='muthur'] .sess-sigil { display: inline; }
+[data-theme='muthur'] .st-q { border-radius: 0; }
+/* Brown workstation: 70s upholstery (avocado, harvest gold, teal, plum, denim, tan, umber); no orange, that's the current key. */
+[data-theme='brown'] {
+  --sess-0: #7D8A3C;
+  --sess-1: #C49A3A;
+  --sess-2: #3F7A78;
+  --sess-3: #7A4B66;
+  --sess-4: #4F6688;
+  --sess-5: #A88D68;
+  --sess-6: #8A7A5E;
+}
+/* Ops console: Dymo tape (blue, green, yellow, white, grey, purple, brown); no red or orange, those are Needs you and the current tab. */
+[data-theme='console'] {
+  --sess-0: #2B5AA0;
+  --sess-1: #2E7A4C;
+  --sess-2: #D8B23A;
+  --sess-3: #E6E2D2;
+  --sess-4: #7A7F86;
+  --sess-5: #5A3F8C;
+  --sess-6: #8C6A44;
+}

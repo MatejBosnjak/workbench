@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Session colours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.row{display:flex;gap:56px;align-items:flex-start}
+.h{color:#ECE8F2;font-weight:700;font-size:14px;letter-spacing:.02em}
+.cap{width:720px;color:#A69FB4;font-size:12.5px;display:flex;flex-direction:column;gap:8px}
+.cap b{color:#ECE8F2;font-weight:600}
+.cap .pro{color:#5FD0B0}
+.cap .con{color:#E8B07A}
+.win{position:relative;width:1440px;border:1px solid #3A3647;background:#0E0D12;overflow:hidden;flex-shrink:0}
+.top{height:36px;display:flex;align-items:stretch;background:#14131A;border-bottom:1px solid #25232E;font-size:12px}
+.pl{display:flex;align-items:center;padding:0 12px;color:#A69FB4;white-space:nowrap}
+.pl.wb{color:#ECE8F2;font-weight:700;padding-left:86px}
+.pl.wb i{display:inline-block;width:3px;height:13px;background:#A07EEA;margin-right:3px;font-style:normal}
+.div{width:1px;margin:8px 8px;background:#3A3647}
+.strip{flex:1;min-width:0;display:flex;align-items:stretch;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 48px),transparent)}
+.tab{position:relative;flex-shrink:0;display:flex;align-items:center;gap:7px;max-width:180px;padding:0 9px 0 14px;color:#A69FB4;white-space:nowrap}
+.tab .t{overflow:hidden;text-overflow:ellipsis}
+.tab .n{color:#6A647A}
+.tab .x{color:#6A647A;padding:0 2px}
+.more{display:flex;align-items:center;gap:6px;padding:0 10px;color:#A69FB4;white-space:nowrap;flex-shrink:0}
+.endb{display:flex;align-items:center;gap:22px;padding:0 18px 0 12px;color:#6A647A;flex-shrink:0}
+.sb{height:38px;display:flex;align-items:center;gap:14px;padding:0 14px;background:#1E1C26;border-bottom:1px solid #25232E;font-size:12px;color:#CDC7D8}
+.term{padding:14px 18px;color:#6A647A;font-size:12px;line-height:1.7}
+.dim{color:#6A647A}
+/* state, without colour */
+.tab.w{color:#ECE8F2;font-weight:700}
+.q{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#ECE8F2;color:#0E0D12;font-size:10px;font-weight:700;flex-shrink:0}
+.run{color:#8E879E;letter-spacing:1px;flex-shrink:0}
+.fail{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;box-shadow:inset 0 0 0 1.5px #ECE8F2;color:#ECE8F2;font-size:10px;font-weight:700;flex-shrink:0}
+.tab.idle{color:#8E879E}
+/* V1 bar */
+.v1 .tab::before{content:'';position:absolute;left:4px;top:9px;bottom:9px;width:4px;border-radius:2px;background:var(--c)}
+.v1 .tab.on{background:#1E1C26;color:#ECE8F2;box-shadow:inset 0 2px 0 var(--c)}
+/* V2 chip */
+.v2 .tab .sw{width:9px;height:9px;border-radius:2px;background:var(--c);flex-shrink:0}
+.v2 .tab + .tab::after{content:'';position:absolute;left:0;top:10px;bottom:10px;width:1px;background:#3A3647}
+.v2 .tab.on{background:#1E1C26;color:#ECE8F2;box-shadow:inset 0 -2px 0 var(--c)}
+/* V3 tint */
+.v3 .tab{margin:5px 2px 0;border-radius:4px 4px 0 0;background:color-mix(in srgb,var(--c) 13%,transparent);color:#CDC7D8;box-shadow:inset 0 2px 0 color-mix(in srgb,var(--c) 55%,transparent)}
+.v3 .tab.on{background:color-mix(in srgb,var(--c) 30%,#1E1C26);color:#FFFFFF;box-shadow:inset 0 2px 0 var(--c)}
+.v3 .tab.idle{color:#A69FB4}
+.sw2{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c);flex-shrink:0}
+.pal{display:flex;gap:10px;align-items:center;font-size:11px;color:#8E879E}
+.pal span.s{width:44px;height:22px;border-radius:3px;display:flex;align-items:flex-end;padding:2px 4px;box-sizing:border-box;color:#0E0D12;font-weight:600}
+.pop{position:absolute;z-index:3;background:#1A1921;border:1px solid #3A3647;box-shadow:0 18px 44px rgba(0,0,0,.6);font-size:12px}
+.mi{display:grid;grid-template-columns:16px 26px 1fr auto;gap:8px;align-items:center;padding:6px 10px;color:#CDC7D8}
+.stb{height:26px;display:flex;align-items:center;gap:10px;padding:0 14px;border-top:1px solid #25232E;background:#14131A;font-size:11.5px;color:#CDC7D8;position:absolute;left:0;right:0;bottom:0}
+</style>
+</helmet>
+<div style="width: 2400px; box-sizing: border-box; padding: 56px; display: flex; flex-direction: column; gap: 72px; background: #0E0D12; color: #ECE8F2; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.55">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 26px; font-weight: 700">Colour = which session · shape = what state</div>
+<div style="color: #A69FB4; max-width: 1500px">The tab strip drops violet / blue / red for state. Each session gets its own colour, kept for its life and repeated wherever it appears. State moves to a glyph and weight that need no colour: <span class="q" style="vertical-align:-3px">?</span> waiting (bold white title), <span class="run">···</span> running, <span class="fail" style="vertical-align:-3px">!</span> failed, idle plain and dim.</div>
+<div class="pal"><span>Palette (8, no violet, lightness varies so they also differ in grey):</span>
+<span class="s" style="background:#EE8A6F">1</span><span class="s" style="background:#E8C27A">2</span><span class="s" style="background:#A8D46A">3</span><span class="s" style="background:#57C7CC">4</span><span class="s" style="background:#6FA0E8">5</span><span class="s" style="background:#E87AB8">6</span><span class="s" style="background:#C9B28E">7</span><span class="s" style="background:#7FDDA8">8</span>
+<span style="margin-left:12px">new session takes the colour least like its neighbours; right-click › Colour to change</span></div>
+</div>
+
+<!-- V1 -->
+<div class="row">
+<div class="win">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip v1">
+<span class="tab w" style="--c:#EE8A6F"><span class="n">3</span><span class="t">E: Redesign contact form E2E test</span><span class="q">?</span></span>
+<span class="tab on" style="--c:#57C7CC"><span class="n">4</span><span class="t">Redesign contact form – flag cleanup</span><span class="x">×</span></span>
+<span class="tab idle" style="--c:#C9B28E"><span class="n">5</span><span class="t">Claude Code</span></span>
+<span class="tab" style="--c:#6FA0E8"><span class="n">6</span><span class="t">API: reject custom document templates</span><span class="run">···</span></span>
+<span class="tab idle" style="--c:#E8C27A"><span class="n">7</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab" style="--c:#E87AB8"><span class="n">8</span><span class="t">Budget burn chart tooltip</span><span class="run">···</span></span>
+<span class="tab idle" style="--c:#A8D46A"><span class="n">9</span><span class="t">Claude Code</span></span>
+<span class="tab" style="--c:#7FDDA8"><span class="n">10</span><span class="t">Fix flaky invoice spec</span><span class="fail">!</span></span>
+</span>
+<span class="more">+4 <span class="q" style="width:13px;height:13px;font-size:9px">?</span> <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="sb" style="box-shadow:inset 0 2px 0 #57C7CC"><span style="width:6px;height:18px;background:#E8B07A"></span>Redesign contact form – flag cleanup <span class="dim">⌘I</span><span class="dim">│</span>● CI passing</div>
+<div class="term">❯ remove the contactFormRedesign flag checks…</div>
+</div>
+<div class="cap">
+<div class="h">1 · Colour bar</div>
+<div><b>A 4px bar in the session’s colour at every tab’s left</b>, where today’s state bar sits. The current tab carries its colour as a 2px line along its top and into the session bar, so the screen below is tagged too.</div>
+<div><span class="pro">+</span> closest to today; quiet; the two “Claude Code” tabs are now sand and lime. <span class="con">−</span> a thin mark, so at a glance you match bars, not tabs.</div>
+</div>
+</div>
+
+<!-- V2 -->
+<div class="row">
+<div class="win" style="height:300px">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip v2">
+<span class="tab w" style="--c:#EE8A6F"><span class="n">3</span><span class="sw"></span><span class="t">E: Redesign contact form E2E test</span><span class="q">?</span></span>
+<span class="tab on" style="--c:#57C7CC"><span class="n">4</span><span class="sw"></span><span class="t">Redesign contact form – flag cleanup</span><span class="x">×</span></span>
+<span class="tab idle" style="--c:#C9B28E"><span class="n">5</span><span class="sw"></span><span class="t">Claude Code</span></span>
+<span class="tab" style="--c:#6FA0E8"><span class="n">6</span><span class="sw"></span><span class="t">API: reject custom document templates</span><span class="run">···</span></span>
+<span class="tab idle" style="--c:#E8C27A"><span class="n">7</span><span class="sw"></span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab" style="--c:#E87AB8"><span class="n">8</span><span class="sw"></span><span class="t">Budget burn chart tooltip</span><span class="run">···</span></span>
+<span class="tab idle" style="--c:#A8D46A"><span class="n">9</span><span class="sw"></span><span class="t">Claude Code</span></span>
+</span>
+<span class="more">+5 <span class="q" style="width:13px;height:13px;font-size:9px">?</span> <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="term">the chip follows the session: +N menu, ⌘K, Focus, Needs you rows, status bar</div>
+<div class="pop" style="top:36px;right:96px;width:400px;padding:4px">
+<div class="mi"><span class="sw2" style="--c:#7FDDA8"></span><span class="dim">10</span><span>Fix flaky invoice spec</span><span class="fail">!</span></div>
+<div class="mi" style="color:#ECE8F2;font-weight:700"><span class="sw2" style="--c:#EE8A6F"></span><span class="dim" style="font-weight:400">11</span><span>Review: Budget burn chart</span><span class="q">?</span></div>
+<div class="mi"><span class="sw2" style="--c:#6FA0E8"></span><span class="dim">12</span><span>Contacts empty state copy</span><span class="dim">2h</span></div>
+<div class="mi"><span class="sw2" style="--c:#E8C27A"></span><span class="dim">13</span><span>Weekly update</span><span class="dim">5h</span></div>
+<div class="mi"><span class="sw2" style="--c:#A8D46A"></span><span class="dim">14</span><span>Workbench session tabs</span><span class="dim">1d</span></div>
+</div>
+<div class="stb"><span>⌨</span><span class="dim">│</span><span class="sw2" style="--c:#57C7CC"></span>Redesign contact form – flag cleanup <span class="dim">8m</span></div>
+</div>
+<div class="cap">
+<div class="h">2 · Colour chip</div>
+<div><b>A 9px square of the session’s colour before the title.</b> The current tab underlines itself in its colour. The same square marks the session in the +N menu, ⌘K, Focus, Needs you and the status bar, so “the pink one” means the same thing everywhere.</div>
+<div>With more than 8 sessions colours repeat (11 and 3 are both coral); the new one takes whichever colour is furthest from its neighbours, so repeats sit far apart.</div>
+<div><span class="pro">+</span> works the same in lists and menus as on tabs. <span class="con">−</span> smallest mark of the three.</div>
+</div>
+</div>
+
+<!-- V3 -->
+<div class="row">
+<div class="win">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip v3">
+<span class="tab w" style="--c:#EE8A6F"><span class="n">3</span><span class="t">E: Redesign contact form E2E test</span><span class="q">?</span></span>
+<span class="tab on" style="--c:#57C7CC"><span class="n">4</span><span class="t">Redesign contact form – flag cleanup</span><span class="x">×</span></span>
+<span class="tab idle" style="--c:#C9B28E"><span class="n">5</span><span class="t">Claude Code</span></span>
+<span class="tab" style="--c:#6FA0E8"><span class="n">6</span><span class="t">API: reject custom document templates</span><span class="run">···</span></span>
+<span class="tab idle" style="--c:#E8C27A"><span class="n">7</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab" style="--c:#E87AB8"><span class="n">8</span><span class="t">Budget burn chart tooltip</span><span class="run">···</span></span>
+<span class="tab idle" style="--c:#A8D46A"><span class="n">9</span><span class="t">Claude Code</span></span>
+</span>
+<span class="more">+5 <span class="q" style="width:13px;height:13px;font-size:9px">?</span> <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="sb" style="background:color-mix(in srgb,#57C7CC 30%,#1E1C26)"><span style="width:6px;height:18px;background:#E8B07A"></span>Redesign contact form – flag cleanup <span class="dim" style="color:#A69FB4">⌘I</span><span class="dim">│</span>● CI passing</div>
+<div class="term">❯ remove the contactFormRedesign flag checks…</div>
+</div>
+<div class="cap">
+<div class="h">3 · Tinted tabs</div>
+<div><b>Each tab is a coloured card: a soft fill of its colour with a stronger line on top.</b> The current tab fills deeper, and the session bar takes the same tint, so the tab and its screen read as one piece, like Chrome tab groups or iTerm tab colours.</div>
+<div><span class="pro">+</span> strongest: you find a tab by colour before reading anything. <span class="con">−</span> loudest; the strip stops being “still at rest”, and the waiting glyph has to compete with the colours.</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px; max-width: 1500px; color: #A69FB4">
+<div class="h">What changes elsewhere</div>
+<div>Violet stays the app’s “needs you” colour outside the strip: the Needs-you counter, the +N badge and Focus keep it, and the identity palette leaves violet out so it can’t be mistaken for a waiting session. Running no longer gets blue on the tab (only ···), and failed no longer gets red (only the boxed !). Per-task colours (all three “Redesign contact form” sessions in one colour) are possible but would bring back the problem inside a task, so it’s one colour per session.</div>
+<div><b style="color:#ECE8F2">Pick:</b> I’d go with <b style="color:#ECE8F2">2 · chip</b> (the same mark in every list) plus the current tab’s colour line from 1. Pick 3 if you want colour to do all the work.</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2400,"height":1700}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

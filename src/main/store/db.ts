@@ -106,6 +106,10 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (session_id, key)
   );
   `,
+  `
+  -- The tab's colour (an index into the theme's session palette), picked when the tab opens and kept for its life.
+  ALTER TABLE sessions ADD COLUMN color INTEGER;
+  `,
 ]
 
 export function openDb(file: string): Db {

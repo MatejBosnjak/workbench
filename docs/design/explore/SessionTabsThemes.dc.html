@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Session colours by theme</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;family=VT323&amp;family=Space+Mono:wght@400;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.row{display:flex;gap:48px;align-items:flex-start}
+.info{width:760px;display:flex;flex-direction:column;gap:10px;color:#A69FB4;font-size:12.5px}
+.info b{color:#ECE8F2}
+.h{color:#ECE8F2;font-weight:700;font-size:16px}
+.pal{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sq{width:30px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.vd{width:12px;height:12px;border-radius:50%}
+.k{width:120px;color:#8E879E;font-size:11px}
+.win{position:relative;width:1440px;height:200px;overflow:hidden;flex-shrink:0;border:1px solid #3A3647}
+.top{height:36px;display:flex;align-items:stretch;font-size:12px}
+.pl{display:flex;align-items:center;padding:0 12px;white-space:nowrap}
+.tab{position:relative;display:flex;align-items:center;gap:8px;max-width:190px;padding:0 10px 0 8px;white-space:nowrap}
+.tab .t{overflow:hidden;text-overflow:ellipsis}
+.tile{min-width:18px;height:17px;padding:0 3px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.q{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;font-size:10px;font-weight:700;flex-shrink:0}
+.fail{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;font-size:10px;font-weight:700;flex-shrink:0}
+.sb{height:36px;display:flex;align-items:center;gap:12px;padding:0 14px;font-size:12px}
+.rail{width:6px;height:18px}
+.rows{padding:8px 14px;display:flex;flex-direction:column;gap:4px;font-size:12px}
+.tr{display:flex;align-items:center;gap:10px;height:24px}
+.tr .r{width:3px;height:16px}
+/* Dusk */
+.dusk{background:#0E0D12;color:#CDC7D8;font-family:'JetBrains Mono',monospace}
+.dusk .top{background:#14131A;border-bottom:1px solid #25232E}
+.dusk .tab{color:#A69FB4}
+.dusk .tab + .tab::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:1px;background:#3A3647}
+.dusk .tab.on{background:#1E1C26;color:#ECE8F2;box-shadow:inset 0 -2px 0 var(--c)}
+.dusk .tab.on::before,.dusk .tab.on + .tab::before{display:none}
+.dusk .tile{background:var(--c);color:#0E0D12;border-radius:2px}
+.dusk .tab.w{color:#ECE8F2;font-weight:700}
+.dusk .q{background:#ECE8F2;color:#0E0D12}
+.dusk .fail{box-shadow:inset 0 0 0 1.5px #ECE8F2;color:#ECE8F2}
+.dusk .sb{background:#1E1C26;border-bottom:1px solid #25232E;color:#CDC7D8}
+/* MU/TH/UR */
+.muthur{background:#0A0602;color:#FFB33A;font-family:'VT323',monospace;font-size:17px;text-transform:uppercase}
+.muthur .top{background:#0D0803;border-bottom:1px solid #3A2710;font-size:17px}
+.muthur .tab{color:#D9962F;letter-spacing:.03em}
+.muthur .tab.on{background:#FFB33A;color:#0A0602}
+.muthur .tile{font-size:17px;font-weight:400;color:#FFC45A;min-width:14px;padding:0}
+.muthur .tab.on .tile{color:#0A0602}
+.muthur .tab.w{color:#FFC45A;text-shadow:0 0 6px rgba(255,170,40,.6)}
+.muthur .q{border-radius:0;background:#FFC45A;color:#0A0602;font-size:15px;width:auto;padding:0 3px}
+.muthur .fail{background:transparent;box-shadow:inset 0 0 0 1px #FFC45A;color:#FFC45A;font-size:15px}
+.muthur .sb{background:#24170A;border-bottom:1px solid #3A2710;font-size:17px}
+.muthur .rows{font-size:17px}
+/* Brown */
+.brown{background:#17120C;color:#F3E2C2;font-family:'Space Mono',monospace}
+.brown .top{background:#211D18;border-bottom:1px solid #0D0B08;padding:4px 6px 0;gap:4px;height:36px;box-sizing:border-box}
+.brown .tab{color:#B5A588;background:linear-gradient(180deg,#3A3127,#2E271F);border-radius:4px 4px 0 0;box-shadow:0 0 0 1px #0D0B08;font-size:11.5px}
+.brown .tab.on{background:linear-gradient(180deg,#C8692A,#B35A20);color:#FFF1DE;font-weight:700}
+.brown .tile{background:var(--c);color:var(--ct,#17120C);border-radius:3px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.4)}
+.brown .tab.w{color:#F3E2C2;font-weight:700}
+.brown .q{background:#F3E2C2;color:#17120C}
+.brown .fail{box-shadow:inset 0 0 0 1.5px #F3E2C2;color:#F3E2C2}
+.brown .sb{background:#2A2219;border-bottom:1px solid #0D0B08}
+/* Console */
+.console{background:#1B1E1C;color:#F1EDDD;font-family:'Share Tech Mono',monospace}
+.console .top{background:#252926;border-bottom:3px solid;border-image:linear-gradient(90deg,#EFE3C2 0 25%,#F5A524 25% 50%,#C2502A 50% 75%,#6B3A1E 75%) 1}
+.console .tab{color:#BDB9AA;font-size:12.5px}
+.console .tab + .tab::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:1px;background:#4A4F4B}
+.console .tab.on{background:#2A2A20;color:#F1EDDD;box-shadow:inset 0 0 0 1px #E39B2D}
+.console .tile{background:var(--c);color:var(--ct,#F4F1E6);font-weight:400;letter-spacing:.08em;border-radius:2px;text-shadow:0 1px 0 rgba(0,0,0,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(0,0,0,.35)}
+.console .tab.w{color:#F1EDDD}
+.console .q{background:#F1EDDD;color:#1B1E1C}
+.console .fail{box-shadow:inset 0 0 0 1.5px #F1EDDD;color:#F1EDDD}
+.console .sb{background:#2C302D;border-bottom:1px solid #4A4F4B}
+.lamp{width:9px;height:9px;border-radius:50%}
+</style>
+</helmet>
+<div style="width: 2400px; box-sizing: border-box; padding: 56px; display: flex; flex-direction: column; gap: 56px; background: #0E0D12; color: #ECE8F2; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.5">
+
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 1700px">
+<div style="font-size: 26px; font-weight: 700">Session colours that can’t be mistaken for task status, in every theme</div>
+<div style="color: #A69FB4">Task status already uses the whole colour wheel (17 bright <i>vivid</i> colours), so hue alone can’t keep the two apart. They’re separated on three axes instead: <b style="color:#ECE8F2">material</b> (status is bright ink: rails, dots, codes, lamps; a session is a flat, muted <i>surface</i>), <b style="color:#ECE8F2">shape</b> (status is a thin rail or round dot; a session is a square tile carrying the tab number, so it replaces the number rather than adding a mark) and <b style="color:#ECE8F2">place</b> (status lives in the session bar and lists; session tiles live on tabs and wherever a session is named). Each theme takes its session palette from its own world.</div>
+</div>
+
+<!-- Dusk -->
+<div class="row">
+<div class="info">
+<div class="h">Dusk · dusty pigments</div>
+<div class="pal"><span class="k">sessions</span>
+<span class="sq" style="background:#B5806C;color:#0E0D12">3</span><span class="sq" style="background:#A89160;color:#0E0D12">4</span><span class="sq" style="background:#7E9867;color:#0E0D12">5</span><span class="sq" style="background:#5F9A94;color:#0E0D12">6</span><span class="sq" style="background:#7088A8;color:#0E0D12">7</span><span class="sq" style="background:#A97A8C;color:#0E0D12">8</span><span class="sq" style="background:#9C9484;color:#0E0D12">9</span></div>
+<div class="pal"><span class="k">task status</span>
+<span class="vd" style="background:#E8D44D"></span><span class="vd" style="background:#FF9A5C"></span><span class="vd" style="background:#FF6FB5"></span><span class="vd" style="background:#8FE36B"></span><span class="vd" style="background:#4FC3F7"></span><span class="vd" style="background:#B18CFF"></span><span class="vd" style="background:#E8628F"></span><span class="vd" style="background:#6C8CFF"></span><span class="vd" style="background:#3FD8C8"></span><span class="vd" style="background:#F5C04A"></span><span class="vd" style="background:#FF5C72"></span><span class="vd" style="background:#4FD69C"></span></div>
+<div>Seven low-chroma tones at one mid lightness (clay, ochre, moss, teal, slate, rose, stone): about a third of the status colours’ saturation and darker, so next to a neon rail they read as paint, not light. No violet-ish tone, so the accent keeps meaning “needs you”.</div>
+</div>
+<div class="win dusk">
+<div class="top"><span class="pl" style="color:#ECE8F2;font-weight:700;padding-left:86px">▌wb</span><span class="pl" style="color:#A69FB4">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span style="width:1px;margin:8px;background:#3A3647"></span>
+<span class="tab w" style="--c:#B5806C"><span class="tile">3</span><span class="t">E: Redesign contact form E2E test</span><span class="q">?</span></span>
+<span class="tab on" style="--c:#5F9A94"><span class="tile">4</span><span class="t">Redesign contact form – flag cleanup</span><span style="color:#6A647A">×</span></span>
+<span class="tab" style="--c:#9C9484"><span class="tile">5</span><span class="t">Claude Code</span></span>
+<span class="tab" style="--c:#7088A8"><span class="tile">6</span><span class="t">API: reject custom templates</span><span style="color:#8E879E">···</span></span>
+<span class="tab" style="--c:#A89160"><span class="tile">7</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab" style="--c:#A97A8C"><span class="tile">8</span><span class="t">Budget burn chart tooltip</span><span class="fail">!</span></span>
+</div>
+<div class="sb"><span class="tile" style="background:#5F9A94;color:#0E0D12;border-radius:2px">4</span><span class="rail" style="background:#F5C04A"></span>Redesign contact form – flag cleanup <span style="color:#6A647A">⌘I</span></div>
+<div class="rows">
+<div class="tr"><span class="r" style="background:#F5C04A"></span><span style="width:110px;color:#F5C04A">Working</span>Redesign contact form – flag cleanup <span class="tile" style="background:#5F9A94;color:#0E0D12;border-radius:2px;margin-left:6px">4</span></div>
+<div class="tr"><span class="r" style="background:#4FC3F7"></span><span style="width:110px;color:#4FC3F7">Code review</span>Budget burn chart tooltip <span class="tile" style="background:#A97A8C;color:#0E0D12;border-radius:2px;margin-left:6px">8</span></div>
+<div class="tr"><span class="r" style="background:#8FE36B"></span><span style="width:110px;color:#8FE36B">On latest</span>Contacts empty state copy</div>
+</div>
+</div>
+</div>
+
+<!-- MU/TH/UR -->
+<div class="row">
+<div class="info">
+<div class="h">MU/TH/UR · block sigils, no colour</div>
+<div class="pal" style="font-family:'VT323',monospace;font-size:22px;color:#FFC45A;background:#0A0602;padding:6px 10px;gap:14px"><span class="k" style="font-family:'JetBrains Mono',monospace">sessions</span><span>▚3</span><span>▞4</span><span>▀5</span><span>▄6</span><span>▌7</span><span>▐8</span><span>▓9</span></div>
+<div>The phosphor is one colour, and status already prints as coloured three-letter codes. Here a session is a <b>block-character sigil</b> before its number, in the same amber: ▚ ▞ ▀ ▄ ▌ ▐ ▓. A shape, not a hue, so it can’t collide with a status colour and the CRT stays monochrome. Current tab stays reverse video.</div>
+</div>
+<div class="win muthur">
+<div class="top"><span class="pl" style="color:#FFC45A;padding-left:86px">▌WB</span><span class="pl" style="color:#D9962F">TODAY</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#D9962F"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#D9962F"/></svg></span><span style="width:1px;margin:8px;background:#6B4510"></span>
+<span class="tab w"><span class="tile">▚3</span><span class="t">E: REDESIGN CONTACT FORM E2E TEST</span><span class="q">?</span></span>
+<span class="tab on"><span class="tile">▞4</span><span class="t">REDESIGN CONTACT FORM – FLAG CLEANUP</span></span>
+<span class="tab"><span class="tile">▀5</span><span class="t">CLAUDE CODE</span></span>
+<span class="tab"><span class="tile">▄6</span><span class="t">API: REJECT CUSTOM TEMPLATES</span><span>···</span></span>
+<span class="tab"><span class="tile">▌7</span><span class="t">REDESIGN CONTACT FORM – API VALIDATION</span></span>
+<span class="tab"><span class="tile">▐8</span><span class="t">BUDGET BURN CHART TOOLTIP</span><span class="fail">!</span></span>
+</div>
+<div class="sb"><span>▞4</span><span style="background:#F5C04A;color:#0A0602;padding:0 4px">WRK</span>REDESIGN CONTACT FORM – FLAG CLEANUP</div>
+<div class="rows">
+<div class="tr"><span style="width:44px;background:#F5C04A;color:#0A0602;padding:0 4px">WRK</span>REDESIGN CONTACT FORM – FLAG CLEANUP <span style="margin-left:6px;color:#FFC45A">▞4</span></div>
+<div class="tr"><span style="width:44px;color:#4FC3F7;padding:0 4px">REV</span>BUDGET BURN CHART TOOLTIP <span style="margin-left:6px;color:#FFC45A">▐8</span></div>
+<div class="tr"><span style="width:44px;color:#8FE36B;padding:0 4px">LAT</span>CONTACTS EMPTY STATE COPY</div>
+</div>
+</div>
+</div>
+
+<!-- Brown -->
+<div class="row">
+<div class="info">
+<div class="h">Brown workstation · 70s upholstery</div>
+<div class="pal"><span class="k">sessions</span>
+<span class="sq" style="background:#7D8A3C;color:#17120C;border-radius:3px">3</span><span class="sq" style="background:#C49A3A;color:#17120C;border-radius:3px">4</span><span class="sq" style="background:#3F7A78;color:#F3E2C2;border-radius:3px">5</span><span class="sq" style="background:#7A4B66;color:#F3E2C2;border-radius:3px">6</span><span class="sq" style="background:#4F6688;color:#F3E2C2;border-radius:3px">7</span><span class="sq" style="background:#A88D68;color:#17120C;border-radius:3px">8</span><span class="sq" style="background:#5E5040;color:#F3E2C2;border-radius:3px">9</span></div>
+<div>Avocado, harvest gold, teal, plum, denim, tan, umber: the sofa and carpet colours of the era, dull and warm, so they sit apart from both the bright status colours and the four sunset stripes. No orange, which is the current key. The tile is a small keycap with its own bevel, set into the tab keycap.</div>
+</div>
+<div class="win brown">
+<div class="top"><span class="pl" style="color:#F3E2C2;font-weight:700;padding-left:80px">▌wb</span><span class="pl" style="color:#B5A588">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#B5A588"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#B5A588"/></svg></span>
+<span class="tab w" style="--c:#7D8A3C"><span class="tile">3</span><span class="t">E: Redesign contact form E2E test</span><span class="q">?</span></span>
+<span class="tab on" style="--c:#C49A3A"><span class="tile">4</span><span class="t">Redesign contact form – flag cleanup</span></span>
+<span class="tab" style="--c:#3F7A78;--ct:#F3E2C2"><span class="tile">5</span><span class="t">Claude Code</span></span>
+<span class="tab" style="--c:#7A4B66;--ct:#F3E2C2"><span class="tile">6</span><span class="t">API: reject custom templates</span><span>···</span></span>
+<span class="tab" style="--c:#4F6688;--ct:#F3E2C2"><span class="tile">7</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab" style="--c:#A88D68"><span class="tile">8</span><span class="t">Budget burn chart tooltip</span><span class="fail">!</span></span>
+</div>
+<div class="sb"><span class="tile" style="background:#C49A3A;color:#17120C;border-radius:3px">4</span><span class="rail" style="background:#F5C04A"></span>Redesign contact form – flag cleanup</div>
+<div class="rows">
+<div class="tr"><span class="r" style="background:#F5C04A"></span><span style="width:110px;color:#F5C04A">Working</span>Redesign contact form – flag cleanup <span class="tile" style="background:#C49A3A;color:#17120C;border-radius:3px;margin-left:6px">4</span></div>
+<div class="tr"><span class="r" style="background:#4FC3F7"></span><span style="width:110px;color:#4FC3F7">Code review</span>Budget burn chart tooltip <span class="tile" style="background:#A88D68;color:#17120C;border-radius:3px;margin-left:6px">8</span></div>
+<div class="tr"><span class="r" style="background:#8FE36B"></span><span style="width:110px;color:#8FE36B">On latest</span>Contacts empty state copy</div>
+</div>
+</div>
+</div>
+
+<!-- Console -->
+<div class="row">
+<div class="info">
+<div class="h">Ops console · Dymo tape</div>
+<div class="pal"><span class="k">sessions</span>
+<span class="sq" style="background:#2B5AA0;color:#F4F1E6;font-family:'Share Tech Mono',monospace;font-weight:400">3</span><span class="sq" style="background:#2E7A4C;color:#F4F1E6;font-family:'Share Tech Mono',monospace;font-weight:400">4</span><span class="sq" style="background:#D8B23A;color:#1B1E1C;font-family:'Share Tech Mono',monospace;font-weight:400">5</span><span class="sq" style="background:#E6E2D2;color:#1B1E1C;font-family:'Share Tech Mono',monospace;font-weight:400">6</span><span class="sq" style="background:#161616;color:#F4F1E6;box-shadow:inset 0 0 0 1px #4A4F4B;font-family:'Share Tech Mono',monospace;font-weight:400">7</span><span class="sq" style="background:#5A3F8C;color:#F4F1E6;font-family:'Share Tech Mono',monospace;font-weight:400">8</span><span class="sq" style="background:#5D646C;color:#F4F1E6;font-family:'Share Tech Mono',monospace;font-weight:400">9</span></div>
+<div>The real Dymo tape colours (blue, green, yellow, white, black, purple, grey), embossed with the tab number like the box titles. Status here is a <b>glowing round lamp</b>; a session is a <b>flat strip of tape</b>. Red and orange tape are left out: red is the Needs-you tape and the bad colour, orange is the current tab.</div>
+</div>
+<div class="win console">
+<div class="top"><span class="pl" style="color:#F1EDDD;padding-left:86px">▌wb</span><span class="pl" style="color:#BDB9AA">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#BDB9AA"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#BDB9AA"/></svg></span><span style="width:1px;margin:8px;background:#4A4F4B"></span>
+<span class="tab w" style="--c:#2B5AA0"><span class="tile">3</span><span class="t">E: Redesign contact form E2E test</span><span class="q">?</span></span>
+<span class="tab on" style="--c:#2E7A4C"><span class="tile">4</span><span class="t">Redesign contact form – flag cleanup</span></span>
+<span class="tab" style="--c:#D8B23A;--ct:#1B1E1C"><span class="tile">5</span><span class="t">Claude Code</span></span>
+<span class="tab" style="--c:#E6E2D2;--ct:#1B1E1C"><span class="tile">6</span><span class="t">API: reject custom templates</span><span>···</span></span>
+<span class="tab" style="--c:#161616"><span class="tile" style="box-shadow:inset 0 0 0 1px #4A4F4B">7</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab" style="--c:#5A3F8C"><span class="tile">8</span><span class="t">Budget burn chart tooltip</span><span class="fail">!</span></span>
+</div>
+<div class="sb"><span class="tile" style="background:#2E7A4C;color:#F4F1E6">4</span><span class="lamp" style="background:#F5C04A;box-shadow:0 0 6px #F5C04A"></span>Redesign contact form – flag cleanup</div>
+<div class="rows">
+<div class="tr"><span class="lamp" style="background:#F5C04A;box-shadow:0 0 6px #F5C04A"></span><span style="width:110px;color:#F5C04A;text-transform:uppercase;font-size:11px;letter-spacing:.06em">Working</span>Redesign contact form – flag cleanup <span class="tile" style="background:#2E7A4C;color:#F4F1E6;margin-left:6px">4</span></div>
+<div class="tr"><span class="lamp" style="background:#4FC3F7;box-shadow:0 0 6px #4FC3F7"></span><span style="width:110px;color:#4FC3F7;text-transform:uppercase;font-size:11px;letter-spacing:.06em">Code review</span>Budget burn chart tooltip <span class="tile" style="background:#5A3F8C;color:#F4F1E6;margin-left:6px">8</span></div>
+<div class="tr"><span class="lamp" style="background:#8FE36B;box-shadow:0 0 6px #8FE36B"></span><span style="width:110px;color:#8FE36B;text-transform:uppercase;font-size:11px;letter-spacing:.06em">On latest</span>Contacts empty state copy</div>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2400,"height":1300}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

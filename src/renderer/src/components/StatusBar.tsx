@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { Limit } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { RunPrChip } from './RunPr'
+import { SessionMark, StateGlyph, sessionStyle } from './SessionMark'
 import { useShallow } from 'zustand/react/shallow'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -125,8 +126,11 @@ export function StatusBar({ children }: { children?: ReactNode }) {
       <span className="sb-session" title={session ? `${session.title} · ${session.cwd}` : undefined}>
         {session ? (
           <>
-            <span className={`dot-${session.state}`}>●</span>
+            <span className="sb-sess" style={sessionStyle(session)}>
+              <SessionMark session={session} />
+            </span>
             <span className="sb-title">{session.title}</span>
+            <StateGlyph state={session.state} />
             {session.external && <span className="faint">ext</span>}
             <span className="faint">{age(now - session.startedAt)}</span>
           </>

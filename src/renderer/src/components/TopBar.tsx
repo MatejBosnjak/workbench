@@ -5,6 +5,7 @@ import { CaffeinateButton, holdOf } from './CaffeinateControl'
 import { Cup } from './Cup'
 import { FocusChip } from './Focus'
 import { MemoryButton } from './Memory'
+import { SessionMark, StateGlyph, sessionStyle } from './SessionMark'
 import { useShallow } from 'zustand/react/shallow'
 
 const STATE_LABEL: Record<SessionState, string> = {
@@ -258,13 +259,17 @@ export function TopBar({ onNew }: { onNew: () => void }) {
                     key={s.id}
                     role="menuitem"
                     className={`tab-menu-item st-${s.state}${s.id === activeId ? ' on' : ''}`}
+                    style={sessionStyle(s)}
+                    title={s.title}
                     onClick={() => {
                       setMoreOpen(false)
                       show({ kind: 'session', id: s.id })
                     }}
                   >
+                    <SessionMark session={s} />
                     <span className="tab-menu-n">{sessions.indexOf(s) + 3}</span>
-                    {s.title}
+                    <span className="tab-menu-title">{s.title}</span>
+                    <StateGlyph state={s.state} />
                     <span className="faint">{STATE_LABEL[s.state].toLowerCase()}</span>
                   </button>
                 ))}
@@ -317,7 +322,8 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
       role="tab"
       data-session={s.id}
       aria-selected={selected}
-      title={editing ? undefined : `${STATE_LABEL[s.state]} · ${s.title}\n${s.cwd}\nDouble-click to rename`}
+      style={sessionStyle(s)}
+      title={editing ? undefined : `${s.title}\n${STATE_LABEL[s.state]} · ${s.cwd}\nDouble-click to rename`}
       draggable={!editing}
       onClick={onSelect}
       onDoubleClick={() => {
@@ -337,6 +343,7 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
       onDrop={onDrop}
     >
       <span className="sr-only">{STATE_LABEL[s.state]}: </span>
+      <SessionMark session={s} />
       {editing ? (
         <input
           className="tab-rename"
@@ -361,6 +368,7 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
           {s.title}
         </span>
       )}
+      {!editing && <StateGlyph state={s.state} />}
       {cup && (
         <span className="tab-cup">
           <Cup mode={cup} size={13} label={cup === 'lid' ? 'Kept awake with lid closed' : 'Kept awake'} />

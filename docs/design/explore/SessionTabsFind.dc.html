@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Telling session tabs apart</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.row{display:flex;gap:56px;align-items:flex-start}
+.h{color:#A07EEA;font-weight:700;font-size:14px;letter-spacing:.02em}
+.cap{width:720px;color:#A69FB4;font-size:12.5px;display:flex;flex-direction:column;gap:8px}
+.cap b{color:#ECE8F2;font-weight:600}
+.cap .pro{color:#5FD0B0}
+.cap .con{color:#E8B07A}
+.win{position:relative;width:1440px;border:1px solid #3A3647;background:#0E0D12;overflow:hidden;flex-shrink:0}
+.top{height:36px;display:flex;align-items:stretch;background:#14131A;border-bottom:1px solid #25232E;font-size:12px}
+.pl{display:flex;align-items:center;padding:0 12px;color:#A69FB4;white-space:nowrap}
+.pl.wb{color:#ECE8F2;font-weight:700;padding-left:86px}
+.pl.wb i{display:inline-block;width:3px;height:13px;background:#A07EEA;margin-right:3px;font-style:normal}
+.div{width:1px;margin:8px 8px;background:#3A3647}
+.strip{flex:1;min-width:0;display:flex;align-items:stretch;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 48px),transparent)}
+.tab{position:relative;flex-shrink:0;display:flex;align-items:center;gap:6px;max-width:180px;padding:0 8px 0 13px;color:#A69FB4;white-space:nowrap}
+.tab .t{overflow:hidden;text-overflow:ellipsis}
+.tab .n{color:#6A647A}
+.tab + .tab::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:1px;background:#3A3647}
+.tab.on + .tab::before,.tab + .tab.on::before{display:none}
+.tab::after{content:'';position:absolute;left:5px;top:10px;bottom:10px;width:3px;border-radius:2px;visibility:hidden}
+.tab.w{color:#ECE8F2;background:rgba(160,126,234,.10)}
+.tab.w::after{visibility:visible;background:#A07EEA}
+.tab.r::after{visibility:visible;width:2px;left:6px;background:rgba(111,195,224,.55)}
+.tab.f::after{visibility:visible;background:#EE6F86}
+.tab.on{background:#1E1C26;color:#ECE8F2;box-shadow:inset 1px 0 0 #3A3647,inset -1px 0 0 #3A3647}
+.tab .x{color:#6A647A;padding:0 4px}
+.more{display:flex;align-items:center;gap:6px;padding:0 10px;color:#A69FB4;white-space:nowrap;flex-shrink:0}
+.more.wt{box-shadow:inset 2px 0 0 #A07EEA}
+.more .v{color:#A07EEA}
+.endb{display:flex;align-items:center;gap:22px;padding:0 18px 0 12px;color:#6A647A;flex-shrink:0}
+.sb{height:38px;display:flex;align-items:center;gap:14px;padding:0 14px;background:#1E1C26;border-bottom:1px solid #25232E;font-size:12px;color:#CDC7D8}
+.sb .rail{width:6px;height:18px;background:#E8B07A}
+.term{padding:14px 18px;color:#6A647A;font-size:12px;line-height:1.7}
+.dim{color:#6A647A}
+.tag{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:600;line-height:1;padding:3px 4px;border-radius:2px;letter-spacing:.02em}
+.g-fe{color:#57C7CC;background:rgba(87,199,204,.13)}
+.g-api{color:#E8B07A;background:rgba(232,176,122,.13)}
+.g-e2e{color:#6FC3E0;background:rgba(111,195,224,.13)}
+.g-wb{color:#5FD0B0;background:rgba(95,208,176,.13)}
+.g-no{color:#8E879E;box-shadow:inset 0 0 0 1px #3A3647}
+.grp{position:relative;display:flex;align-items:stretch;flex-shrink:0}
+.grp::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--gc)}
+.gl{display:flex;align-items:center;gap:6px;padding:0 10px 0 10px;color:var(--gc);font-size:11px;font-weight:600;white-space:nowrap}
+.gl .c{color:#8E879E;font-weight:400}
+.pop{position:absolute;z-index:3;background:#1A1921;border:1px solid #3A3647;box-shadow:0 18px 44px rgba(0,0,0,.6);font-size:12px}
+.mi{display:grid;grid-template-columns:28px 34px 1fr auto;gap:8px;align-items:center;padding:6px 10px;color:#CDC7D8}
+.mi .s{color:#6A647A;font-size:11px}
+.mi.wt{box-shadow:inset 2px 0 0 #A07EEA}
+.mi.rn{box-shadow:inset 2px 0 0 #6FC3E0}
+.mi.fl{box-shadow:inset 2px 0 0 #EE6F86}
+.side{width:268px;flex-shrink:0;background:#121117;border-right:1px solid #25232E;display:flex;flex-direction:column;padding:10px 0;font-size:12px}
+.sec{padding:10px 14px 4px;color:#6A647A;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+.sr{position:relative;display:flex;flex-direction:column;gap:2px;padding:6px 12px 6px 18px;color:#CDC7D8}
+.sr .a{color:#ECE8F2}
+.sr .m{display:flex;gap:6px;align-items:center;color:#6A647A;font-size:11px}
+.sr::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--sc,transparent)}
+.sr.on{background:#1E1C26;box-shadow:inset -2px 0 0 #3A3647}
+.sr.wt{background:rgba(160,126,234,.08)}
+.card{display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:#17161D;border:1px solid #2E2B39;font-size:12px;color:#CDC7D8}
+.card.sel{border-color:#A69FB4;background:#1E1C26}
+.card .tt{display:flex;gap:8px;align-items:center;color:#ECE8F2;font-weight:600}
+.card .ln{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8E879E}
+.card .you{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#CDC7D8}
+.card .st{display:flex;gap:8px;align-items:center;font-size:11px;color:#6A647A}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%}
+</style>
+</helmet>
+<div style="width: 2400px; box-sizing: border-box; padding: 56px; display: flex; flex-direction: column; gap: 72px; background: #0E0D12; color: #ECE8F2; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.55">
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 26px; font-weight: 700">Session tabs — telling 12 open sessions apart</div>
+<div style="color: #A69FB4; max-width: 1500px">Same twelve sessions on every row. The problem today: titles start alike (three are “Redesign contact form…”), two are claude’s default “Claude Code”, every idle tab is the same grey, and half the strip is behind +N. Options A–E attack different causes; they combine.</div>
+</div>
+
+<!-- NOW -->
+<div class="row">
+<div class="win">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip">
+<span class="tab w"><span class="n">3</span><span class="t">E: Redesign contact form E2E test</span></span>
+<span class="tab on"><span class="n">4</span><span class="t">Redesign contact form – flag cleanup</span><span class="x">×</span></span>
+<span class="tab"><span class="n">5</span><span class="t">Claude Code</span></span>
+<span class="tab r"><span class="n">6</span><span class="t">API: reject custom document templates on proposals</span></span>
+<span class="tab"><span class="n">7</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab r"><span class="n">8</span><span class="t">Budget burn chart tooltip</span></span>
+<span class="tab"><span class="n">9</span><span class="t">Claude Code</span></span>
+<span class="tab f"><span class="n">10</span><span class="t">Fix flaky invoice spec</span></span>
+</span>
+<span class="more wt">+5 <span class="v">●1</span> <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="sb"><span class="rail"></span>Redesign contact form – flag cleanup <span class="dim">⌘I</span><span class="dim">│</span>● CI passing</div>
+<div class="term">❯ remove the contactFormRedesign flag checks…</div>
+</div>
+<div class="cap">
+<div class="h">NOW · the app as built</div>
+<div><b>Why it’s hard:</b> the eye reads a tab’s first ~15 characters. Here 3, 4 and 7 are identical up to the cut, 5 and 9 are identical outright, and repo/branch/task (what you actually remember a session by) aren’t on the tab at all.</div>
+<div>Everything idle looks the same, and 5 tabs live behind +5 where only position in a menu helps.</div>
+</div>
+</div>
+
+<!-- A -->
+<div class="row">
+<div class="win">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip">
+<span class="tab w"><span class="n">3</span><span class="dim">e2e</span><span class="t"><span class="dim">…</span>E2E test</span></span>
+<span class="tab on"><span class="n">4</span><span class="dim">fe</span><span class="t"><span class="dim">…</span>flag cleanup</span><span class="x">×</span></span>
+<span class="tab"><span class="n">5</span><span class="dim">~/</span><span class="t" style="font-style:italic">work</span></span>
+<span class="tab r"><span class="n">6</span><span class="dim">api</span><span class="t">reject custom…proposals</span></span>
+<span class="tab"><span class="n">7</span><span class="dim">api</span><span class="t"><span class="dim">…</span>API validation</span></span>
+<span class="tab r"><span class="n">8</span><span class="dim">fe</span><span class="t">burn chart tooltip</span></span>
+<span class="tab"><span class="n">9</span><span class="dim">fe</span><span class="t" style="font-style:italic">budget-forecast</span></span>
+<span class="tab f"><span class="n">10</span><span class="dim">api</span><span class="t">flaky invoice spec</span></span>
+<span class="tab w"><span class="n">11</span><span class="dim">fe</span><span class="t">review · burn chart</span></span>
+<span class="tab"><span class="n">12</span><span class="dim">fe</span><span class="t">empty state copy</span></span>
+</span>
+<span class="more">+2 <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="term">hover 3 → “E: Redesign contact form E2E test · e2e-tests · contact-form-redesign-flag”</div>
+</div>
+<div class="cap">
+<div class="h">A · Say what differs</div>
+<div><b>Words that every tab shares go; words that tell them apart stay.</b> A dim repo prefix (fe / api / e2e, from the PR or cwd) replaces “API:”, “E:”, “Fix”. When two or more open tabs start with the same words, those words fold to a dim … and the tab shows its tail. “Claude Code” becomes the branch or folder, in italics so you know it’s not a real title. Long titles cut in the middle, keeping both ends.</div>
+<div>Tabs size to their text (≤ 150px), so 10 fit instead of 8.</div>
+<div><span class="pro">+</span> no new chrome, no colour; cheapest to build. <span class="con">−</span> folded prefixes need the group in your head; tooltip carries the full title.</div>
+</div>
+</div>
+
+<!-- B -->
+<div class="row">
+<div class="win">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip">
+<span class="grp" style="--gc:#E8B07A">
+<span class="gl">▾ Redesign contact form <span class="c">3</span></span>
+<span class="tab w"><span class="n">3</span><span class="t">E2E test</span></span>
+<span class="tab on"><span class="n">4</span><span class="t">flag cleanup</span><span class="x">×</span></span>
+<span class="tab"><span class="n">7</span><span class="t">API validation</span></span>
+</span>
+<span style="width:10px;flex-shrink:0"></span>
+<span class="grp" style="--gc:#6FC3E0">
+<span class="gl">▸ Budget burn chart <span class="c">2</span> <span style="color:#A07EEA">●1</span></span>
+</span>
+<span style="width:10px;flex-shrink:0"></span>
+<span class="grp" style="--gc:#5FD0B0">
+<span class="gl">▾ Invoices <span class="c">2</span></span>
+<span class="tab f"><span class="n">10</span><span class="t">flaky invoice spec</span></span>
+<span class="tab r"><span class="n">6</span><span class="t">reject custom templates</span></span>
+</span>
+<span style="width:10px;flex-shrink:0"></span>
+<span class="tab"><span class="n">5</span><span class="t">Claude Code</span></span>
+<span class="tab"><span class="n">9</span><span class="t">Claude Code</span></span>
+<span class="tab"><span class="n">12</span><span class="t">Contacts empty state copy</span></span>
+</span>
+<span class="more">+2 <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="term">group colour = the task’s Productive status colour · ungrouped tabs sit after the groups</div>
+</div>
+<div class="cap">
+<div class="h">B · Group by task</div>
+<div><b>Sessions on the same task sit together under the task’s name</b>, like browser tab groups. The label carries the shared words once, so the tabs inside only need what’s different. A 2px underline in the task’s status colour runs under the group. Click the label to collapse it to one chip; a collapsed group with a waiting session shows the violet ●1. Grouping is automatic (task link), drag a tab out to ungroup.</div>
+<div><span class="pro">+</span> chunks 12 things into ~5; mirrors how you think (per task). <span class="con">−</span> tabs reorder themselves when a task gets linked; sessions without a task stay as loose as today (pairs with A).</div>
+</div>
+</div>
+
+<!-- C -->
+<div class="row">
+<div class="win" style="height:330px">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip">
+<span class="tab w"><span class="n">3</span><span class="tag g-e2e">e2e</span><span class="t">E: Redesign contact form E2E test</span></span>
+<span class="tab on"><span class="n">4</span><span class="tag g-fe">fe</span><span class="t">Redesign contact form – flag cleanup</span><span class="x">×</span></span>
+<span class="tab"><span class="n">5</span><span class="tag g-no">~</span><span class="t">Claude Code</span></span>
+<span class="tab r"><span class="n">6</span><span class="tag g-api">api</span><span class="t">API: reject custom document templates</span></span>
+<span class="tab"><span class="n">7</span><span class="tag g-api">api</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab r"><span class="n">8</span><span class="tag g-fe">fe</span><span class="t">Budget burn chart tooltip</span></span>
+<span class="tab"><span class="n">9</span><span class="tag g-fe">fe</span><span class="t">Claude Code</span></span>
+</span>
+<span class="more wt">+5 <span class="v">●1</span> <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div class="term">same badge in ⌘K, the +N menu, Focus and the status bar</div>
+<div class="pop" style="top:36px;right:96px;width:420px;padding:4px">
+<div class="mi fl"><span class="s">10</span><span class="tag g-api">api</span><span>Fix flaky invoice spec</span><span class="s">failed</span></div>
+<div class="mi wt"><span class="s">11</span><span class="tag g-fe">fe</span><span>Review: Budget burn chart</span><span class="s">waiting</span></div>
+<div class="mi"><span class="s">12</span><span class="tag g-fe">fe</span><span>Contacts empty state copy</span><span class="s">2h</span></div>
+<div class="mi"><span class="s">13</span><span class="tag g-no">~</span><span>Weekly update</span><span class="s">5h</span></div>
+<div class="mi"><span class="s">14</span><span class="tag g-wb">wb</span><span>Workbench session tabs</span><span class="s">1d</span></div>
+</div>
+</div>
+<div class="cap">
+<div class="h">C · Repo badges</div>
+<div><b>A small coloured code before the title: fe teal, api amber, e2e blue, wb green, ~ grey outline (no repo).</b> Colour gets found before reading starts, so “the api ones” are a glance, and the letters keep it readable without colour. Badges are fixed per repo, never violet (that stays “needs you”), and the same badge shows everywhere a session is listed, so the link is learned once.</div>
+<div><span class="pro">+</span> preattentive, survives truncation, no reflow. <span class="con">−</span> splits by repo, not by task (3, 4, 7 still look alike); adds colour to a deliberately quiet strip. Pairs well with A.</div>
+</div>
+</div>
+
+<!-- D -->
+<div class="row">
+<div class="win" style="height:620px">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="pl" style="color:#ECE8F2;background:#1E1C26">▤ Sessions <span class="dim" style="margin-left:8px">14</span> <span style="color:#A07EEA;margin-left:8px">●2</span></span>
+<span style="flex:1"></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div style="display:flex;height:584px">
+<div class="side">
+<div class="sec">Needs you</div>
+<div class="sr wt" style="--sc:#A07EEA"><span class="a">E: Redesign contact form E2E test</span><span class="m"><span class="tag g-e2e">e2e</span>contact-form-redesign-flag · 3m</span></div>
+<div class="sr wt" style="--sc:#A07EEA"><span class="a">Review: Budget burn chart</span><span class="m"><span class="tag g-fe">fe</span>review/burn-chart · 12m</span></div>
+<div class="sr" style="--sc:#EE6F86"><span>Fix flaky invoice spec</span><span class="m"><span class="tag g-api">api</span>flaky-invoice-spec · failed</span></div>
+<div class="sec">Running</div>
+<div class="sr" style="--sc:rgba(111,195,224,.55)"><span>API: reject custom document templates on proposals</span><span class="m"><span class="tag g-api">api</span>proposal-templates · 1m</span></div>
+<div class="sr" style="--sc:rgba(111,195,224,.55)"><span>Budget burn chart tooltip</span><span class="m"><span class="tag g-fe">fe</span>burn-chart-tooltip · 4m</span></div>
+<div class="sec">Idle</div>
+<div class="sr on"><span class="a">Redesign contact form – flag cleanup</span><span class="m"><span class="tag g-fe">fe</span>contact-form-flag · 8m</span></div>
+<div class="sr"><span>Redesign contact form – API validation</span><span class="m"><span class="tag g-api">api</span>contact-form-validation · 40m</span></div>
+<div class="sr"><span style="font-style:italic;color:#A69FB4">budget-forecast</span><span class="m"><span class="tag g-fe">fe</span>Claude Code · 1h</span></div>
+<div class="sr"><span>Contacts empty state copy</span><span class="m"><span class="tag g-fe">fe</span>empty-state-copy · 2h</span></div>
+<div class="sr"><span style="font-style:italic;color:#A69FB4">~/Productive/work</span><span class="m"><span class="tag g-no">~</span>Claude Code · 3h</span></div>
+<div class="sr"><span>Weekly update</span><span class="m"><span class="tag g-no">~</span>5h</span></div>
+<div class="sr"><span>Workbench session tabs</span><span class="m"><span class="tag g-wb">wb</span>main · 1d</span></div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column">
+<div class="sb"><span class="rail"></span>Redesign contact form – flag cleanup <span class="dim">⌘I</span><span class="dim">│</span>● CI passing</div>
+<div class="term">❯ remove the contactFormRedesign flag checks…</div>
+</div>
+</div>
+</div>
+<div class="cap">
+<div class="h">D · Session rail</div>
+<div><b>Sessions move from the top bar to a left rail</b> (toggle; the top bar keeps a “Sessions 14 ●2” place). Every session gets a full row: the whole title, wrapped if needed, and a second line with repo, branch and age. Rows sort into <b>Needs you / Running / Idle</b>, newest first inside each, so the one you want is usually in the first three rows.</div>
+<div>Rail width is resizable (2px edge on hover, as the sidebars); collapsed it can show just badges and state marks.</div>
+<div><span class="pro">+</span> no truncation, no overflow, nothing hidden; scales to 30 sessions. <span class="con">−</span> costs ~270px of terminal width; positions change as states change (an option: keep manual order and only float Needs you).</div>
+</div>
+</div>
+
+<!-- E -->
+<div class="row">
+<div class="win" style="height:620px">
+<div class="top">
+<span class="pl wb"><i></i>wb <span class="dim" style="font-weight:400;margin-left:6px">523M</span></span><span class="pl">Today</span><span class="pl" style="padding:0 10px"><svg width="22" height="22" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="8" height="10" fill="#A69FB4"/><rect x="3" y="1" width="6" height="5" fill="#0E0D12"/><rect x="6" y="7" width="2" height="1" fill="#0E0D12"/><rect x="2" y="10" width="8" height="2" fill="#A69FB4"/></svg></span><span class="div"></span>
+<span class="strip">
+<span class="tab w"><span class="n">3</span><span class="t">E: Redesign contact form E2E test</span></span>
+<span class="tab on"><span class="n">4</span><span class="t">Redesign contact form – flag cleanup</span><span class="x">×</span></span>
+<span class="tab"><span class="n">5</span><span class="t">Claude Code</span></span>
+<span class="tab r"><span class="n">6</span><span class="t">API: reject custom document templates on proposals</span></span>
+<span class="tab"><span class="n">7</span><span class="t">Redesign contact form – API validation</span></span>
+<span class="tab r"><span class="n">8</span><span class="t">Budget burn chart tooltip</span></span>
+<span class="tab"><span class="n">9</span><span class="t">Claude Code</span></span>
+<span class="tab f"><span class="n">10</span><span class="t">Fix flaky invoice spec</span></span>
+</span>
+<span class="more wt">+5 <span class="v">●1</span> <span class="dim">▾</span></span>
+<span class="endb">+ <span>☕</span> ⌘K</span>
+</div>
+<div style="position:absolute;inset:37px 0 0 0;background:rgba(6,5,10,.58)"></div>
+<div style="position:absolute;top:96px;left:120px;right:120px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;color:#A69FB4;font-size:12px"><span><b style="color:#ECE8F2">Recent sessions</b> · ⌃⇥ next · ⌃⇧⇥ back · release ⌃ to open</span><span class="dim">type to filter</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<div class="card"><div class="tt"><span class="n dim">7</span><span class="tag g-api">api</span>contact form – API validation</div><div class="st">contact-form-validation · idle 40m</div><div class="you">❯ add 422 for empty company name</div><div class="ln">● Added the validation and a request spec.</div></div>
+<div class="card sel"><div class="tt"><span class="n dim">3</span><span class="tag g-e2e">e2e</span>contact form E2E test</div><div class="st"><span class="dot" style="background:#A07EEA"></span>waiting 3m · contact-form-redesign-flag</div><div class="you">❯ run it headless against latest</div><div class="ln" style="color:#ECE8F2">Allow Bash(pnpm e2e …)? 1 Yes 2 No</div></div>
+<div class="card"><div class="tt"><span class="n dim">8</span><span class="tag g-fe">fe</span>Budget burn chart tooltip</div><div class="st"><span class="dot" style="background:#6FC3E0"></span>running 4m · burn-chart-tooltip</div><div class="you">❯ tooltip should show the forecast too</div><div class="ln">⎿ Edit app/components/burn-chart.ts</div></div>
+<div class="card"><div class="tt"><span class="n dim">9</span><span class="tag g-fe">fe</span><span style="font-style:italic">budget-forecast</span></div><div class="st">idle 1h · Claude Code</div><div class="you">❯ why does forecast double count leave?</div><div class="ln">● The query joins absences twice…</div></div>
+<div class="card"><div class="tt"><span class="n dim">10</span><span class="tag g-api">api</span>Fix flaky invoice spec</div><div class="st"><span class="dot" style="background:#EE6F86"></span>failed 6m · flaky-invoice-spec</div><div class="you">❯ loop the spec 50×</div><div class="ln">API Error: overloaded</div></div>
+<div class="card"><div class="tt"><span class="n dim">6</span><span class="tag g-api">api</span>reject custom templates</div><div class="st"><span class="dot" style="background:#6FC3E0"></span>running 1m · proposal-templates</div><div class="you">❯ also cover the PATCH path</div><div class="ln">⎿ Bash bundle exec rspec spec/requests…</div></div>
+<div class="card"><div class="tt"><span class="n dim">12</span><span class="tag g-fe">fe</span>Contacts empty state copy</div><div class="st">idle 2h · empty-state-copy</div><div class="you">❯ match the copy from the spec</div><div class="ln">● Updated 3 strings.</div></div>
+<div class="card"><div class="tt"><span class="n dim">5</span><span class="tag g-no">~</span><span style="font-style:italic">~/Productive/work</span></div><div class="st">idle 3h · Claude Code</div><div class="you">❯ which repos use the old date picker?</div><div class="ln">● frontend and booking-widget.</div></div>
+</div>
+</div>
+</div>
+<div class="cap">
+<div class="h">E · Recall by content (⌃⇥ switcher + richer hover)</div>
+<div><b>You often remember a session by what you last asked it, not by its title.</b> ⌃⇥ opens recent sessions as cards, most recent first: title, state, branch, your last prompt and claude’s last line. Hold ⌃ and tap ⇥ to step, release to open, like the app switcher, so ping-ponging between two sessions is one keystroke. Typing filters across titles, branches and prompts.</div>
+<div>The tab hover card gets the same contents (last prompt + last line + task + PR), replacing today’s title/cwd tooltip.</div>
+<div><span class="pro">+</span> works however many tabs; uses memory you already have. <span class="con">−</span> doesn’t make the strip itself clearer; overlaps ⌘K (could become ⌘K’s empty state instead).</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px; max-width: 1500px; color: #A69FB4">
+<div class="h">Suggested combination</div>
+<div><b style="color:#ECE8F2">A + C</b> on the strip (cheap, fixes the alike titles and the “Claude Code” pair, more tabs fit), <b style="color:#ECE8F2">E</b> for jumping. <b style="color:#ECE8F2">B</b> or <b style="color:#ECE8F2">D</b> if you regularly run 10+: B keeps the top-bar model, D replaces it.</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2400,"height":3500}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

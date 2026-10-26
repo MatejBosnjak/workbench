@@ -179,6 +179,8 @@ export interface WorkbenchApi {
     startForPr(pr: Omit<SessionPrLink, 'sessionId'>): Promise<Session | null>
     link(sessionId: string, taskId: string): Promise<void>
     unlink(sessionId: string, taskId: string): Promise<void>
+    /** Takes a PR off the session for good, however it was linked. */
+    unlinkPr(sessionId: string, url: string): Promise<void>
     summarize(taskId: string): Promise<string>
     /** Description, to-dos and the workflow's statuses, fetched fresh. */
     detail(taskId: string): Promise<TaskDetail>

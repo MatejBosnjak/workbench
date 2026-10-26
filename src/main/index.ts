@@ -255,7 +255,7 @@ void app.whenReady().then(() => {
     const s = sessions.list().find((x) => x.id === id)
     if (s && !s.external) notifier.session(id, s.title, event === 'Notification' ? 'waiting' : 'finished')
   }
-  const tasksSnapshot = () => ({ ...linker.snapshot(), sessionPrs: repo.sessionPrs(), suggestions: suggest.list() })
+  const tasksSnapshot = () => ({ ...linker.snapshot(), sessionPrs: repo.sessionPrs(), hiddenPrs: repo.hiddenPrs(), suggestions: suggest.list() })
   const tasksChanged = () => {
     win?.webContents.send('tasks:changed', tasksSnapshot())
     focus.refreshTasks()
@@ -490,6 +490,10 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('tasks:link', (_e, sessionId: string, taskId: string) => linker.link(sessionId, taskId, 'linked by hand', 'manual'))
   ipcMain.handle('tasks:unlink', (_e, sessionId: string, taskId: string) => linker.unlink(sessionId, taskId))
+  ipcMain.handle('tasks:unlinkPr', (_e, sessionId: string, url: string) => {
+    repo.unlinkSessionPr(sessionId, url)
+    tasksChanged()
+  })
   ipcMain.handle('tasks:summarize', (_e, taskId: string) => linker.summarize(taskId))
   const marks = new MarksReader()
   ipcMain.handle('sessions:marks', async (_e, id: string) => {

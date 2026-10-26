@@ -45,6 +45,8 @@ export interface TasksSnapshot {
   summaries: Record<string, { text: string; createdAt: number }>
   /** PRs connected to sessions by hand (a link suggestion); missing in snapshots from before they existed. */
   sessionPrs?: SessionPrLink[]
+  /** PRs unlinked from a session by hand: never shown for it again, whatever links them. */
+  hiddenPrs?: { sessionId: string; url: string }[]
   /** Link suggestions waiting for an answer, oldest first. */
   suggestions?: Suggestion[]
 }

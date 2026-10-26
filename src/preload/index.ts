@@ -49,6 +49,7 @@ const api: WorkbenchApi = {
     startForPr: (pr) => ipcRenderer.invoke('tasks:start-for-pr', pr),
     link: (sessionId, taskId) => ipcRenderer.invoke('tasks:link', sessionId, taskId),
     unlink: (sessionId, taskId) => ipcRenderer.invoke('tasks:unlink', sessionId, taskId),
+    unlinkPr: (sessionId, url) => ipcRenderer.invoke('tasks:unlinkPr', sessionId, url),
     summarize: (taskId) => ipcRenderer.invoke('tasks:summarize', taskId),
     detail: (taskId) => ipcRenderer.invoke('tasks:detail', taskId),
     setStatus: (taskId, statusId) => ipcRenderer.invoke('tasks:setStatus', taskId, statusId),

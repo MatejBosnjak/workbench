@@ -195,7 +195,20 @@ export class Repo {
   // --- PR links made by hand ---
 
   addSessionPr(sessionId: string, pr: { url: string; label: string; title: string }): void {
+    this.db.prepare('DELETE FROM suggest_dismissed WHERE session_id = ? AND key = ?').run(sessionId, `pr:${pr.url}`)
     this.db.prepare('INSERT OR IGNORE INTO session_prs (session_id, pr_url, label, title, created_at) VALUES (?, ?, ?, ?, ?)').run(sessionId, pr.url, pr.label, pr.title, Date.now())
+  }
+
+  /** Takes a PR off a session however it got there (by hand, Run app, a linked task) and stops it being suggested again. */
+  unlinkSessionPr(sessionId: string, url: string): void {
+    this.db.prepare('DELETE FROM session_prs WHERE session_id = ? AND pr_url = ?').run(sessionId, url)
+    this.dismissSuggestion(sessionId, `pr:${url}`)
+  }
+
+  /** PRs unlinked from sessions. */
+  hiddenPrs(): { sessionId: string; url: string }[] {
+    const rows = this.db.prepare("SELECT session_id, key FROM suggest_dismissed WHERE key LIKE 'pr:%'").all() as { session_id: string; key: string }[]
+    return rows.map((r) => ({ sessionId: r.session_id, url: r.key.slice(3) }))
   }
 
   sessionPrs(): SessionPrLink[] {

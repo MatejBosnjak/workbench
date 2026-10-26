@@ -17,7 +17,7 @@ import { TaskPreview } from './TaskPreview'
 /** Tasks linked to the session, latest link first. */
 export const sessionTasks = (snapshot: TasksSnapshot | null, sessionId: string): string[] => sessionTaskIds(snapshot, sessionId)
 
-/** The session's PRs: ones connected to it by hand, the frontend PR its branch belongs to, and those linked to its tasks. */
+/** The session's PRs: ones connected to it by hand, the frontend PR its branch belongs to, and those linked to its tasks; not ones unlinked by hand. */
 export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: GitSnapshot | null, runpr: RunPrSnapshot | null): SessionPr[] {
   const ids = new Set(sessionTasks(tasks, sessionId))
   const all = [...(git?.mine ?? []), ...(git?.reviews ?? [])]
@@ -34,6 +34,7 @@ export function sessionPrs(sessionId: string, tasks: TasksSnapshot | null, git: 
     out.set(focus.url, { url: focus.url, label: 'fe', title: focus.title, branch: focus.branch, ci: p?.ci ?? null })
   }
   for (const p of all) if (p.taskRefs.some((t) => ids.has(t)) && !out.has(p.url)) out.set(p.url, { url: p.url, label: prRepo(p), title: p.title, branch: p.branch, ci: p.ci })
+  for (const h of tasks?.hiddenPrs ?? []) if (h.sessionId === sessionId) out.delete(h.url)
   return [...out.values()]
 }
 
@@ -112,12 +113,17 @@ export function PrSide({ session }: { session: Session }) {
 
   return (
     <aside className="pr-side">
-      {prs.length > 1 && (
+      {prs.length > 0 && (
         <div className="ts-tabs">
           {prs.map((p) => (
-            <button key={p.url} className={`sb-chip${p.url === current?.url ? ' on' : ''}`} title={p.title} onClick={() => void window.workbench.pane.open(p.url)}>
-              {p.title}
-            </button>
+            <span key={p.url} className={`sb-chip pr-chip${p.url === current?.url ? ' on' : ''}`}>
+              <button className="pr-chip-open" title={p.title} onClick={() => void window.workbench.pane.open(p.url)}>
+                {p.title}
+              </button>
+              <button className="pr-chip-x" aria-label="Unlink PR from this session" title="Unlink from this session" onClick={() => void window.workbench.tasks.unlinkPr(session.id, p.url)}>
+                ×
+              </button>
+            </span>
           ))}
         </div>
       )}

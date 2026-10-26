@@ -1101,6 +1101,11 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .new-sess.in-row { height: 18px; padding: 0 6px; font-size: 11px; visibility: hidden; }
 .task-line:hover .new-sess.in-row, .task-line.sel .new-sess.in-row { visibility: visible; }
 .ts-tabs .sb-chip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-tabs .pr-chip { display: inline-flex; align-items: center; min-width: 0; padding: 0 0 0 10px; cursor: default; }
+.pr-chip-open { min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-chip-x { flex: none; width: 22px; height: 100%; padding: 0; border: 0; background: transparent; color: var(--faint); font-size: 15px; line-height: 1; cursor: pointer; visibility: hidden; }
+.pr-chip:hover .pr-chip-x, .pr-chip.on .pr-chip-x { visibility: visible; }
+.pr-chip-x:hover { color: var(--text); }
 .kv .peek-prs { align-items: center; min-width: 0; }
 
 /* Link suggestion under the session bar: a task id typed in a prompt, or a PR the session opened. */

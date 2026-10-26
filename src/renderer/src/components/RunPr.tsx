@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RunJob, RunStep } from '@shared/runpr'
-import { activeSessionId, useOverlay, useStore } from '../store'
+import { useOverlay, useStore } from '../store'
 import { useShallow } from 'zustand/react/shallow'
 
 const errText = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
@@ -49,12 +49,10 @@ export function RunAppButton({ n, compact = false }: { n: number; compact?: bool
 
 const done = (s: RunStep) => s.state === 'done' || s.state === 'skipped'
 
-/** The status bar chip: mismatch → ▶ Run, running, ✓ in app, ↩ Back. */
+/** The status bar chip, only after a run: its progress, a failure, or ↩ Back after a base-checkout run. */
 export function RunPrChip() {
-  const { runpr, view, setRunPanel, runPanel } = useStore(useShallow((s) => ({ runpr: s.runpr, view: s.view, setRunPanel: s.setRunPanel, runPanel: s.runPanel })))
+  const { runpr, setRunPanel, runPanel } = useStore(useShallow((s) => ({ runpr: s.runpr, setRunPanel: s.setRunPanel, runPanel: s.runPanel })))
   if (!runpr) return null
-  const sid = activeSessionId(view)
-  const focus = sid ? runpr.focus[sid] : undefined
   const job = runpr.job
   const back = runpr.back
 
@@ -83,47 +81,10 @@ export function RunPrChip() {
         Run failed · details
       </button>
     )
-  } else if (focus && runpr.appPr !== focus.number) {
-    chip = (
-      <span className="run-chip mismatch">
-        <span className="muted">App</span>
-        <span className="run-branch" title={`${runpr.app.branch ?? 'detached'} · ${runpr.app.path}`}>
-          ⑂ {runpr.app.running ? (runpr.app.branch ?? 'detached') : 'stopped'}
-        </span>
-        <span className="run-arrow">→</span>
-        <span className="muted">Session</span>
-        <span className="run-pr-title" title={focus.title}>
-          {focus.title}
-        </span>
-        <button className="run-go" onClick={() => void runPr(focus.number)}>
-          <Play /> Run
-        </button>
-        {back && <BackButton />}
-      </span>
-    )
-  } else if (runpr.appPr && (focus?.number === runpr.appPr || back?.pr === runpr.appPr)) {
-    const reviewing = back?.pr === runpr.appPr
-    chip = (
-      <span className={`run-chip ${reviewing ? 'review' : 'ok'}`}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Done">
-          <path d="M5 12.5l4.5 4.5L19 7.5" />
-        </svg>
-        <span>
-          App on <span className="mono">fe #{runpr.appPr}</span>
-          {reviewing && <span className="muted"> (review)</span>}
-        </span>
-        {runpr.app.url && (
-          <button className="link-btn" onClick={() => void window.workbench.openExternal(runpr.app.url!)}>
-            {runpr.app.url.replace(/^https?:\/\//, '')}
-          </button>
-        )}
-        {reviewing && <BackButton />}
-      </span>
-    )
   } else if (back) {
     chip = (
       <span className="run-chip review">
-        <span className="muted">Base checkout on fe #{back.pr}</span>
+        <span className="muted">Base checkout on fe #{back.pr}{runpr.appPr === back.pr ? ' (in app)' : ''}</span>
         <BackButton />
       </span>
     )

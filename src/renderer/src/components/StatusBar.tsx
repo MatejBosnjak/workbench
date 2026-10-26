@@ -29,16 +29,34 @@ function useNow(everyMs: number): number {
   return Date.now()
 }
 
+const FIVE_HOURS = 5 * 3600
+const WEEK = 7 * 86400
+
+/** How much of a limit's window has passed (0–1), from its reset time; null without one. */
+function elapsed(l: Limit | undefined, windowSec: number, now: number): number | null {
+  if (!l?.resetsAt) return null
+  return Math.min(1, Math.max(0, 1 - (l.resetsAt - now / 1000) / windowSec))
+}
+
 /**
  * A bar whose fill is a gradient in `color`, brightening toward its leading edge. `strength` [from, to] ranks the meter:
- * ctx is strongest, then 5h, then wk. `loading` shimmers the empty track until the first value arrives.
+ * ctx is strongest, then 5h, then wk. Faint cuts at each quarter; `marks` are thresholds in their colour; `pace` is how
+ * much of the limit's window has passed, so fill beyond it means the limit is being used faster than it resets.
+ * `loading` shimmers the empty track until the first value arrives.
  */
-function Meter({ pct, width, color, strength, loading }: { pct: number; width: number; color: string; strength: [number, number]; loading?: boolean }) {
+function Meter({ pct, width, color, strength, loading, marks = [], pace }: { pct: number; width: number; color: string; strength: [number, number]; loading?: boolean; marks?: [number, string][]; pace?: number | null }) {
   const [from, to] = strength
   const background = `linear-gradient(90deg, color-mix(in srgb, ${color} ${from}%, transparent), color-mix(in srgb, ${color} ${to}%, transparent))`
   return (
     <span className={`meter${loading ? ' loading' : ''}`} style={{ width }}>
       <span style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background }} />
+      {[25, 50, 75].map((q) => (
+        <i key={q} className="meter-q" style={{ left: `${q}%` }} />
+      ))}
+      {marks.map(([at, c]) => (
+        <i key={at} className="meter-th" style={{ left: `${at}%`, background: c }} />
+      ))}
+      {pace != null && <i className="meter-pace" style={{ left: `${pace * 100}%` }} />}
     </span>
   )
 }
@@ -65,7 +83,7 @@ function Shortcuts() {
   useOverlay(open)
   return (
     <span className={`sb-keys${open ? ' open' : ''}`} tabIndex={0} aria-label="Keyboard shortcuts">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
         <rect x="2.5" y="6" width="19" height="12" />
         <path d="M6 10h1M10 10h1M14 10h1M18 10h0M7 14h10" />
       </svg>
@@ -129,7 +147,17 @@ export function StatusBar({ children }: { children?: ReactNode }) {
       <span className="sb-meters">
         <span className="sb-meter" title={ctx != null ? `Context ${Math.round(ctx)}%${live?.contextSize ? ` of ${sizeLabel(live.contextSize)}` : ''}${ctx >= 60 ? ' · /compact suggested' : ''}` : 'Context of the active session'}>
           <span className="sb-k">ctx</span>
-          <Meter pct={ctx ?? 0} width={48} color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'} strength={[35, 100]} loading={ctx == null && !!session?.alive && limitsExpected} />
+          <Meter
+            pct={ctx ?? 0}
+            width={64}
+            color={ctx != null && ctx >= 75 ? 'var(--bad)' : ctx != null && ctx >= 60 ? 'var(--warn)' : 'var(--ok)'}
+            strength={[35, 100]}
+            loading={ctx == null && !!session?.alive && limitsExpected}
+            marks={[
+              [60, 'var(--warn)'],
+              [75, 'var(--bad)'],
+            ]}
+          />
           <span className="sb-v" style={{ color: ctx != null && ctx >= 75 ? 'var(--bad)' : undefined }}>
             {pct(ctx)}
           </span>
@@ -139,15 +167,15 @@ export function StatusBar({ children }: { children?: ReactNode }) {
             </button>
           )}
         </span>
-        <span className="sb-meter" title={five ? `5h limit ${Math.round(five.pct)}%${five.resetsAt ? ` · resets ${clock(five.resetsAt)}` : ''}` : '5h limit'}>
+        <span className="sb-meter" title={five ? `5h limit ${Math.round(five.pct)}%${five.resetsAt ? ` · resets ${clock(five.resetsAt)} · ${Math.round((elapsed(five, FIVE_HOURS, now) ?? 0) * 100)}% of the window gone (the light mark)` : ''}` : '5h limit'}>
           <span className="sb-k">5h</span>
-          <Meter pct={five?.pct ?? 0} width={48} color="var(--accent)" strength={[30, 80]} loading={!five && limitsExpected} />
+          <Meter pct={five?.pct ?? 0} width={64} color="var(--accent)" strength={[30, 80]} loading={!five && limitsExpected} pace={elapsed(five, FIVE_HOURS, now)} />
           <span className="sb-v">{pct(five?.pct)}</span>
           <span className="faint sb-reset">{five?.resetsAt ? `↻${clock(five.resetsAt)}` : ''}</span>
         </span>
-        <span className="sb-meter" title={week ? `Week ${Math.round(week.pct)}%${week.resetsAt ? ` · resets ${day(week.resetsAt)}` : ''}` : 'Week limit'}>
+        <span className="sb-meter" title={week ? `Week ${Math.round(week.pct)}%${week.resetsAt ? ` · resets ${day(week.resetsAt)} · ${Math.round((elapsed(week, WEEK, now) ?? 0) * 100)}% of the week gone (the light mark)` : ''}` : 'Week limit'}>
           <span className="sb-k">wk</span>
-          <Meter pct={week?.pct ?? 0} width={48} color="var(--info)" strength={[25, 60]} loading={!week && limitsExpected} />
+          <Meter pct={week?.pct ?? 0} width={64} color="var(--info)" strength={[25, 60]} loading={!week && limitsExpected} pace={elapsed(week, WEEK, now)} />
           <span className="sb-v">{pct(week?.pct)}</span>
         </span>
       </span>

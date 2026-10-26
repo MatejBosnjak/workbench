@@ -144,47 +144,52 @@ button { font: inherit; color: inherit; }
 
 /* Status bar: fixed-width cells, so nothing moves when values change */
 .statusbar {
-  position: relative; height: 38px; flex-shrink: 0;
+  position: relative; height: 26px; flex-shrink: 0;
   display: flex; align-items: center;
-  background: var(--chrome); border-top: 2px solid var(--line-heavy);
-  color: var(--text-3); white-space: nowrap;
+  background: var(--chrome); border-top: 1px solid var(--line-heavy);
+  color: var(--text-3); white-space: nowrap; font-size: 11.5px;
 }
 .mono { font-family: var(--mono); }
 .muted { color: var(--muted); }
-.sb-keys { position: relative; width: 44px; height: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--line-heavy); color: var(--text-2); outline: none; }
+.sb-keys { position: relative; width: 32px; height: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--line-heavy); color: var(--text-2); outline: none; }
 .sb-keys:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
-.kbpop { display: none; position: absolute; left: 8px; bottom: 42px; z-index: 12; flex-direction: column; gap: 8px; padding: 12px 14px; min-width: 280px; background: var(--popover); border: 1px solid var(--accent); box-shadow: 0 16px 40px var(--shadow); white-space: normal; }
+.kbpop { display: none; position: absolute; left: 8px; bottom: 30px; z-index: 12; flex-direction: column; gap: 8px; padding: 12px 14px; min-width: 280px; background: var(--popover); border: 1px solid var(--accent); box-shadow: 0 16px 40px var(--shadow); white-space: normal; }
 .sb-keys:hover .kbpop, .sb-keys:focus-within .kbpop, .sb-keys.open .kbpop { display: flex; }
 .kbpop-title { color: var(--text); font-weight: 700; }
 .kbpop-grid { display: grid; grid-template-columns: 56px 1fr; column-gap: 14px; row-gap: 5px; color: var(--text-2); }
 .kbpop-key { color: var(--accent); text-align: right; }
 .kbpop-note { color: var(--faint); font-size: 11.5px; }
-.sb-session { width: 260px; height: 100%; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-right: 1px solid var(--line-heavy); min-width: 0; }
+.sb-session { width: 220px; height: 100%; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-right: 1px solid var(--line-heavy); min-width: 0; }
 .sb-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sb-middle { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 10px; padding: 0 12px; }
 .sb-middle > .sb-chip { flex-shrink: 0; }
 .sb-meters { display: flex; height: 100%; flex-shrink: 0; border-left: 1px solid var(--line-heavy); }
-.sb-meter { position: relative; display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 100%; border-right: 1px solid var(--line-heavy); }
-.sb-k { color: var(--text-3); width: 24px; }
-.sb-v { color: var(--text); width: 34px; text-align: right; }
-.sb-reset { width: 44px; }
-.meter { height: 8px; background: var(--line-heavy); overflow: hidden; display: flex; flex-shrink: 0; }
+.sb-meter { position: relative; display: flex; align-items: center; gap: 6px; padding: 0 9px; height: 100%; border-right: 1px solid var(--line-heavy); }
+.sb-k { color: var(--text-3); width: 20px; }
+.sb-v { color: var(--text); width: 30px; text-align: right; }
+.sb-reset { width: 40px; }
+.meter { position: relative; height: 6px; background: var(--line-heavy); display: flex; flex-shrink: 0; }
+.meter > i { position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none; }
+/* Quarter cuts, ctx thresholds, and how much of a limit's window has passed: kept faint so the fill reads first. */
+.meter-q { background: color-mix(in srgb, var(--chrome) 45%, transparent); }
+.meter-th { opacity: 0.55; }
+.meter-pace { top: -1px !important; bottom: -1px !important; background: color-mix(in srgb, var(--text-2) 70%, transparent); }
 .meter > span { transition: width 0.6s ease; }
 /* No value yet: a faint highlight sweeps the empty track. */
 .meter.loading > span { width: 100% !important; background: linear-gradient(90deg, transparent 0, rgba(236, 232, 242, 0.09) 50%, transparent 100%) !important; background-size: 200% 100% !important; animation: meter-shimmer 1.8s ease-in-out infinite; }
 @keyframes meter-shimmer { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
 @media (prefers-reduced-motion: reduce) { .meter.loading > span { animation: none; } }
 .sb-compact {
-  position: absolute; bottom: 44px; right: 0; height: 24px; padding: 0 8px; border: 1px solid var(--accent-line);
+  position: absolute; bottom: 32px; right: 0; height: 24px; padding: 0 8px; border: 1px solid var(--accent-line);
   background: var(--accent-bg); color: var(--warn); font-size: 11px; cursor: pointer;
 }
-.sb-chip { height: 24px; padding: 0 10px; cursor: pointer; font-size: 11.5px; border: 1px solid var(--line-heavy); background: transparent; color: var(--text-3); }
+.sb-chip { height: 20px; padding: 0 10px; cursor: pointer; font-size: 11.5px; border: 1px solid var(--line-heavy); background: transparent; color: var(--text-3); }
 .sb-chip.on { border-color: var(--accent); color: var(--text); }
 .sb-chip.warn { border-color: var(--accent-line); background: var(--accent-bg); color: var(--warn); }
 
 /* Popovers */
 .popover {
-  position: absolute; bottom: 44px; z-index: 10;
+  position: absolute; bottom: 30px; z-index: 10;
   display: flex; flex-direction: column; gap: 2px; padding: 8px;
   border-radius: 0; background: var(--popover); border: 1px solid var(--line-heavy);
   box-shadow: 0 24px 64px var(--shadow); color: var(--text); white-space: normal;
@@ -209,7 +214,7 @@ button:disabled { cursor: default; opacity: 0.6; }
 /* Picker */
 .picker { position: relative; height: 100%; flex-shrink: 0; }
 .picker-btn {
-  display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 14px;
+  display: flex; align-items: center; gap: 6px; height: 100%; padding: 0 10px;
   border: 0; background: transparent; color: var(--text-2); cursor: pointer;
 }
 .picker-btn:hover, .picker-btn.open { background: var(--raised); color: var(--text); }
@@ -748,7 +753,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .run-bar { width: 60px; height: 4px; border-radius: 0; background: var(--line); overflow: hidden; display: flex; }
 .run-bar span { background: var(--accent); }
 .run-panel { width: 520px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; white-space: normal; color: var(--text-2); }
-.run-panel.popover { position: absolute; bottom: 34px; left: 0; z-index: 30; }
+.run-panel.popover { position: absolute; bottom: 26px; left: 0; z-index: 30; }
 .run-panel.inline { width: auto; border: 1px solid var(--line); border-radius: 0; background: var(--card); }
 .run-panel-head { display: flex; align-items: center; gap: 10px; }
 .run-panel-title { font-weight: 600; color: var(--text); font-size: 13px; }
@@ -848,7 +853,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .pr-wrap { border-top: 1px solid var(--line-soft); }
 /* The run chip gives way by truncating the branch, never by hiding its buttons. */
 .sb-middle .run-anchor { min-width: 0; flex-shrink: 1; }
-.sb-middle .run-chip { min-width: 0; flex-shrink: 1; overflow: hidden; }
+.sb-middle .run-chip { min-width: 0; flex-shrink: 1; overflow: hidden; height: 20px; font-size: 11.5px; }
 .sb-middle .run-chip > * { flex-shrink: 0; }
 .sb-middle .run-chip > .run-branch { flex-shrink: 1; min-width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 .sb-middle .run-panel { overflow: visible; }

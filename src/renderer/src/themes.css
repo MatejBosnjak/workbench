@@ -302,3 +302,7 @@
 [data-theme='console'] .meter > span { background: repeating-linear-gradient(90deg, var(--ok) 0 5px, transparent 5px 7px) !important; filter: drop-shadow(0 0 3px var(--ok)); }
 [data-theme='console'] .session-bar { background: var(--chrome); }
 [data-theme='console'] .sbar-btn.on { background: var(--raised); }
+
+/* Segmented meters already show their scale: no quarter cuts; the pace mark takes the theme's ink. */
+:is([data-theme='muthur'], [data-theme='brown'], [data-theme='console']) .meter-q { display: none; }
+[data-theme='brown'] .sb-meter .meter-pace { background: #1E2618; }

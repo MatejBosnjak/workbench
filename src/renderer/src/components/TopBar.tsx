@@ -14,11 +14,36 @@ const STATE_LABEL: Record<SessionState, string> = {
   idle: 'Idle',
 }
 
-/** The taskbar: ▌wb, 1 Today, 2 Local, the session tabs 3…n, then the cup and ⌘K. */
+// A classic all-in-one Mac on a 12×12 pixel grid: X body, S screen, K floppy slot.
+const MAC = ['.XXXXXXXXXX.', '.X........X.', '.X.SSSSSS.X.', '.X.SSSSSS.X.', '.X.SSSSSS.X.', '.X.SSSSSS.X.', '.X........X.', '.X....KKK.X.', '.X........X.', '.XXXXXXXXXX.', '..XXXXXXXX..']
+const SCREEN_ROWS = [2, 3, 4, 5]
+
+/**
+ * Local as a pixel-art Mac (24px, so each grid pixel lands on whole screen pixels): its screen fills from the bottom,
+ * a row at a time, with the share of services running; amber while some are down, green when all are up, red when
+ * one crashed; dark with none running.
+ */
+function LocalIcon({ up, total, crashed }: { up: number; total: number; crashed: boolean }) {
+  const lit = crashed ? SCREEN_ROWS.length : up && total ? Math.max(1, Math.round((SCREEN_ROWS.length * up) / total)) : 0
+  const on = new Set(SCREEN_ROWS.slice(SCREEN_ROWS.length - lit))
+  const fill = crashed ? 'var(--bad)' : up === total ? 'var(--ok)' : 'var(--warn)'
+  return (
+    <svg className="local-icon" width="24" height="24" viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden="true">
+      {MAC.flatMap((row, y) =>
+        [...row].map((ch, x) =>
+          ch === '.' ? null : <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" className={ch === 'S' && !on.has(y) ? 'li-off' : undefined} fill={ch === 'S' ? (on.has(y) ? fill : undefined) : 'currentColor'} />,
+        ),
+      )}
+    </svg>
+  )
+}
+
+/** The taskbar: ▌wb, Today, Local (1 and 2), the session tabs 3…n, then the cup and ⌘K. */
 export function TopBar({ onNew }: { onNew: () => void }) {
   const { sessions, view, show, caf, local, wsPlace, closeWorkstream } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, show: s.show, caf: s.caf, local: s.local, wsPlace: s.wsPlace, closeWorkstream: s.closeWorkstream })))
   const inProfile = local?.services.filter((s) => s.def.profiles.includes(local.profile) && !s.transient) ?? []
   const up = inProfile.filter((s) => s.status === 'running').length
+  const crashed = inProfile.filter((s) => s.status === 'crashed').length
   // A held session's tab shows its cup; lid closed only when the Mac really is (else Awake).
   const caffeinated = (s: Session) => {
     const h = holdOf(caf, s.id)
@@ -154,11 +179,10 @@ export function TopBar({ onNew }: { onNew: () => void }) {
       <MemoryButton />
       <nav className="places" aria-label="Workbench">
         <button className="seg-btn place" aria-current={view.kind === 'today' ? 'page' : undefined} onClick={() => show({ kind: 'today' })}>
-          1 Today
+          Today
         </button>
-        <button className="seg-btn place" aria-current={view.kind === 'local' ? 'page' : undefined} title={inProfile.length ? `${up} of ${inProfile.length} services running` : undefined} onClick={() => show({ kind: 'local' })}>
-          2 Local
-          {inProfile.length > 0 && <span className="place-count">{` ${up}/${inProfile.length}`}</span>}
+        <button className="seg-btn place" aria-current={view.kind === 'local' ? 'page' : undefined} title={`Local${inProfile.length ? ` · ${up} of ${inProfile.length} services running${crashed ? `, ${crashed} crashed` : ''}` : ''} (2)`} aria-label={`Local, ${up} of ${inProfile.length} services running`} onClick={() => show({ kind: 'local' })}>
+          <LocalIcon up={up} total={inProfile.length} crashed={crashed > 0} />
           {local?.aws?.status === 'expired' && (
             <span className="place-bang" aria-label="AWS login expired">
               !

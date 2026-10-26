@@ -7,6 +7,7 @@
   --term-font: 'JetBrains Mono', ui-monospace, monospace;
   --term-size: 13;
   --term-line: 1.25;
+  --term-bold: bold;
 }
 
 /* The full-window CRT layer: off unless a theme turns it on. */
@@ -63,11 +64,14 @@
   --sans: var(--mono);
   --display: var(--mono);
   --term-font: 'VT323', ui-monospace, monospace;
-  --term-size: 18;
-  --term-line: 1.08;
+  --term-size: 21;
+  --term-line: 1.12;
+  --term-bold: normal;
 }
 /* VT323 is small for its size: scale every face to JetBrains Mono's x-height, so fixed sizes and widths keep working. */
 [data-theme='muthur'] * { font-size-adjust: 0.55; }
+/* Not inside terminals: xterm measures its cell in the DOM but draws on a canvas, which ignores the adjust, so glyphs would overlap. */
+[data-theme='muthur'] :is(.xterm, .xterm *) { font-size-adjust: none; }
 [data-theme='muthur'] body { text-shadow: 0 0 2px rgba(255, 170, 40, 0.35), 0 0 10px rgba(255, 140, 0, 0.08); }
 /* Scanlines and a soft vignette over everything; never in the way of the pointer. */
 [data-theme='muthur'] .crt-fx {

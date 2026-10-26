@@ -29,11 +29,13 @@ export function xtermTheme(): ITheme {
   }
 }
 
-/** The terminal face for the current theme: --term-font, --term-size (px) and --term-line from the theme tokens. */
-export function termFont(): { fontFamily: string; fontSize: number; lineHeight: number } {
+/** The terminal face for the current theme: --term-font, --term-size (px), --term-line and --term-bold from the theme tokens. */
+export function termFont(): { fontFamily: string; fontSize: number; lineHeight: number; fontWeightBold: 'bold' | 'normal' } {
   return {
     fontFamily: css('term-font') || "'JetBrains Mono', ui-monospace, monospace",
     fontSize: Number(css('term-size')) || 13,
     lineHeight: Number(css('term-line')) || 1.25,
+    // A bitmap-style face like VT323 smears when bolded synthetically.
+    fontWeightBold: css('term-bold') === 'normal' ? 'normal' : 'bold',
   }
 }

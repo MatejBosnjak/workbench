@@ -30,6 +30,10 @@ export interface Session {
   permissionMode: string | null
   /** Index into the theme's session palette (sessionColor.ts); tells tabs apart, never state. */
   color: number
+  /** While waiting: what it asks (the Notification's message). */
+  ask?: string
+  /** After its turn ended: background tasks not back yet. It's busy on its own and wakes by itself. */
+  background?: string[]
 }
 
 /** Live data from the statusline, per session. */

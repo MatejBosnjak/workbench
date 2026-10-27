@@ -17,8 +17,9 @@ describe('nextState', () => {
     expect(s).toBe('idle')
   })
 
-  it('an idle-input notification marks a finished session as waiting', () => {
-    expect(nextState('idle', 'Notification')).toBe('waiting')
+  it("claude's idle reminder after a turn changes nothing; a permission prompt waits", () => {
+    expect(nextState('idle', 'Notification', 'idle_prompt')).toBeNull()
+    expect(nextState('running', 'Notification', 'permission_prompt')).toBe('waiting')
   })
 
   it('answering a prompt by keyboard leaves waiting; a tool run then marks it running', () => {

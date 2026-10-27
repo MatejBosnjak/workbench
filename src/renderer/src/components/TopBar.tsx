@@ -14,6 +14,7 @@ const STATE_LABEL: Record<SessionState, string> = {
   failed: 'Last run failed',
   idle: 'Idle',
 }
+const stateLabel = (s: Session) => (s.state === 'idle' && s.background?.length ? 'Background work' : STATE_LABEL[s.state])
 
 // A classic all-in-one Mac on a 12×12 pixel grid: X body, S screen, K floppy slot.
 const MAC = ['.XXXXXXXXXX.', '.X........X.', '.X.SSSSSS.X.', '.X.SSSSSS.X.', '.X.SSSSSS.X.', '.X.SSSSSS.X.', '.X........X.', '.X....KKK.X.', '.X........X.', '.XXXXXXXXXX.', '..XXXXXXXX..']
@@ -269,8 +270,8 @@ export function TopBar({ onNew }: { onNew: () => void }) {
                     <SessionMark session={s} />
                     <span className="tab-menu-n">{sessions.indexOf(s) + 3}</span>
                     <span className="tab-menu-title">{s.title}</span>
-                    <StateGlyph state={s.state} />
-                    <span className="faint">{STATE_LABEL[s.state].toLowerCase()}</span>
+                    <StateGlyph session={s} />
+                    <span className="faint">{stateLabel(s).toLowerCase()}</span>
                   </button>
                 ))}
             </div>
@@ -323,7 +324,7 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
       data-session={s.id}
       aria-selected={selected}
       style={sessionStyle(s)}
-      title={editing ? undefined : `${s.title}\n${STATE_LABEL[s.state]} · ${s.cwd}\nDouble-click to rename`}
+      title={editing ? undefined : `${s.title}\n${stateLabel(s)} · ${s.cwd}\nDouble-click to rename`}
       draggable={!editing}
       onClick={onSelect}
       onDoubleClick={() => {
@@ -342,7 +343,7 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
       }}
       onDrop={onDrop}
     >
-      <span className="sr-only">{STATE_LABEL[s.state]}: </span>
+      <span className="sr-only">{stateLabel(s)}: </span>
       <SessionMark session={s} />
       {editing ? (
         <input
@@ -368,7 +369,7 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
           {s.title}
         </span>
       )}
-      {!editing && <StateGlyph state={s.state} />}
+      {!editing && <StateGlyph session={s} />}
       {cup && (
         <span className="tab-cup">
           <Cup mode={cup} size={13} label={cup === 'lid' ? 'Kept awake with lid closed' : 'Kept awake'} />

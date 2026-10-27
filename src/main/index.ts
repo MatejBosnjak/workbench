@@ -251,7 +251,8 @@ void app.whenReady().then(() => {
       focus.onHook(id, event, payload)
       if (event === 'UserPromptSubmit' && payload.prompt) suggest.onPrompt(id, payload.prompt)
       if (event === 'PostToolUse' && payload.tool_name === 'Bash') suggest.onCommand(id, String((payload.tool_input as { command?: string } | undefined)?.command ?? ''))
-      notifySession(id, event)
+      // claude's idle reminder after a finished turn isn't a question: no banner (the Stop already counted).
+      if (payload.notification_type !== 'idle_prompt') notifySession(id, event)
     },
     output: (id, data) => {
       focus.onOutput(id, data)

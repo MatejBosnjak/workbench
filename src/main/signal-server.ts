@@ -12,6 +12,8 @@ export interface HookPayload {
   model?: string
   source?: string
   message?: string
+  /** On Notification: permission_prompt, idle_prompt, elicitation_dialog, … */
+  notification_type?: string
   prompt?: string
   [k: string]: unknown
 }

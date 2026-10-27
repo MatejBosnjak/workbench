@@ -5,6 +5,7 @@ import { basename, join } from 'node:path'
 import type { WebContents } from 'electron'
 import type { AgentSettings, ApplyResult } from '@shared/agent'
 import type { Session, SessionStatus, StatusSnapshot, Usage } from '@shared/types'
+import { BackgroundReader } from './background'
 import { PtyHost } from './pty-host'
 import { shellEnv, which } from './shell-env'
 import type { HookPayload, Signal, StatuslinePayload } from './signal-server'
@@ -36,6 +37,12 @@ export class Sessions {
   private takeOvers = new Set<string>()
   // Sessions with picker changes made mid-turn; they restart when the turn ends.
   private pending = new Set<string>()
+  // What a waiting session asks; background tasks out after its turn; when its claude process started (SessionStart).
+  private asks = new Map<string, string>()
+  private background = new Map<string, string[]>()
+  private started = new Map<string, number>()
+  private hookSeq = new Map<string, number>()
+  private bgReader = new BackgroundReader()
   // Text to type into claude's prompt once it's ready (sessions started from a task).
   private prefill = new Map<string, { text: string; seen: string; timer?: NodeJS.Timeout; until: number; tries: number }>()
   /** For a session started from a task: its first prompt and title, so a fresh start can set them up again. */
@@ -49,6 +56,7 @@ export class Sessions {
     this.pty = new PtyHost(
       (id, code) => {
         if (this.restarting.has(id)) return
+        this.background.delete(id)
         this.repo.update(id, { state: code === 0 ? 'idle' : 'failed', lastEventAt: Date.now() })
         this.events.sessionsChanged()
       },
@@ -290,6 +298,7 @@ export class Sessions {
     void this.pty.killAndWait(id)
     this.repo.closeTab(id)
     this.status.delete(id)
+    this.background.delete(id)
     this.events.sessionsChanged()
   }
 
@@ -328,8 +337,14 @@ export class Sessions {
 
     if (sig.kind === 'hook') {
       const event = sig.payload.hook_event_name
-      const state = nextState(row.state, event)
+      const state = nextState(row.state, event, sig.payload.notification_type)
       if (state) patch.state = state
+      if (state === 'waiting' && sig.payload.message) this.asks.set(row.id, sig.payload.message)
+      if (event === 'SessionStart') this.started.set(row.id, Date.now())
+      const seq = (this.hookSeq.get(row.id) ?? 0) + 1
+      this.hookSeq.set(row.id, seq)
+      // Anything but the end of a turn (or claude's reminder) means it's working again, or gone.
+      const bgCleared = event !== 'Stop' && event !== 'Notification' && this.background.delete(row.id)
       const wasAlive = this.externalAlive.has(row.id)
       if (row.external) {
         if (event === 'SessionEnd') this.externalAlive.delete(row.id)
@@ -349,15 +364,28 @@ export class Sessions {
         (patch.cwd && patch.cwd !== row.cwd) ||
         row.claudeId !== p.session_id ||
         (p.transcript_path && p.transcript_path !== row.transcriptPath) ||
-        wasAlive !== this.externalAlive.has(row.id)
+        wasAlive !== this.externalAlive.has(row.id) ||
+        bgCleared
       if (shown) this.events.sessionsChanged()
       this.events.hook?.(row.id, event, sig.payload)
+      const transcript = p.transcript_path ?? row.transcriptPath
+      if (event === 'Stop' && transcript) void this.checkBackground(row.id, transcript, seq)
       if (event === 'Stop' && this.pending.delete(row.id)) void this.restart(row.id)
     } else {
       this.repo.update(row.id, patch)
       this.applyStatusline(row.id, sig.payload)
       if (row.external) this.externalAlive.add(row.id)
     }
+  }
+
+  /** After a turn: the background tasks it left running (launched by this claude process, not back yet). */
+  private async checkBackground(id: string, transcript: string, seq: number): Promise<void> {
+    const since = this.started.get(id)
+    if (since === undefined) return
+    const tasks = await this.bgReader.read(transcript, since).catch(() => [])
+    if (this.hookSeq.get(id) !== seq || !tasks.length) return
+    this.background.set(id, tasks.map((t) => t.text))
+    this.events.sessionsChanged()
   }
 
   /** Finds the tab a signal belongs to; creates an external tab for sessions started elsewhere. */
@@ -450,6 +478,8 @@ export class Sessions {
     return {
       ...rest,
       color: color ?? 0,
+      ask: r.state === 'waiting' ? this.asks.get(r.id) : undefined,
+      background: r.state === 'idle' ? this.background.get(r.id) : undefined,
       alive: r.external ? this.externalAlive.has(r.id) : this.pty.has(r.id),
       takeOver: this.takeOvers.has(r.id) || undefined,
     }

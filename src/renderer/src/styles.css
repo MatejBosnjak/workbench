@@ -831,6 +831,7 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .st-glyph { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; font-weight: 700; line-height: 1; }
 .st-q { width: 14px; height: 14px; border-radius: 50%; background: var(--text); color: var(--bg); }
 .st-run { color: var(--muted); font-weight: 400; letter-spacing: 1px; }
+.st-bg { color: var(--muted); font-weight: 400; font-size: 12px; }
 .st-fail { width: 14px; height: 14px; box-shadow: inset 0 0 0 1.5px var(--text); color: var(--text); }
 .tab-more.waiting { color: var(--text-2); }
 .tab-more-wait { color: var(--accent); }

@@ -130,7 +130,7 @@ export function StatusBar({ children }: { children?: ReactNode }) {
               <SessionMark session={session} />
             </span>
             <span className="sb-title">{session.title}</span>
-            <StateGlyph state={session.state} />
+            <StateGlyph session={session} />
             {session.external && <span className="faint">ext</span>}
             <span className="faint">{age(now - session.startedAt)}</span>
           </>

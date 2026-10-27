@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Conversation, DraftTarget, GitSnapshot, GroupTone, MergeCheck, Pr, Reviewer } from '@shared/git'
 import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, prRepo, shortRepo } from '@shared/git'
 import { prTasks } from '@shared/links'
+import { runTarget } from '@shared/runpr'
 import type { TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
 import { openInPane, useStore } from '../store'
@@ -316,9 +317,9 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
           <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
             {score}/4
           </span>
-          {p.repo === 'productiveio/frontend' && (
+          {runTarget(p.repo) && (
             <span className="pr-run">
-              <RunAppButton n={p.number} compact />
+              <RunAppButton repo={p.repo} n={p.number} compact />
             </span>
           )}
         </div>
@@ -402,9 +403,9 @@ function ReviewRow({ p, tasks, focused, selected, tone }: { p: Pr; tasks: TasksS
       <div className="pr-end">
         <Checks checks={checks} ciUrl={p.ciUrl} />
         <div className="pr-go">
-          {p.repo === 'productiveio/frontend' && (
+          {runTarget(p.repo) && (
             <span className="pr-run">
-              <RunAppButton n={p.number} compact />
+              <RunAppButton repo={p.repo} n={p.number} compact />
             </span>
           )}
         </div>

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { isLive, MARK_WORD, markOf, taskPrs, taskSessions, type LinkedSession } from '@shared/links'
-import { FE_REPO } from '@shared/runpr'
 import { statusColors, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { openWorkstream, useStore, type View } from '../store'
@@ -114,7 +113,7 @@ export function TaskPreview({ task, snapshot, onClose, onUnlink }: { task: Task;
         {prs.map((p) => (
           <span key={p.id} className="peek-pr">
             <PrChip pr={p} />
-            {p.repo === FE_REPO && <RunAppButton n={p.number} compact />}
+            <RunAppButton repo={p.repo} n={p.number} compact />
           </span>
         ))}
         <span className="peek-sess-head">

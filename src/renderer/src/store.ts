@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { TasksSnapshot } from '@shared/tasks'
-import type { DirtyGuard, RunPrSnapshot } from '@shared/runpr'
+import type { DirtyGuard, RunPrSnapshot, RunTarget } from '@shared/runpr'
 import type { PaneState } from '@shared/pane'
 import { prKey } from '@shared/pane'
 import { useEffect } from 'react'
@@ -128,11 +128,11 @@ interface State {
   addOverlay(d: 1 | -1): void
   addOpened(p: { url: string; title: string }): void
   runPanel: boolean
-  runGuard: { n: number; guard: DirtyGuard } | null
+  runGuard: { n: number; guard: DirtyGuard; target: RunTarget } | null
   runError: string | null
   setRunpr(r: RunPrSnapshot): void
   setRunPanel(open: boolean): void
-  setRunGuard(g: { n: number; guard: DirtyGuard } | null): void
+  setRunGuard(g: { n: number; guard: DirtyGuard; target: RunTarget } | null): void
   setRunError(e: string | null): void
   setTasks(t: TasksSnapshot): void
   closeWorkstream(): void

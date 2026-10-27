@@ -6,6 +6,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type MenuI
 import type { AgentSettings } from '@shared/agent'
 import { parsePrUrl, prRepo, shortRepo, type DraftTarget, type GitSnapshot, type Pr } from '@shared/git'
 import type { Person, SessionPrLink } from '@shared/tasks'
+import type { RunTarget } from '@shared/runpr'
 import type { HooksStatus, MenuCommand, NavigateTarget, TabMenuPick } from '@shared/types'
 import { Caffeinate } from './caffeinate'
 import { headlessPids, killHeadless } from './claude'
@@ -619,10 +620,10 @@ void app.whenReady().then(() => {
   ipcMain.handle('drafts:discard', (_e, id: number) => drafts.discard(id))
   ipcMain.handle('drafts:send', (_e, id: number, body: string) => drafts.send(id, body))
   ipcMain.handle('runpr:snapshot', () => runpr.snapshot())
-  ipcMain.handle('runpr:guard', (_e, n: number) => runpr.guard(n))
-  ipcMain.handle('runpr:run', (_e, n: number, opts: { alongside?: boolean; dirty?: 'stash' | 'alongside' }) => runpr.run(n, opts))
+  ipcMain.handle('runpr:guard', (_e, n: number, target: RunTarget) => runpr.guard(n, target))
+  ipcMain.handle('runpr:run', (_e, n: number, opts: { alongside?: boolean; dirty?: 'stash' | 'alongside'; target?: RunTarget }) => runpr.run(n, opts))
   ipcMain.handle('runpr:cancel', () => runpr.cancel())
-  ipcMain.handle('runpr:back', () => runpr.goBack())
+  ipcMain.handle('runpr:back', (_e, target: RunTarget) => runpr.goBack(target))
   ipcMain.handle('local:snapshot', () => local.snapshot())
   ipcMain.handle('local:profile', (_e, id: string) => local.setProfile(id))
   ipcMain.handle('local:start', (_e, name: string) => local.start(name))

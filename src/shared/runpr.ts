@@ -1,6 +1,12 @@
-// Run PR in app: which frontend PR a session is about, and the job that puts it in the `app` service.
+// Run PR in app / api: which frontend PR a session is about, and the job that puts a PR in the `app` service or the api.
 
 export const FE_REPO = 'productiveio/frontend'
+export const API_REPO = 'productiveio/api'
+
+/** What a run replaces: the `app` service (frontend PRs) or the api served by puma-dev plus its sidekiq (api PRs). */
+export type RunTarget = 'app' | 'api'
+
+export const runTarget = (repo: string): RunTarget | null => (repo === FE_REPO ? 'app' : repo === API_REPO ? 'api' : null)
 
 export interface FePr {
   number: number
@@ -83,6 +89,7 @@ export interface RunStep {
 
 export interface RunJob {
   id: number
+  target: RunTarget
   pr: Pick<FePr, 'number' | 'title' | 'url' | 'branch'>
   mode: 'worktree' | 'base'
   alongside: boolean
@@ -109,6 +116,17 @@ export interface BackInfo {
   appPath: string
 }
 
+/** What ↩ Back restores after api runs: the state before the first of them. */
+export interface ApiBackInfo {
+  pr: number
+  /** Where the puma-dev link pointed. */
+  link: string
+  /** Where the api service (sidekiq) ran. */
+  sidekiq: string
+  /** Set once a run checked out a branch in the base checkout. */
+  checkout: { path: string; previous: string; detached: boolean; stash: string | null } | null
+}
+
 export interface RunPrSnapshot {
   job: RunJob | null
   back: BackInfo | null
@@ -119,6 +137,12 @@ export interface RunPrSnapshot {
   focus: Record<string, FePr>
   /** Where each known PR would run, for row hints. */
   hints: Record<number, string>
+  /** The checkout puma-dev serves the api from; null without an api service or puma-dev link. */
+  api: { path: string; branch: string | null; url: string } | null
+  /** The api PR puma-dev serves, when its branch belongs to one. */
+  apiPr: number | null
+  apiBack: ApiBackInfo | null
+  apiHints: Record<number, string>
 }
 
 export interface DirtyGuard {

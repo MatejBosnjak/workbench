@@ -1,27 +1,31 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
-import { FE_REPO, matchWorktree, type BackInfo, type DirtyGuard, type FePr, type RunJob, type RunPrSnapshot, type RunStep, type WorktreeCandidate } from '@shared/runpr'
+import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
+import { API_REPO, FE_REPO, matchWorktree, type ApiBackInfo, type BackInfo, type DirtyGuard, type FePr, type RunJob, type RunPrSnapshot, type RunStep, type RunTarget, type WorktreeCandidate } from '@shared/runpr'
 import type { FocusTracker } from '../focus-pr'
 import { fePr, fromPoller } from '../github/fe-pr'
 import type { GitPoller } from '../github/poller'
 import { shellEnv, which } from '../shell-env'
 import type { Repo } from '../store/repo'
 import { gitOut, listWorktrees, readWtrc } from './git'
+import { API_LOCAL_FILES, apiAnswers, linkTarget, pumaLink, pumaUrl, repoint } from './puma-dev'
 import { portOpen, type Supervisor } from './supervisor'
 
 const REPO = 'frontend'
+const API = 'api'
 const LOG_LINES = 200
 const HEALTH_TIMEOUT_MS = 10 * 60_000
-/** The read-only reference clone; never checked out or written to. */
-const READ_ONLY = /\/work\/repos\/frontend\/?$/
+/** The read-only reference clones; never checked out or written to. */
+const READ_ONLY = /\/work\/repos\/(frontend|api)\/?$/
 
 class Cancelled extends Error {}
 
 /**
  * Puts a frontend PR into the `app` service: its worktree when there is one, otherwise the base checkout
- * (the folder `app` is configured with) after fetch → checkout → install → package build. One job at a time.
+ * (the folder `app` is configured with) after fetch → checkout → install → package build.
+ * An api PR goes to the api the same way: puma-dev's link and the `api` service (sidekiq) move to its worktree
+ * or the base checkout, after config links → bundle → db:migrate. One job at a time across both.
  */
 export class RunPr {
   private job: RunJob | null = null
@@ -30,8 +34,12 @@ export class RunPr {
   private cancelled = false
   private hints: Record<number, string> = {}
   private appPr: number | null = null
+  private apiBack: ApiBackInfo | null
+  private apiHints: Record<number, string> = {}
+  private apiPr: number | null = null
+  private apiServed: { path: string; branch: string | null; url: string } | null = null
   private nextId = 1
-  private candidates: { at: number; list: Omit<WorktreeCandidate, 'hasHead'>[] } | null = null
+  private candidates = new Map<string, { at: number; list: Omit<WorktreeCandidate, 'hasHead'>[] }>()
 
   constructor(
     private repo: Repo,
@@ -41,6 +49,7 @@ export class RunPr {
     private changed: () => void,
   ) {
     this.back = repo.getSetting<BackInfo | null>('runpr:back', null)
+    this.apiBack = repo.getSetting<ApiBackInfo | null>('runapi:back', null)
   }
 
   snapshot(): RunPrSnapshot {
@@ -58,6 +67,10 @@ export class RunPr {
       appPr: this.appPr,
       focus: this.focus.snapshot(),
       hints: this.hints,
+      api: this.apiServed,
+      apiPr: this.apiPr,
+      apiBack: this.apiBack,
+      apiHints: this.apiHints,
     }
   }
 
@@ -65,24 +78,38 @@ export class RunPr {
   async refresh(): Promise<void> {
     const app = this.app()
     const fe = [...this.git.mine, ...this.git.reviews].filter((p) => p.repo === FE_REPO)
-    const list = await this.worktrees()
-    const hints: Record<number, string> = {}
-    for (const p of fe) {
-      const m = matchWorktree(p, list.map((w) => ({ ...w, hasHead: false })))
-      hints[p.number] = m ? `worktree · ${basename(m.path).replace(/^frontend-/, '')}` : 'base checkout · fetch first'
-    }
+    const hints = await this.rowHints(fe, REPO)
     const appPr = app?.branch ? (fe.find((p) => p.branch === app.branch)?.number ?? null) : null
-    const same = JSON.stringify(hints) === JSON.stringify(this.hints) && appPr === this.appPr
-    this.hints = hints
-    this.appPr = appPr
+
+    const api = [...this.git.mine, ...this.git.reviews].filter((p) => p.repo === API_REPO)
+    const apiHints = this.apiSvc() ? await this.rowHints(api, API) : {}
+    const link = this.apiSvc() ? pumaLink(this.apiBase()) : null
+    const served = link ? linkTarget(link) : null
+    const apiServed = link && served ? { path: served, branch: (await gitOut(served, ['branch', '--show-current']))?.trim() || null, url: pumaUrl(link) } : null
+    const apiPr = apiServed?.branch ? (api.find((p) => p.branch === apiServed.branch)?.number ?? null) : null
+
+    const next = { hints, appPr, apiHints, apiPr, apiServed }
+    const same = JSON.stringify(next) === JSON.stringify({ hints: this.hints, appPr: this.appPr, apiHints: this.apiHints, apiPr: this.apiPr, apiServed: this.apiServed })
+    Object.assign(this, next)
     if (!same) this.changed()
   }
 
+  private async rowHints(prs: { number: number; branch: string }[], repo: string): Promise<Record<number, string>> {
+    const list = await this.worktrees(repo)
+    const hints: Record<number, string> = {}
+    for (const p of prs) {
+      const m = matchWorktree(p, list.map((w) => ({ ...w, hasHead: false })))
+      hints[p.number] = m ? `worktree · ${basename(m.path).replace(new RegExp(`^${repo}-`), '')}` : 'base checkout · fetch first'
+    }
+    return hints
+  }
+
   /** Dirty files in the base checkout that a base run would have to deal with, or null when it's clean or not needed. */
-  async guard(n: number): Promise<DirtyGuard | null> {
-    const pr = await this.pr(n)
-    if (!pr || (await this.findWorktree(pr))) return null
-    const base = this.base()
+  async guard(n: number, target: RunTarget = 'app'): Promise<DirtyGuard | null> {
+    const repo = target === 'api' ? API : REPO
+    const pr = await this.pr(n, repo)
+    if (!pr || (await this.findWorktree(pr, repo))) return null
+    const base = target === 'api' ? this.apiBase() : this.base()
     const files = ((await gitOut(base, ['status', '--porcelain'])) ?? '').split('\n').filter(Boolean)
     return files.length ? { dirty: true, path: base, files: files.map((f) => f.trim()) } : null
   }
@@ -91,8 +118,9 @@ export class RunPr {
    * Starts the run. `dirty` answers the guard: stash the base checkout's changes, or run alongside in a
    * review worktree instead. Without an answer a dirty base checkout returns the guard.
    */
-  async run(n: number, opts: { alongside?: boolean; dirty?: 'stash' | 'alongside' } = {}): Promise<DirtyGuard | null> {
+  async run(n: number, opts: { alongside?: boolean; dirty?: 'stash' | 'alongside'; target?: RunTarget } = {}): Promise<DirtyGuard | null> {
     if (this.job?.state === 'running') throw new Error('Another run is in progress')
+    if (opts.target === 'api') return this.runApi(n, opts.dirty === 'stash')
     const pr = await this.pr(n)
     if (!pr) throw new Error(`Couldn't read fe #${n} from GitHub`)
     const app = this.app()
@@ -129,7 +157,7 @@ export class RunPr {
             step('start', 'restart app'),
             step('wait', 'wait for the app to answer'),
           ]
-    this.job = { id: this.nextId++, pr: { number: pr.number, title: pr.title, url: pr.url, branch: pr.branch }, mode, alongside, path, matchedBy: wt?.by ?? null, steps, log: [], state: 'running', error: null, url: null }
+    this.job = { id: this.nextId++, target: 'app', pr: { number: pr.number, title: pr.title, url: pr.url, branch: pr.branch }, mode, alongside, path, matchedBy: wt?.by ?? null, steps, log: [], state: 'running', error: null, url: null }
     this.cancelled = false
     this.changed()
     void this.execute(pr, mode, path, alongside, reviewPath !== null)
@@ -143,7 +171,8 @@ export class RunPr {
   }
 
   /** Puts the base checkout and the app back where they were before the last base run. */
-  async goBack(): Promise<void> {
+  async goBack(target: RunTarget = 'app'): Promise<void> {
+    if (target === 'api') return this.goBackApi()
     const b = this.back
     const app = this.app()
     if (!b || !app) return
@@ -151,6 +180,7 @@ export class RunPr {
     const step = (id: string, label: string, detail: string | null = null): RunStep => ({ id, label, detail, state: 'pending', ms: null })
     this.job = {
       id: this.nextId++,
+      target: 'app',
       pr: { number: b.pr, title: `Back to ${b.previous}`, url: '', branch: b.previous },
       mode: 'base',
       alongside: false,
@@ -252,6 +282,204 @@ export class RunPr {
     void this.refresh()
   }
 
+  // --- the api ---
+
+  /** Puts api #n behind puma-dev and sidekiq: its worktree, else the base checkout (`stash` answers the dirty guard). */
+  private async runApi(n: number, stashFirst: boolean): Promise<DirtyGuard | null> {
+    const pr = await this.pr(n, API)
+    if (!pr) throw new Error(`Couldn't read api #${n} from GitHub`)
+    const svc = this.apiSvc()
+    if (!svc) throw new Error('No service runs the api repo (services.json)')
+    const base = this.apiBase()
+    const link = pumaLink(base)
+    if (!link) throw new Error(`No puma-dev link for the api in ~/.puma-dev (expected api.productive.io -> ${base})`)
+    const wt = await this.findWorktree(pr, API)
+    if (!wt && !stashFirst) {
+      const g = await this.guard(n, 'api')
+      if (g) return g
+    }
+    const path = wt?.path ?? base
+    if (READ_ONLY.test(path)) throw new Error('Refusing to use the read-only reference clone work/repos/api')
+    const ref = pr.fork ? `pr-${pr.number}` : pr.branch
+    const step = (id: string, label: string, detail: string | null = null): RunStep => ({ id, label, detail, state: 'pending', ms: null })
+    const steps: RunStep[] = [
+      ...(wt
+        ? [step('links', 'link local config', API_LOCAL_FILES.join(' · '))]
+        : [
+            ...(stashFirst ? [step('stash', 'stash changes', `workbench: before api #${pr.number}`)] : []),
+            step('fetch', `git fetch ${pr.fork ? `pull/${pr.number}/head` : pr.branch}`),
+          ]),
+      step('stop', 'stop sidekiq', svc.branch),
+      ...(wt ? [] : [step('checkout', `git checkout ${ref}`, svc.branch ? `was: ${svc.branch}` : null)]),
+      step('bundle', 'bundle install'),
+      step('migrate', 'rails db:migrate', 'shared dev database'),
+      step('puma', 'point puma-dev here', basename(link)),
+      step('start', 'start sidekiq'),
+      step('wait', 'wait for the api to answer'),
+    ]
+    this.job = { id: this.nextId++, target: 'api', pr: { number: pr.number, title: pr.title, url: pr.url, branch: pr.branch }, mode: wt ? 'worktree' : 'base', alongside: false, path, matchedBy: wt?.by ?? null, steps, log: [], state: 'running', error: null, url: null }
+    this.cancelled = false
+    this.changed()
+    void this.executeApi(pr, path, link, !wt)
+    return null
+  }
+
+  private async executeApi(pr: FePr, path: string, link: string, onBase: boolean): Promise<void> {
+    const svc = this.apiSvc()!
+    const has = (id: string) => this.job!.steps.some((s) => s.id === id)
+    const ref = pr.fork ? `pr-${pr.number}` : pr.branch
+    // The state before the first api run is what ↩ Back restores, however many runs follow.
+    const back: ApiBackInfo = this.apiBack ?? { pr: pr.number, link: linkTarget(link), sidekiq: svc.cwd, checkout: null }
+    back.pr = pr.number
+    try {
+      if (has('links')) await this.step('links', () => this.linkLocalFiles(path))
+      if (onBase) {
+        const before = (await gitOut(path, ['branch', '--show-current']))?.trim() || null
+        const head = (await gitOut(path, ['rev-parse', 'HEAD']))?.trim() ?? ''
+        let stash: string | null = null
+        if (has('stash')) {
+          await this.step('stash', async () => {
+            stash = `workbench: before api #${pr.number}`
+            await this.sh('git', ['stash', 'push', '--include-untracked', '-m', stash], path)
+          })
+        }
+        await this.step('fetch', () => this.fetch(pr, path))
+        await this.step('stop', () => this.local.stop(svc.name))
+        await this.step('checkout', async () => {
+          if (pr.fork || (await gitOut(path, ['rev-parse', '--verify', '--quiet', `refs/heads/${ref}`])) !== null) {
+            await this.sh('git', ['checkout', ref], path)
+            if (!pr.fork) await this.sh('git', ['merge', '--ff-only', `origin/${pr.branch}`], path)
+          } else await this.sh('git', ['checkout', '-b', ref, '--track', `origin/${pr.branch}`], path)
+        })
+        back.checkout ??= { path, previous: before ?? head, detached: !before, stash }
+      } else await this.step('stop', () => this.local.stop(svc.name))
+      this.apiBack = back
+      this.repo.setSetting('runapi:back', back)
+      await this.step('bundle', () => this.bundle(path))
+      await this.step('migrate', () => this.migrate(path))
+      await this.step('puma', () => this.pointPuma(link, path))
+      await this.step('start', async () => {
+        await this.local.setCwd(svc.name, path)
+        await this.local.start(svc.name, svc.def.command)
+      })
+      await this.step('wait', () => this.waitApi(svc.name, pumaUrl(link)))
+      this.job!.url = pumaUrl(link)
+      this.finish('done')
+    } catch (e) {
+      this.finish(e instanceof Cancelled ? 'cancelled' : 'failed', (e as Error).message)
+    }
+    void this.refresh()
+  }
+
+  /** Puts puma-dev, sidekiq and the base checkout back where they were before the first api run. */
+  private async goBackApi(): Promise<void> {
+    const b = this.apiBack
+    const svc = this.apiSvc()
+    const link = pumaLink(this.apiBase())
+    if (!b || !svc || !link) return
+    if (this.job?.state === 'running') throw new Error('Another run is in progress')
+    const c = b.checkout
+    const to = c ? (c.detached ? c.previous.slice(0, 10) : c.previous) : null
+    const step = (id: string, label: string, detail: string | null = null): RunStep => ({ id, label, detail, state: 'pending', ms: null })
+    this.job = {
+      id: this.nextId++,
+      target: 'api',
+      pr: { number: b.pr, title: `Back to ${to ?? basename(b.link)}`, url: '', branch: to ?? '' },
+      mode: c ? 'base' : 'worktree',
+      alongside: false,
+      path: b.link,
+      matchedBy: null,
+      steps: [
+        step('stop', 'stop sidekiq'),
+        ...(c ? [step('checkout', `git checkout ${to}`), ...(c.stash ? [step('unstash', 'restore stashed changes', c.stash)] : [])] : []),
+        step('bundle', 'bundle install'),
+        step('puma', 'point puma-dev back', basename(b.link)),
+        step('start', 'start sidekiq', basename(b.sidekiq)),
+        step('wait', 'wait for the api to answer'),
+      ],
+      log: [],
+      state: 'running',
+      error: null,
+      url: null,
+    }
+    this.cancelled = false
+    this.changed()
+    try {
+      await this.step('stop', () => this.local.stop(svc.name))
+      if (c) {
+        await this.step('checkout', () => this.sh('git', ['checkout', c.previous], c.path))
+        if (c.stash) await this.step('unstash', () => this.popStash(c.path, c.stash!))
+      }
+      await this.step('bundle', () => this.bundle(b.link))
+      await this.step('puma', () => this.pointPuma(link, b.link))
+      await this.step('start', async () => {
+        await this.local.setCwd(svc.name, b.sidekiq)
+        await this.local.start(svc.name, svc.def.command)
+      })
+      await this.step('wait', () => this.waitApi(svc.name, pumaUrl(link)))
+      this.apiBack = null
+      this.repo.setSetting('runapi:back', null)
+      this.finish('done')
+    } catch (e) {
+      this.finish(e instanceof Cancelled ? 'cancelled' : 'failed', (e as Error).message)
+    }
+    void this.refresh()
+  }
+
+  /** Symlinks the base checkout's gitignored config into a worktree, where it's missing. */
+  private async linkLocalFiles(path: string): Promise<'skipped' | void> {
+    const base = this.apiBase()
+    let linked = 0
+    for (const f of API_LOCAL_FILES) {
+      const from = join(base, f)
+      const to = join(path, f)
+      if (!existsSync(from) || existsSync(to)) continue
+      mkdirSync(dirname(to), { recursive: true })
+      symlinkSync(from, to)
+      this.log(`linked ${f}`)
+      linked++
+    }
+    if (!linked) return 'skipped'
+  }
+
+  private async bundle(cwd: string): Promise<'skipped' | void> {
+    try {
+      await this.sh('bundle', ['check'], cwd)
+      return 'skipped'
+    } catch (e) {
+      if (e instanceof Cancelled) throw e
+    }
+    await this.sh('bundle', ['install'], cwd)
+  }
+
+  /** db:migrate on the shared dev database, without annotaterb rewriting models; its schema.rb dump is dropped when the file was clean before. */
+  private async migrate(cwd: string): Promise<void> {
+    const clean = !(await gitOut(cwd, ['status', '--porcelain', 'db/schema.rb']))?.trim()
+    await this.sh('bundle', ['exec', 'rails', 'db:migrate'], cwd, { ANNOTATERB_SKIP_ON_DB_TASKS: '1' })
+    if (clean && (await gitOut(cwd, ['status', '--porcelain', 'db/schema.rb']))?.trim()) await this.sh('git', ['checkout', '--', 'db/schema.rb'], cwd)
+  }
+
+  /** Repoints the link and stops puma-dev's apps, so the next request boots from the new folder. */
+  private async pointPuma(link: string, to: string): Promise<void> {
+    if (linkTarget(link) !== to) {
+      repoint(link, to)
+      this.log(`${basename(link)} -> ${to}`)
+    }
+    await this.sh('puma-dev', ['-stop'], to)
+  }
+
+  private async waitApi(name: string, url: string): Promise<void> {
+    const t0 = Date.now()
+    while (Date.now() - t0 < HEALTH_TIMEOUT_MS) {
+      if (this.cancelled) throw new Cancelled('Cancelled')
+      const s = this.local.state(name)
+      if (!s || s.status === 'crashed') throw new Error(`sidekiq exited${s?.exitCode != null ? ` with code ${s.exitCode}` : ''}; see its pane in Local`)
+      if (await apiAnswers(url)) return
+      await new Promise((r) => setTimeout(r, 2000))
+    }
+    throw new Error('The api did not answer within 10 minutes')
+  }
+
   private async step(id: string, fn: () => Promise<unknown>): Promise<void> {
     const s = this.job?.steps.find((x) => x.id === id)
     if (!s) return
@@ -332,13 +560,13 @@ export class RunPr {
   }
 
   /** Runs a command, streaming its output into the job log; Cancel kills its process group. */
-  private async sh(cmd: string, args: string[], cwd: string): Promise<void> {
+  private async sh(cmd: string, args: string[], cwd: string, extraEnv: Record<string, string> = {}): Promise<void> {
     const env = await shellEnv()
     // WORKBENCH_PNPM lets tests swap in a fake pnpm.
     const bin = (cmd === 'pnpm' && process.env.WORKBENCH_PNPM) || which(cmd, env) || cmd
     this.log(`$ ${cmd} ${args.join(' ')}`)
     await new Promise<void>((resolve, reject) => {
-      const child = spawn(bin, args, { cwd, env: { ...env, FORCE_COLOR: '0', CI: '1' }, detached: true })
+      const child = spawn(bin, args, { cwd, env: { ...env, FORCE_COLOR: '0', CI: '1', ...extraEnv }, detached: true })
       this.kill = () => {
         try {
           process.kill(-child.pid!, 'SIGTERM')
@@ -384,31 +612,42 @@ export class RunPr {
     return this.app()?.def.cwd ?? ''
   }
 
+  private apiSvc() {
+    return this.local.serviceForRepo(API)
+  }
+
+  private apiBase(): string {
+    return this.apiSvc()?.def.cwd ?? ''
+  }
+
   private worktreesDir(): string {
     const dirs = readWtrc().worktreesDirs
     return dirs.find((d) => existsSync(join(d))) ?? dirs[0] ?? join(this.base(), '..', 'worktrees')
   }
 
-  private async pr(n: number): Promise<FePr | null> {
-    const known = [...this.git.mine, ...this.git.reviews].find((p) => p.repo === FE_REPO && p.number === n)
-    if (known) return { ...fromPoller(known), fork: (await fePr(n))?.fork ?? false }
-    return fePr(n)
+  private async pr(n: number, repo = REPO): Promise<FePr | null> {
+    const full = repo === API ? API_REPO : FE_REPO
+    const known = [...this.git.mine, ...this.git.reviews].find((p) => p.repo === full && p.number === n)
+    if (known) return { ...fromPoller(known), fork: (await fePr(n, full))?.fork ?? false }
+    return fePr(n, full)
   }
 
-  /** Frontend worktrees inside the .wtrc worktree folders, with their upstreams (cached two minutes). */
-  private async worktrees(): Promise<Omit<WorktreeCandidate, 'hasHead'>[]> {
-    if (this.candidates && Date.now() - this.candidates.at < 120_000) return this.candidates.list
+  /** The repo's worktrees inside the .wtrc worktree folders, with their upstreams (cached two minutes). */
+  private async worktrees(repo = REPO): Promise<Omit<WorktreeCandidate, 'hasHead'>[]> {
+    const hit = this.candidates.get(repo)
+    if (hit && Date.now() - hit.at < 120_000) return hit.list
     const dirs = readWtrc().worktreesDirs
-    const all = (await listWorktrees(REPO, this.app() ? [this.app()!.def.cwd] : [])).filter((w) => dirs.some((d) => w.path.startsWith(`${d}/`)))
+    const base = repo === API ? this.apiBase() : this.base()
+    const all = (await listWorktrees(repo, base ? [base] : [])).filter((w) => dirs.some((d) => w.path.startsWith(`${d}/`)))
     const list = await Promise.all(
       all.map(async (w) => ({ path: w.path, branch: w.branch, upstream: (await gitOut(w.path, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']))?.trim() || null })),
     )
-    this.candidates = { at: Date.now(), list }
+    this.candidates.set(repo, { at: Date.now(), list })
     return list
   }
 
-  private async findWorktree(pr: FePr): Promise<{ path: string; by: 'branch' | 'upstream' | 'commit' } | null> {
-    const list = await this.worktrees()
+  private async findWorktree(pr: FePr, repo = REPO): Promise<{ path: string; by: 'branch' | 'upstream' | 'commit' } | null> {
+    const list = await this.worktrees(repo)
     const quick = matchWorktree(pr, list.map((w) => ({ ...w, hasHead: false })))
     if (quick) return quick
     // Last resort: a worktree whose HEAD already contains the PR's head commit (renamed branches).

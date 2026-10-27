@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { prRef, prRepo, shortRepo, type Pr } from '@shared/git'
-import { FE_REPO } from '@shared/runpr'
 import { useStore } from '../store'
 import { CiLink, UnlinkIcon } from './Chips'
 import { PrLinks } from './PrLinks'
@@ -131,7 +130,7 @@ export function GitPane({
   )
   const tools = (
     <span className="gp-tools">
-      {pr?.repo === FE_REPO && <RunAppButton n={pr.number} compact />}
+      {pr && <RunAppButton repo={pr.repo} n={pr.number} compact />}
       <button className="key-btn" title="Back (⌘[)" disabled={!pane?.canBack} onClick={() => void window.workbench.pane.nav('back')}>
         ‹
       </button>

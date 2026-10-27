@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { MARK_WORD, taskSessions, type LinkedSession } from '@shared/links'
-import { FE_REPO } from '@shared/runpr'
+import { FE_REPO, runTarget } from '@shared/runpr'
 import { groupByStatus, groupTasks, statusCounts, statusVivid, treeShapes, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
@@ -415,7 +415,8 @@ function Home({
       nextPane: () => setTodayTab(VIEWS[(VIEWS.indexOf(pane) + 1) % VIEWS.length]!),
       run: () => {
         const p = pane === 'needs' ? needs[needIdx]?.pr : null
-        if (p && p.repo === FE_REPO) return void runPr(p.number)
+        const target = p && runTarget(p.repo)
+        if (p && target) return void runPr(p.number, { target })
         const t = snapshot?.tasks.find((x) => x.id === peekTask)
         const pr = t ? taskFePr(t, git) : null
         if (pr) void runPr(pr)

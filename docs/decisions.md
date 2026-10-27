@@ -56,6 +56,7 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 - **GitHub login** — at Google's passkey step pick "Try another way" *(passkeys don't work in an embedded Electron view; spike 2026-10-23)*
 - **Pane fill** — drafts are put into GitHub's reply box by an injected script that depends on GitHub's DOM; when it can't find the box, the draft goes to the clipboard
 - **Run PR worktree match** — branch, then upstream, then head commit *(branches get renamed: fe #30227 is on `21071355-…`, its worktree on `20360127-…`)*
+- **Run api** — the api is what puma-dev's `~/.puma-dev/api.productive.io` link points at, so a run repoints the link (one rename) and moves sidekiq with it; ↩ Back restores the state before the first api run. Worktrees lack gitignored config (without `config/application.yml` Rails falls back to AWS SSM and fails with a misleading expired-SSO error), so they're symlinked from the base checkout, not copied. `db:migrate` always runs (picked over asking): the dev database is shared, so a PR's migrations stay after ↩ Back. No Run alongside: one puma-dev host, one database
 - **Run PR on the base checkout rebuilds lib, ui, form and prosemirror** *(a fresh checkout doesn't compile without them)*
 - **A port held by a process Workbench didn't start stops the run** rather than starting a second server
 - **Lid closed** — `sudo pmset disablesleep 1` rejected *(needs root, unreliable on Apple Silicon, disables sleep everywhere including on battery)*

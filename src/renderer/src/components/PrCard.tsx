@@ -54,7 +54,7 @@ export function PrCard({ anchor, onEnter, onLeave }: { anchor: CardAnchor; onEnt
             {pr.reviewDecision && <span>{REVIEW[pr.reviewDecision] ?? pr.reviewDecision}</span>}
             {pr.checks && <CiLink url={pr.ciUrl} color={CHECKS[pr.checks][1]}>{CHECKS[pr.checks][0]}</CiLink>}
           </span>
-          {pr.repo === 'productiveio/frontend' && pr.state === 'OPEN' && <RunAppButton n={pr.number} />}
+          {pr.state === 'OPEN' && <RunAppButton repo={pr.repo} n={pr.number} />}
           <span className="pop-note">Click opens it in Workbench · ⌘-click opens the browser</span>
         </>
       )}

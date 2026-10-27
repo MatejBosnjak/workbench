@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { lastMessage, prRepo, verb } from '@shared/git'
 import { prSessions, prTasks } from '@shared/links'
-import { FE_REPO } from '@shared/runpr'
 import type { TasksSnapshot } from '@shared/tasks'
 import type { NeedItem } from '../needs'
 import { tomorrowMorning, UNTIL_CHANGED } from '../needs'
@@ -86,7 +85,7 @@ export function NeedPreview({ item, tasks, onOpen, onClose }: { item: NeedItem; 
             {drafting ? 'drafting…' : 'draft reply with Claude'}
           </button>
         )}
-        {p.repo === FE_REPO && <RunAppButton n={p.number} compact />}
+        <RunAppButton repo={p.repo} n={p.number} compact />
       </div>
       <div className="peek-links">
         <button className="link-btn" onClick={() => snooze(item.key, tomorrowMorning())}>

@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import type { RunJob, RunStep } from '@shared/runpr'
+import { runTarget, type RunJob, type RunStep, type RunTarget } from '@shared/runpr'
 import { useOverlay, useStore } from '../store'
 import { useShallow } from 'zustand/react/shallow'
 
 const errText = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
 /** Starts a run; a dirty base checkout opens the guard instead. */
-export async function runPr(n: number, opts: { alongside?: boolean; dirty?: 'stash' | 'alongside' } = {}): Promise<void> {
+export async function runPr(n: number, opts: { alongside?: boolean; dirty?: 'stash' | 'alongside'; target?: RunTarget } = {}): Promise<void> {
   const st = useStore.getState()
   try {
     const guard = await window.workbench.runpr.run(n, opts)
-    if (guard) st.setRunGuard({ n, guard })
+    if (guard) st.setRunGuard({ n, guard, target: opts.target ?? 'app' })
     else st.setRunPanel(true)
   } catch (e) {
     st.setRunError(errText(e))
@@ -26,23 +26,31 @@ function Play() {
   )
 }
 
-/** ▶ Run app with the hint under it, or "In app" for the PR the app already runs. */
-export function RunAppButton({ n, compact = false }: { n: number; compact?: boolean }) {
+/** ▶ Run app (▶ Run api for api PRs) with the hint under it, or "In app" / "In api" for the PR already running there. */
+export function RunAppButton({ repo, n, compact = false }: { repo: string; n: number; compact?: boolean }) {
   const runpr = useStore((s) => s.runpr)
-  if (!runpr) return null
-  if (runpr.appPr === n)
+  const target = runTarget(repo)
+  if (!runpr || !target || (target === 'api' && !runpr.api)) return null
+  const api = target === 'api'
+  if ((api ? runpr.apiPr : runpr.appPr) === n)
     return (
-      <span className="run-in-app" title={runpr.app.url ?? undefined}>
-        ✓ In app
+      <span className="run-in-app" title={(api ? runpr.api?.url : runpr.app.url) ?? undefined}>
+        ✓ In {target}
       </span>
     )
   const busy = runpr.job?.state === 'running'
+  const hint = (api ? runpr.apiHints : runpr.hints)[n]
   return (
     <span className={`run-btn-wrap${compact ? ' compact' : ''}`}>
-      <button className="run-btn" disabled={busy} title={busy ? 'Another run is in progress' : 'Run this PR in the app'} onClick={(e) => (e.stopPropagation(), void runPr(n))}>
-        <Play /> Run app
+      <button
+        className="run-btn"
+        disabled={busy}
+        title={busy ? 'Another run is in progress' : api ? 'Serve this PR as the api: puma-dev and sidekiq move to its worktree (or the base checkout), after bundle and db:migrate' : 'Run this PR in the app'}
+        onClick={(e) => (e.stopPropagation(), void runPr(n, { target }))}
+      >
+        <Play /> Run {target}
       </button>
-      {!compact && runpr.hints[n] && <span className="run-hint">{runpr.hints[n]}</span>}
+      {!compact && hint && <span className="run-hint">{hint}</span>}
     </span>
   )
 }
@@ -65,7 +73,7 @@ export function RunPrChip() {
       <button className="run-chip busy" onClick={() => setRunPanel(!runPanel)}>
         <span className="run-spin" role="img" aria-label="Running" />
         <span>
-          {job.pr.title.startsWith('Back to') ? job.pr.title : <>Switching app to {job.pr.title}</>}
+          {job.pr.title.startsWith('Back to') ? job.pr.title : <>Switching {job.target} to {job.pr.title}</>}
         </span>
         <span className="muted">
           · {cur?.label ?? '…'} · {i + 1} of {job.steps.length}
@@ -75,18 +83,28 @@ export function RunPrChip() {
         </span>
       </button>
     )
-  } else if (job && job.state === 'failed' && runPanel === false && !runpr.appPr) {
+  } else if (job && job.state === 'failed' && runPanel === false && !(job.target === 'api' ? runpr.apiPr : runpr.appPr)) {
     chip = (
       <button className="run-chip bad" onClick={() => setRunPanel(true)}>
         Run failed · details
       </button>
     )
-  } else if (back) {
+  } else if (back || runpr.apiBack) {
     chip = (
-      <span className="run-chip review">
-        <span className="muted">Base checkout on fe #{back.pr}{runpr.appPr === back.pr ? ' (in app)' : ''}</span>
-        <BackButton />
-      </span>
+      <>
+        {back && (
+          <span className="run-chip review">
+            <span className="muted">Base checkout on fe #{back.pr}{runpr.appPr === back.pr ? ' (in app)' : ''}</span>
+            <BackButton />
+          </span>
+        )}
+        {runpr.apiBack && (
+          <span className="run-chip review">
+            <span className="muted">Api on #{runpr.apiBack.pr}{runpr.apiPr === runpr.apiBack.pr ? ' (served)' : ''}</span>
+            <ApiBackButton />
+          </span>
+        )}
+      </>
     )
   }
   if (!chip && !runPanel) return null
@@ -108,6 +126,27 @@ function BackButton() {
       title={`Check out ${to} in the base checkout${back.stash ? ', restore the stash' : ''} and restart the app where it ran before`}
       onClick={() =>
         void window.workbench.runpr.back().catch((e) => {
+          useStore.getState().setRunError(errText(e))
+          useStore.getState().setRunPanel(true)
+        })
+      }
+    >
+      ↩ {to}
+    </button>
+  )
+}
+
+function ApiBackButton() {
+  const back = useStore((s) => s.runpr?.apiBack)
+  if (!back) return null
+  const c = back.checkout
+  const to = c ? (c.detached ? c.previous.slice(0, 8) : c.previous) : back.link.split('/').pop()
+  return (
+    <button
+      className="run-back"
+      title={`Point puma-dev back at ${back.link.replace(/^\/Users\/[^/]+/, '~')} and sidekiq at ${back.sidekiq.replace(/^\/Users\/[^/]+/, '~')}${c ? `, check out ${to} in the base checkout${c.stash ? ', restore the stash' : ''}` : ''}`}
+      onClick={() =>
+        void window.workbench.runpr.back('api').catch((e) => {
           useStore.getState().setRunError(errText(e))
           useStore.getState().setRunPanel(true)
         })
@@ -157,7 +196,7 @@ export function RunPanel({ inline = false }: { inline?: boolean }) {
       {job && (
         <>
           <div className="run-panel-head">
-            <span className="run-panel-title">{job.pr.title.startsWith('Back to') ? job.pr.title : `Run ${job.pr.title} in the app`}</span>
+            <span className="run-panel-title">{job.pr.title.startsWith('Back to') ? job.pr.title : job.target === 'api' ? `Serve ${job.pr.title} as the api` : `Run ${job.pr.title} in the app`}</span>
             <span className={`run-state ${job.state}`}>{job.state === 'running' ? 'running' : job.state}</span>
           </div>
           <span className="pop-note">
@@ -186,7 +225,7 @@ export function RunPanel({ inline = false }: { inline?: boolean }) {
             <button className="ghost" onClick={() => void window.workbench.runpr.cancel()}>
               Cancel
             </button>
-            {!job.alongside && !job.pr.title.startsWith('Back to') && (
+            {job.target === 'app' && !job.alongside && !job.pr.title.startsWith('Back to') && (
               <button
                 className="link-btn"
                 onClick={async () => {
@@ -229,11 +268,12 @@ export function DirtyGuardModal() {
   useOverlay(!!runGuard)
   const [busy, setBusy] = useState(false)
   if (!runGuard) return null
-  const { n, guard } = runGuard
+  const { n, guard, target } = runGuard
+  const label = `${target === 'api' ? 'api' : 'fe'} #${n}`
   const choose = async (dirty: 'stash' | 'alongside' | null) => {
     setBusy(true)
     setRunGuard(null)
-    if (dirty) await runPr(n, { dirty })
+    if (dirty) await runPr(n, { dirty, target })
     setBusy(false)
   }
   return (
@@ -243,21 +283,23 @@ export function DirtyGuardModal() {
           Base checkout has {guard.files.length} uncommitted change{guard.files.length > 1 ? 's' : ''}
         </span>
         <span className="muted">
-          Checking out fe #{n} in <span className="mono">{guard.path.replace(/^\/Users\/[^/]+/, '~')}</span> would carry these along.
+          Checking out {label} in <span className="mono">{guard.path.replace(/^\/Users\/[^/]+/, '~')}</span> would carry these along.
         </span>
         <pre className="guard-files">{guard.files.slice(0, 20).join('\n')}{guard.files.length > 20 ? `\n… ${guard.files.length - 20} more` : ''}</pre>
         <div className="guard-actions">
           <button className="primary" disabled={busy} onClick={() => void choose('stash')}>
             Stash and continue
           </button>
-          <button className="ghost" disabled={busy} onClick={() => void choose('alongside')}>
-            Run alongside instead
-          </button>
+          {target === 'app' && (
+            <button className="ghost" disabled={busy} onClick={() => void choose('alongside')}>
+              Run alongside instead
+            </button>
+          )}
           <button className="ghost" disabled={busy} onClick={() => void choose(null)}>
             Cancel
           </button>
         </div>
-        <span className="pop-note">The stash is named “workbench: before fe #{n}” and ↩ Back restores it.</span>
+        <span className="pop-note">The stash is named “workbench: before {label}” and ↩ Back restores it.</span>
       </div>
     </div>
   )

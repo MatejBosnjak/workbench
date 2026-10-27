@@ -2,7 +2,7 @@ import type { ThemeId } from './theme'
 import type { AgentSettings, ApplyResult } from './agent'
 import type { DraftTarget, GitSnapshot } from './git'
 import type { Workstream } from './workstream'
-import type { DirtyGuard, RunPrSnapshot } from './runpr'
+import type { DirtyGuard, RunPrSnapshot, RunTarget } from './runpr'
 import type { MemorySnapshot } from './memory'
 import type { PaneState } from './pane'
 import type { Branch, LocalSnapshot, Worktree } from './local'
@@ -272,11 +272,11 @@ export interface WorkbenchApi {
     snapshot(): Promise<RunPrSnapshot>
     onChanged(cb: (s: RunPrSnapshot) => void): () => void
     /** The base checkout's uncommitted changes a run would hit, or null. */
-    guard(n: number): Promise<DirtyGuard | null>
-    /** Starts putting fe #n into the app; returns the guard when the base checkout is dirty and no answer was given. */
-    run(n: number, opts?: { alongside?: boolean; dirty?: 'stash' | 'alongside' }): Promise<DirtyGuard | null>
+    guard(n: number, target?: RunTarget): Promise<DirtyGuard | null>
+    /** Starts putting fe #n into the app (api #n into the api); returns the guard when the base checkout is dirty and no answer was given. */
+    run(n: number, opts?: { alongside?: boolean; dirty?: 'stash' | 'alongside'; target?: RunTarget }): Promise<DirtyGuard | null>
     cancel(): Promise<void>
-    back(): Promise<void>
+    back(target?: RunTarget): Promise<void>
   }
   /** A new tab continuing a copy of the session's conversation (claude --fork-session), linked to the same tasks. */
   forkSession(id: string): Promise<Session | null>

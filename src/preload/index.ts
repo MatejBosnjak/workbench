@@ -103,10 +103,10 @@ const api: WorkbenchApi = {
   runpr: {
     snapshot: () => ipcRenderer.invoke('runpr:snapshot'),
     onChanged: (cb) => on('runpr:changed', (_e, s: RunPrSnapshot) => cb(s)),
-    guard: (n) => ipcRenderer.invoke('runpr:guard', n),
+    guard: (n, target) => ipcRenderer.invoke('runpr:guard', n, target ?? 'app'),
     run: (n, opts) => ipcRenderer.invoke('runpr:run', n, opts ?? {}),
     cancel: () => ipcRenderer.invoke('runpr:cancel'),
-    back: () => ipcRenderer.invoke('runpr:back'),
+    back: (target) => ipcRenderer.invoke('runpr:back', target ?? 'app'),
   },
   forkSession: (id) => ipcRenderer.invoke('sessions:fork', id),
   onNavigate: (cb) => on('navigate', (_e, t: NavigateTarget) => cb(t)),

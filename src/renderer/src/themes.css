@@ -63,9 +63,10 @@
   --mono: 'VT323', ui-monospace, monospace;
   --sans: var(--mono);
   --display: var(--mono);
-  --term-font: 'VT323', ui-monospace, monospace;
-  --term-size: 21;
-  --term-line: 1.12;
+  /* Terminals read long replies: a clean retro mono there, VT323 for the chrome. */
+  --term-font: 'Share Tech Mono', ui-monospace, monospace;
+  --term-size: 14;
+  --term-line: 1.35;
   --term-bold: normal;
 }
 /* VT323 is small for its size: scale every face to JetBrains Mono's x-height, so fixed sizes and widths keep working. */
@@ -76,7 +77,7 @@
 /* Scanlines and a soft vignette over everything; never in the way of the pointer. */
 [data-theme='muthur'] .crt-fx {
   display: block; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
-  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.13) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 65%, rgba(0, 0, 0, 0.4) 100%);
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 65%, rgba(0, 0, 0, 0.4) 100%);
 }
 /* Chrome speaks in capitals; what you or Claude typed keeps its case. */
 [data-theme='muthur'] :is(.topbar .place, .box-title, .counter .box-title, .counter-note, .statusbar, .session-bar .sbar-label, .pop-label, .fchip, .seg-pair, .task-line.parent .task-name, .local-head h1, .pane-head, .chip) { text-transform: uppercase; letter-spacing: 0.04em; }

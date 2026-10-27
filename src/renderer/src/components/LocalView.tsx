@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from 'react'
 import type { AwsLogin, LocalSnapshot, ServiceState } from '@shared/local'
 import { Panes } from './Panes'
 import { WorktreeSwitcher } from './WorktreeSwitcher'
+import { WorktreeCleanup } from './WorktreeCleanup'
 import { RunPanel } from './RunPr'
 import { useStore } from '../store'
 
@@ -24,6 +25,8 @@ export const LocalView = memo(function LocalView({ snapshot, active }: { snapsho
   const [selected, setSelected] = useState<string | null>(null)
   const [switcher, setSwitcher] = useState(false)
   const runJob = useStore((s) => s.runpr?.job)
+  const worktrees = useStore((s) => s.cleanup?.rows.length)
+  const [tab, setTab] = useState<'services' | 'worktrees'>('services')
   const [, tick] = useState(0)
   const now = Date.now()
 
@@ -47,15 +50,25 @@ export const LocalView = memo(function LocalView({ snapshot, active }: { snapsho
   return (
     <div className="local" hidden={!active}>
       <div className="local-head">
-        <h1>Local services</h1>
-        <div className="seg" role="radiogroup" aria-label="Profile">
-          {profiles.map((p) => (
-            <button key={p.id} role="radio" aria-checked={p.id === profile} onClick={() => void window.workbench.local.setProfile(p.id)}>
-              {p.label}
-            </button>
-          ))}
+        <h1>Local</h1>
+        <div className="seg local-tabs" role="radiogroup" aria-label="Local view">
+          <button role="radio" aria-checked={tab === 'services'} onClick={() => setTab('services')}>
+            Services
+          </button>
+          <button role="radio" aria-checked={tab === 'worktrees'} onClick={() => setTab('worktrees')}>
+            Worktrees{worktrees ? ` · ${worktrees}` : ''}
+          </button>
         </div>
-        <div className="local-actions">
+        {tab === 'services' && (
+          <div className="seg" role="radiogroup" aria-label="Profile">
+            {profiles.map((p) => (
+              <button key={p.id} role="radio" aria-checked={p.id === profile} onClick={() => void window.workbench.local.setProfile(p.id)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="local-actions" hidden={tab !== 'services'}>
           <button className="ghost" disabled={!anyRunning} onClick={() => void window.workbench.local.stopAll()}>
             Stop all
           </button>
@@ -70,7 +83,8 @@ export const LocalView = memo(function LocalView({ snapshot, active }: { snapsho
           <RunPanel inline />
         </div>
       )}
-      <div className="local-body">
+      {tab === 'worktrees' && <WorktreeCleanup active={active} />}
+      <div className="local-body" hidden={tab !== 'services'}>
         <section className="svc-list" aria-label="Services">
           {inProfile.map((s) => {
             const on = s.name === current?.name
@@ -148,7 +162,7 @@ export const LocalView = memo(function LocalView({ snapshot, active }: { snapsho
                 )}
               </div>
             </div>
-            {active && <Panes key={current.name} service={current} />}
+            {active && tab === 'services' && <Panes key={current.name} service={current} />}
           </main>
         )}
       </div>

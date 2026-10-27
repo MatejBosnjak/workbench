@@ -131,6 +131,16 @@ await shot('local', async () => {
   await click('.place[aria-label^="Local"]')
   await wait(4000)
 })
+// Reads every worktree's git state, then GitHub and Productive, then sizes: slow.
+await shot('local-worktrees', async () => {
+  await click('.place[aria-label^="Local"]')
+  await click('.local-tabs button:nth-child(2)')
+  await until(() => api(() => window.workbench.cleanup.snapshot().then((s) => s.scannedAt && !s.scanning)), 240_000)
+  // Then du sizes the done ones (node_modules and all).
+  await until(() => api(() => window.workbench.cleanup.snapshot().then((s) => s.rows.filter((r) => r.verdict === 'done').every((r) => r.bytes !== null))), 480_000)
+  await wait(800)
+})
+await page.click('.local-tabs button:nth-child(1)').catch(() => {})
 
 // A session started from a task: it prefills the task prompt; replace it with two one-word prompts, the second naming
 // another task so the link suggestion shows.

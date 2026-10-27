@@ -82,6 +82,8 @@ button { font: inherit; color: inherit; }
 .local-icon { display: block; flex-shrink: 0; }
 .local-icon .li-off { fill: color-mix(in srgb, var(--text-3) 22%, var(--chrome)); }
 .place-bang { position: absolute; right: -7px; top: -7px; width: 15px; height: 15px; border-radius: 50%; background: var(--bad); color: var(--on-accent); font-size: 10.5px; font-weight: 800; line-height: 15px; text-align: center; box-shadow: 0 0 0 2px var(--chrome); }
+.place-pile.low { color: var(--warn); border-color: var(--warn); }
+.place-pile { position: absolute; right: -9px; bottom: -5px; min-width: 15px; height: 14px; padding: 0 3px; background: var(--raised); border: 1px solid var(--line-heavy); color: var(--text-3); font-size: 9.5px; line-height: 12px; text-align: center; }
 .place-bang-tip { display: none; position: absolute; left: 0; top: 22px; z-index: 50; width: 300px; padding: 10px 12px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); color: var(--text-2); font-size: 12px; font-weight: 400; line-height: 1.55; text-align: left; white-space: normal; }
 .place-bang-tip b { color: var(--bad); }
 .place-bang-tip span { display: block; color: var(--muted); }
@@ -323,6 +325,66 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .local-actions .ghost { margin-left: 0; }
 .local-actions .primary { height: 28px; font-size: 12px; }
 .local-body { flex: 1; min-height: 0; display: flex; gap: 14px; }
+.local-body[hidden], .local-actions[hidden] { display: none; }
+.local-tabs { flex: 0 0 auto; }
+
+/* Local › Worktrees */
+.wtc { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.wtc .ok { color: var(--ok); }
+.wtc .bad { color: var(--bad); }
+.wtc .info { color: var(--info); }
+.wtc .warn { color: var(--warn); }
+.wtc .link { color: var(--link); text-decoration: none; }
+.wtc .link:hover { color: var(--link-hover); }
+.wtc-bar { display: flex; align-items: center; gap: 12px; }
+.wtc-bar .ghost { margin-left: 0; }
+.wtc-filter { width: 280px; height: 28px; padding: 0 10px; background: var(--panel); border: 1px solid var(--line-strong); color: var(--text); font: inherit; font-size: 12px; }
+.wtc-repos { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.wtc-repos .chip[aria-pressed='true'] { border-color: var(--accent-line); background: var(--accent-bg); color: var(--text); }
+.wtc-when { font-size: 11px; white-space: nowrap; }
+.wtc-error { color: var(--bad); font-size: 12px; }
+.wtc-list { flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--line); background: var(--panel); }
+.wtc-empty { padding: 16px; }
+.wtc-ghead { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--card); border-bottom: 1px solid var(--line); }
+.wtc-group + .wtc-group .wtc-ghead { border-top: 1px solid var(--line); }
+.wtc-gname { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+.wtc-done .wtc-gname { color: var(--ok); }
+.wtc-maybe .wtc-gname { color: var(--warn); }
+.wtc-why { flex: 1; min-width: 0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wtc-ghead .primary { height: 26px; font-size: 12px; }
+.wtc-ghead .ghost { margin-left: 0; }
+.wtc-row { display: grid; grid-template-columns: 22px 80px minmax(0, 1fr) 200px 190px 48px 60px 150px; align-items: center; gap: 10px; padding: 5px 12px 5px 0; border-bottom: 1px solid var(--line-soft); border-left: 3px solid var(--line-heavy); font-size: 12px; }
+.wtc-done .wtc-row { border-left-color: var(--ok); }
+.wtc-maybe .wtc-row { border-left-color: var(--warn); }
+.wtc-row:hover, .wtc-row.open { background: var(--raised); }
+.wtc-pick { display: flex; justify-content: center; }
+.wtc-pick input { accent-color: var(--accent); margin: 0; }
+.wtc-repo { font-size: 11px; }
+.wtc-name { min-width: 0; display: flex; flex-direction: column; }
+.wtc-name > span, .wtc-name small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wtc-name small { font-size: 11px; }
+.wtc-pr { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wtc-task { min-width: 0; }
+.task-pill { display: inline-block; max-width: 100%; padding: 1px 6px; border: 1px solid var(--line-strong); color: var(--text-2); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.task-pill.closed { border-color: var(--ok-line); color: var(--ok); }
+.wtc-age, .wtc-bytes { font-size: 11px; text-align: right; white-space: nowrap; }
+.wtc-size { font-size: 11px; white-space: nowrap; }
+.wtc-sort { margin-left: 0; }
+.wtc-disk { padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 8%, transparent); color: var(--warn); font-size: 12px; }
+.wtc-acts { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.wtc-acts .icon-btn { height: 22px; width: 26px; font-size: 12px; }
+.wtc-x { font-size: 16px !important; }
+.wtc-x:hover { color: var(--bad) !important; }
+.wtc-use { padding: 0 6px; border: 1px solid var(--accent-line); color: var(--accent); font-size: 11px; white-space: nowrap; }
+.wtc-use.ok { border-color: var(--ok-line); }
+.wtc-failed { padding: 4px 12px 6px 115px; color: var(--bad); font-size: 11px; border-bottom: 1px solid var(--line-soft); white-space: pre-wrap; }
+.wtc-changes { padding: 6px 12px 10px 115px; background: var(--raised); border-bottom: 1px solid var(--line-soft); }
+.wtc-changes pre { margin: 0 0 8px; color: var(--text-3); font: inherit; font-size: 11.5px; white-space: pre-wrap; }
+.wtc-changes .wtc-acts { justify-content: flex-start; gap: 8px; }
+.wtc-changes .ghost { margin-left: 0; }
+.wtc-force { border-color: color-mix(in srgb, var(--bad) 45%, transparent); color: var(--bad); }
+.wtc-more { display: block; width: 100%; padding: 7px 12px 7px 115px; border: 0; border-bottom: 1px solid var(--line-soft); background: transparent; color: var(--faint); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.wtc-more:hover { color: var(--text-3); }
 
 .svc-list { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
 .svc {

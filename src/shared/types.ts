@@ -9,6 +9,7 @@ import type { Branch, LocalSnapshot, Worktree } from './local'
 import type { Person, SessionPrLink, TaskDetail, TasksSnapshot } from './tasks'
 import type { Mark } from './marks'
 import type { CafHold, CafMode, CafUntil } from './caffeinate'
+import type { CleanupSnapshot } from './cleanup'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -310,6 +311,15 @@ export interface WorkbenchApi {
     removeWorktree(path: string): Promise<string>
     startInfra(name: string): Promise<void>
     refreshInfra(): Promise<void>
+  }
+  /** Local › Worktrees: classify the .wtrc worktrees and remove the done ones. Removals confirm natively first. */
+  cleanup: {
+    snapshot(): Promise<CleanupSnapshot>
+    onChanged(cb: (s: CleanupSnapshot) => void): () => void
+    scan(): Promise<void>
+    remove(paths: string[]): Promise<void>
+    /** --force for one worktree with changes, after a confirm that lists them. */
+    force(path: string): Promise<void>
   }
   openInEditor(path: string): Promise<void>
   /** UI state kept in SQLite; keys start with "ui:". */

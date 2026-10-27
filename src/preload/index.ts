@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
+import type { CleanupSnapshot } from '@shared/cleanup'
 import type { Workstream } from '@shared/workstream'
 import type { RunPrSnapshot } from '@shared/runpr'
 import type { MemorySnapshot } from '@shared/memory'
@@ -134,6 +135,13 @@ const api: WorkbenchApi = {
     removeWorktree: (path) => ipcRenderer.invoke('local:remove-worktree', path),
     startInfra: (name) => ipcRenderer.invoke('local:infra-start', name),
     refreshInfra: () => ipcRenderer.invoke('local:infra-refresh'),
+  },
+  cleanup: {
+    snapshot: () => ipcRenderer.invoke('cleanup:snapshot'),
+    onChanged: (cb) => on('cleanup:changed', (_e, s: CleanupSnapshot) => cb(s)),
+    scan: () => ipcRenderer.invoke('cleanup:scan'),
+    remove: (paths) => ipcRenderer.invoke('cleanup:remove', paths),
+    force: (path) => ipcRenderer.invoke('cleanup:force', path),
   },
   openInEditor: (path) => ipcRenderer.invoke('editor:open', path),
   getSetting: (key, fallback) => ipcRenderer.invoke('settings:get', key, fallback),

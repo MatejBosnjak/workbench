@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
+import type { CleanupSnapshot } from '@shared/cleanup'
 import type { TasksSnapshot } from '@shared/tasks'
 import type { DirtyGuard, RunPrSnapshot, RunTarget } from '@shared/runpr'
 import type { PaneState } from '@shared/pane'
@@ -63,6 +64,7 @@ interface State {
   setKeysOpen(open: boolean): void
   setCafOpen(open: boolean): void
   local: LocalSnapshot | null
+  cleanup: CleanupSnapshot | null
   git: GitSnapshot | null
   tasks: TasksSnapshot | null
   /** The workstream shown as a temporary place in the TopBar. */
@@ -83,6 +85,7 @@ interface State {
   /** The draft open in Today's side panel. */
   draft: DraftTarget | null
   setLocal(l: LocalSnapshot): void
+  setCleanup(c: CleanupSnapshot): void
   setGit(g: GitSnapshot): void
   runpr: RunPrSnapshot | null
   pane: PaneState | null
@@ -164,6 +167,7 @@ export const useStore = create<State>((set, get) => ({
   setKeysOpen: (keysOpen) => set({ keysOpen }),
   setCafOpen: (cafOpen) => set({ cafOpen }),
   local: null,
+  cleanup: null,
   git: null,
   tasks: null,
   wsPlace: loadWsPlace(),
@@ -177,6 +181,7 @@ export const useStore = create<State>((set, get) => ({
   showTick: 0,
   draft: null,
   setLocal: (local) => set({ local }),
+  setCleanup: (cleanup) => set({ cleanup }),
   setGit: (git) => set({ git }),
   runpr: null,
   pane: null,

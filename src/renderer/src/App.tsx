@@ -115,6 +115,12 @@ export function App() {
   }, [setLocal])
 
   useEffect(() => {
+    const set = useStore.getState().setCleanup
+    void window.workbench.cleanup.snapshot().then(set)
+    return window.workbench.cleanup.onChanged(set)
+  }, [])
+
+  useEffect(() => {
     void window.workbench.getStatus().then(setStatus)
     void window.workbench.hooksStatus().then(setHooks)
     const offStatus = window.workbench.onStatus(setStatus)

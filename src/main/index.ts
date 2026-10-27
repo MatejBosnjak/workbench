@@ -21,6 +21,7 @@ import { Supervisor } from './local/supervisor'
 import { Linker } from './linker'
 import { MarksReader } from './marks'
 import { createWorktree, currentBranch, planWorktree, repoRoots } from './local/git'
+import { WorktreeCleanup } from './local/cleanup'
 import { Notifier } from './notify'
 import { FocusTracker } from './focus-pr'
 import { RunPr } from './local/run-pr'
@@ -379,6 +380,18 @@ void app.whenReady().then(() => {
     (s) => win?.webContents.send('memory:changed', s),
   )
   memory.start()
+  const cleanup = new WorktreeCleanup(
+    {
+      productive: () => tasks.client(),
+      tabs: () => sessions.list().map((s) => ({ cwd: s.cwd, title: s.title })),
+      services: () => local.snapshot().services.map((s) => ({ name: s.name, cwd: s.cwd })),
+    },
+    (s) => win?.webContents.send('cleanup:changed', s),
+  )
+  // Once, a minute in, so the Local tab can show the pile; Local › Worktrees rescans when it opens.
+  setTimeout(() => void cleanup.scan(), 60_000)
+  // statfs is cheap: keeps the low-disk prompt on the Local tab current between scans.
+  setInterval(() => cleanup.checkDisk(), 15 * 60_000)
   const workstreams = new Workstreams(repo, tasks, git, linker, (ws) => win?.webContents.send('ws:changed', ws))
   tasks.start()
   git.start()
@@ -666,6 +679,41 @@ void app.whenReady().then(() => {
       detail: `${path}\n\nRuns git worktree remove (no --force): git refuses if there are uncommitted or untracked changes. The branch is kept.`,
     })
     return res.response === 0 ? ((await local.removeWorktree(path)) ?? 'removed') : 'cancelled'
+  })
+  ipcMain.handle('cleanup:snapshot', () => cleanup.snapshot())
+  ipcMain.handle('cleanup:scan', () => cleanup.scan())
+  ipcMain.handle('cleanup:remove', async (_e, paths: string[]) => {
+    const rows = cleanup.snapshot().rows.filter((r) => paths.includes(r.path))
+    if (!rows.length) return
+    const branches = rows.filter((r) => r.deleteBranch).length
+    const res = await dialog.showMessageBox(win!, {
+      type: 'warning',
+      buttons: [`Remove ${rows.length}`, 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      message: rows.length === 1 ? `Remove ${rows[0]!.name}?` : `Remove ${rows.length} worktrees?`,
+      detail: [
+        rows.length === 1 ? rows[0]!.reason : `${branches} with their branch (merged PR), ${rows.length - branches} keeping it.`,
+        '',
+        'For each: git worktree remove <path> (no --force: git refuses if anything is uncommitted)',
+        ...(branches ? ['then git branch -D <branch> where the PR is merged (-D because squash merges look unmerged to git)'] : []),
+        'and git worktree prune once per repo.',
+      ].join('\n'),
+    })
+    if (res.response === 0) await cleanup.remove(rows.map((r) => r.path))
+  })
+  ipcMain.handle('cleanup:force', async (_e, path: string) => {
+    const r = cleanup.snapshot().rows.find((x) => x.path === path)
+    if (!r) return
+    const res = await dialog.showMessageBox(win!, {
+      type: 'warning',
+      buttons: ['Discard and Remove', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      message: `Remove ${r.name} and discard its changes?`,
+      detail: `git worktree remove --force throws these away:\n\n${r.changes.join('\n')}${r.moreChanges ? '\n…and more' : ''}\n\nThe branch${r.branch ? ` ${r.branch}` : ''} and its commits are kept.`,
+    })
+    if (res.response === 0) await cleanup.remove([path], true)
   })
   ipcMain.handle('editor:open', async (_e, path: string) => {
     const env = await shellEnv()

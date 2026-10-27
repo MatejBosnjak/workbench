@@ -88,3 +88,8 @@ Measured idle: realtime (nodemon + node) ~0% CPU and ~40–60 MB, meilisearch ~0
 ## Running tab: a faint dot ring that moves
 
 A tab title cut with `…` next to the `···` running glyph read as two ellipses. The title now fades instead of being cut, and running is a braille cell's six dots, all always shown, with a soft highlight going round (canvas: TabRunGlyph, E3 picked over a full-contrast spinner and calmer stand-ins). It's the one loop in the app, kept as low-contrast as it can be while still showing the session is alive. Drawn in CSS rather than by swapping braille characters each frame, which stepped and jittered.
+
+## Worktree cleanup goes by the PR, not by git
+
+`wt`'s cleanup calls a worktree merged when git says its branch is merged or its upstream is gone. Squash merges never look merged to git and most remote branches outlive their PR, so only 21 of 127 worktrees with merged PRs showed up. Local › Worktrees asks GitHub (and Productive for tasks without a PR) instead, and checks the PR's head has HEAD before deleting a branch. It's a view in Local next to Services (canvas: Local › Worktrees board), not a mode of the switcher, which is for picking a worktree. Only Done is swept in bulk; branches are deleted only for merged PRs, so everything else can come back with `git worktree add`. Sizes and the low-disk line came from a parallel proposal: 94% full with ~150 GB in done worktrees made the case. `du` is slow on node_modules, so sizes come after the verdicts rather than holding them up.
+

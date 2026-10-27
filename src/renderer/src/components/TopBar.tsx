@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { diskLow, gb } from '@shared/cleanup'
 import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { CaffeinateButton, holdOf } from './CaffeinateControl'
@@ -43,6 +44,12 @@ function LocalIcon({ up, total, crashed }: { up: number; total: number; crashed:
 /** The taskbar: ▌wb, Today, Local (1 and 2), the session tabs 3…n, then the cup and ⌘K. */
 export function TopBar({ onNew }: { onNew: () => void }) {
   const { sessions, view, show, caf, local, wsPlace, closeWorkstream } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, show: s.show, caf: s.caf, local: s.local, wsPlace: s.wsPlace, closeWorkstream: s.closeWorkstream })))
+  // A quiet count on Local once enough finished worktrees pile up (Local › Worktrees).
+  const doneWts = useStore((s) => s.cleanup?.rows.filter((r) => r.verdict === 'done').length ?? 0)
+  const disk = useStore((s) => s.cleanup?.disk ?? null)
+  const low = diskLow(disk)
+  // Any done worktree counts once the disk is nearly full.
+  const pile = doneWts > 20 || (low && doneWts) ? doneWts : 0
   const inProfile = local?.services.filter((s) => s.def.profiles.includes(local.profile) && !s.transient) ?? []
   const up = inProfile.filter((s) => s.status === 'running').length
   const crashed = inProfile.filter((s) => s.status === 'crashed').length
@@ -183,8 +190,9 @@ export function TopBar({ onNew }: { onNew: () => void }) {
         <button className="seg-btn place" aria-current={view.kind === 'today' ? 'page' : undefined} onClick={() => show({ kind: 'today' })}>
           Today
         </button>
-        <button className="seg-btn place" aria-current={view.kind === 'local' ? 'page' : undefined} title={`Local${inProfile.length ? ` · ${up} of ${inProfile.length} services running${crashed ? `, ${crashed} crashed` : ''}` : ''} (2)`} aria-label={`Local, ${up} of ${inProfile.length} services running`} onClick={() => show({ kind: 'local' })}>
+        <button className="seg-btn place" aria-current={view.kind === 'local' ? 'page' : undefined} title={`Local${inProfile.length ? ` · ${up} of ${inProfile.length} services running${crashed ? `, ${crashed} crashed` : ''}` : ''}${low && disk ? ` · disk ${Math.round((1 - disk.free / disk.total) * 100)}% full, ${gb(disk.free)} free` : ''}${pile ? ` · ${pile} worktrees are done (PR merged): Local › Worktrees` : ''} (2)`} aria-label={`Local, ${up} of ${inProfile.length} services running`} onClick={() => show({ kind: 'local' })}>
           <LocalIcon up={up} total={inProfile.length} crashed={crashed > 0} />
+          {pile > 0 && local?.aws?.status !== 'expired' && <span className={`place-pile${low ? ' low' : ''}`}>{pile}</span>}
           {local?.aws?.status === 'expired' && (
             <span className="place-bang" aria-label="AWS login expired">
               !

@@ -1,9 +1,10 @@
-/** The app's looks. Dusk is the default; the other three are the cassette-futurism set (docs/design/explore/Cassette*.dc.html). */
+/** The app's looks. Dusk is the default; the others are the cassette-futurism set (docs/design/explore/Cassette*.dc.html; Night drive is the canvas's Cassette futurism 6 board). */
 export const THEMES = [
   { id: 'dusk', name: 'Dusk', note: 'Muted synthwave on graphite' },
   { id: 'muthur', name: 'MU/TH/UR', note: 'Amber phosphor CRT, status codes' },
   { id: 'brown', name: 'Brown workstation', note: 'Smoked-brown keycaps, 70s stripes, LCD meters' },
   { id: 'console', name: 'Ops console', note: 'Dymo labels, seven-segment counts, lamps' },
+  { id: 'night', name: 'Night drive', note: '80s digital dash: VFD cyan through smoked lenses, bar gauges' },
 ] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']

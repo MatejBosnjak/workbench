@@ -32,9 +32,18 @@ const GROUP_KEY = 'workbench.taskGroup'
 /** A status as task rows and chips print it: MU/TH/UR prints three-letter codes, the rest the name in lower case. */
 export const statusText = (name: string | null | undefined, theme: ThemeId) => (theme === 'muthur' ? statusCode(name) : (name || 'No status').toLowerCase())
 
-/** A counter's number: seven-segment digits on the Ops console, two digits on MU/TH/UR, else as is. */
+/** A counter's number: seven-segment digits on the Ops console, two digits on MU/TH/UR, VFD digits over unlit 88 on Night drive, else as is. */
 function CounterNumber({ value, lead, theme }: { value: string; lead: boolean; theme: ThemeId }) {
   if (theme === 'console') return <SevenSeg value={value} height={lead ? 38 : 28} />
+  if (theme === 'night' && /^\d+$/.test(value)) {
+    return (
+      <span className="vfd-num" role="img" aria-label={value}>
+        {[...value.padStart(2, '0')].map((d, i) => (
+          <i key={i}>{d}</i>
+        ))}
+      </span>
+    )
+  }
   return <>{theme === 'muthur' && /^\d$/.test(value) ? `0${value}` : value}</>
 }
 

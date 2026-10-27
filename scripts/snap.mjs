@@ -210,7 +210,7 @@ await shot('keys', () => blurred(() => page.focus('.sb-keys')))
 await shot('picker', () => blurred(() => click('.picker-btn')))
 
 // Each non-default theme on My tasks and the session, then back to Dusk.
-for (const theme of ['muthur', 'brown', 'console']) {
+for (const theme of ['muthur', 'brown', 'console', 'night']) {
   await menu({ type: 'theme', theme })
   await shot(`theme-${theme}`, () => today('My tasks'))
   await shot(`theme-${theme}-session`, async () => {

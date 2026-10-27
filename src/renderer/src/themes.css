@@ -303,8 +303,123 @@
 [data-theme='console'] .session-bar { background: var(--chrome); }
 [data-theme='console'] .sbar-btn.on { background: var(--raised); }
 
+/* ================================================================
+ * Night drive: a 1980s digital dashboard. VFD cyan light through smoked-acrylic lenses, Michroma labels, bar gauges
+ * ================================================================ */
+[data-theme='night'] {
+  --bg: #07090A;
+  --chrome: #0C1011;
+  --panel: #0A0D0E;
+  --card: #0B0E0F;
+  --raised: #0E1B1B;
+  --popover: #0C1213;
+  --line-soft: #121A1B;
+  --line: #172022;
+  --line-strong: #1C2426;
+  --line-heavy: #24302F;
+  --text: #C9F3EE;
+  --text-2: #A8E3DC;
+  --text-3: #7FBDB6;
+  --muted: #4F8F89;
+  --faint: #3E6E69;
+  --accent: #FFB13B;
+  --on-accent: #07090A;
+  --accent-bg: #2A2115;
+  --accent-line: #6E4E1E;
+  --accent-ring: rgba(255, 177, 59, 0.16);
+  --warn: #FFB13B;
+  --ok: #8FE36B;
+  --ok-bg: #0F1F12;
+  --ok-line: #2E5A2E;
+  --ok-glow: rgba(143, 227, 107, 0.2);
+  --bad: #FF4F4F;
+  --bad-bg: #2A1414;
+  --info: #4FC3F7;
+  --info-bg: #0B1A22;
+  --link: #7DF9E9;
+  --link-hover: #C9FFF8;
+  --link-line: #2E5B57;
+  --violet: #B18CFF;
+  --teal: #7DF9E9;
+  --prio-high: rgba(255, 79, 79, 0.12);
+  --prio-mid: rgba(255, 177, 59, 0.08);
+  --prio-low: rgba(125, 249, 233, 0.04);
+  --shadow: rgba(0, 0, 0, 0.75);
+  --scrim: rgba(2, 4, 4, 0.62);
+  --title-glow: 0 0 6px rgba(80, 240, 220, 0.5);
+  --accent-shadow: 0 0 8px rgba(255, 170, 50, 0.45);
+  --chrome-edge: none;
+  --bg-img: none;
+  --vfd: #7DF9E9;
+  --vfd-glow: 0 0 6px rgba(80, 240, 220, 0.65), 0 0 14px rgba(80, 240, 220, 0.25);
+  --label: 'Michroma', 'Azeret Mono', sans-serif;
+  --mono: 'Azeret Mono', ui-monospace, monospace;
+  --sans: var(--mono);
+  --display: Orbitron, var(--mono);
+  --term-font: 'Azeret Mono', ui-monospace, monospace;
+  --term-size: 12.5;
+  --term-line: 1.3;
+  /* Session colours are filter tints: muted, so the lit status colours stand out. */
+  --sess-0: #3F8C86;
+  --sess-1: #8C7A3F;
+  --sess-2: #6B5A8C;
+  --sess-3: #3F6E8C;
+  --sess-4: #8C4F4F;
+  --sess-5: #5F8C3F;
+  --sess-6: #7A7F86;
+}
+[data-theme='night'] body { font-size: 12.5px; }
+/* Fine screen-door grid of the display glass. */
+[data-theme='night'] .crt-fx { display: block; position: fixed; inset: 0; z-index: 9999; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px); }
+/* Labels are Michroma, wide caps, as printed on 80s dash bezels. */
+[data-theme='night'] :is(.box-title, .counter .box-title, .topbar .place, .pane-head, .seg-pair, .sb-k) { font-family: var(--label); text-transform: uppercase; letter-spacing: 0.14em; font-size: 9.5px; font-weight: 400; }
+[data-theme='night'] .topbar { background: linear-gradient(180deg, #14191A, #0A0D0E); border-bottom: 1px solid var(--line-strong); }
+[data-theme='night'] .mem-btn { color: var(--vfd); text-shadow: var(--vfd-glow); }
+/* Today / Local is a gear indicator: dark strip, the current place lit. */
+[data-theme='night'] .places { gap: 2px; padding: 3px; border-radius: 6px; background: #050607; border: 1px solid var(--line-strong); }
+[data-theme='night'] .topbar .place { height: 26px; border: 0; border-radius: 4px; background: none; color: var(--faint); }
+[data-theme='night'] .topbar .place[aria-current='page'] { background: var(--raised); color: var(--vfd); text-shadow: var(--vfd-glow); }
+[data-theme='night'] .topbar .place[aria-current='page'] .place-count { color: var(--warn); }
+[data-theme='night'] .topbar .tab { color: var(--muted); }
+[data-theme='night'] .topbar .tab[aria-selected='true'] { background: #0E1415; color: var(--text); box-shadow: inset 0 2px 0 var(--sc); }
+[data-theme='night'] .session-bar { background: #0E1415; border-bottom-color: var(--line-strong); }
+[data-theme='night'] .sbar-btn.on { background: var(--raised); }
+/* Every box is a lens: rounded smoked acrylic, a soft glare across the top, the title printed inside. */
+[data-theme='night'] :is(.box, .counter) {
+  border: 1px solid var(--line-strong); border-radius: 10px; padding-top: 30px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%), var(--card);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), inset 0 12px 24px rgba(0, 0, 0, 0.6);
+}
+[data-theme='night'] .box.active, [data-theme='night'] .counter.on { border-color: #2E5B57; }
+[data-theme='night'] .counter:not(:disabled):hover { border-color: #2E5B57; }
+[data-theme='night'] .counter.lead.hot { border-color: var(--accent-line); }
+[data-theme='night'] :is(.box-title, .counter .box-title) { top: 11px; left: 15px; padding: 0; background: none; color: var(--muted); }
+[data-theme='night'] .box-aside { top: 7px; background: none; }
+[data-theme='night'] :is(.box.active > .box-title, .counter.on .box-title) { color: var(--text-2); }
+/* Counters: Orbitron digits glowing VFD cyan over the unlit 88; Needs you lights amber. */
+[data-theme='night'] .counter-value { font-family: Orbitron, var(--mono); font-weight: 700; letter-spacing: 0.02em; color: var(--vfd); }
+[data-theme='night'] .vfd-num { isolation: isolate; text-shadow: var(--vfd-glow); }
+/* Orbitron's digits differ in width: each sits in a fixed cell over its own unlit 8. */
+[data-theme='night'] .vfd-num i { position: relative; display: inline-block; width: 0.92em; text-align: center; font-style: normal; }
+[data-theme='night'] .vfd-num i::before { content: '8'; position: absolute; inset: 0; color: #10201F; text-shadow: none; z-index: -1; }
+[data-theme='night'] .counter.lead.hot .vfd-num { text-shadow: 0 0 6px rgba(255, 170, 50, 0.6), 0 0 16px rgba(255, 170, 50, 0.25); }
+[data-theme='night'] .counter.lead.hot .vfd-num i::before { color: #241A0C; }
+[data-theme='night'] .counter-note { color: var(--muted); }
+/* Statuses are lit segments, not dots. */
+[data-theme='night'] .task-mark:not(.ctx-mark, .milestone) { width: 18px; height: 6px; border-radius: 1px; box-shadow: 0 0 6px var(--st); }
+[data-theme='night'] .task-mark.not-started { box-shadow: none; border-width: 1px; }
+[data-theme='night'] .task-status { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; }
+[data-theme='night'] .task-line.row.sel { background: #0E1819; box-shadow: inset 2px 0 0 var(--vfd); }
+[data-theme='night'] .status-swatch { border-radius: 1px; box-shadow: 0 0 5px var(--st); }
+[data-theme='night'] .seg-pair button[aria-pressed='true'] { background: var(--raised); color: var(--vfd); text-shadow: var(--vfd-glow); }
+[data-theme='night'] .statusbar { background: var(--panel); border-top-color: var(--line-strong); }
+/* Meters are stepped bar gauges: unlit steps behind, lit ones in the meter's colour, glowing. */
+[data-theme='night'] .meter { height: 10px; background: repeating-linear-gradient(90deg, #10201F 0 4px, transparent 4px 6px); }
+[data-theme='night'] .meter > span { -webkit-mask: repeating-linear-gradient(90deg, #000 0 4px, transparent 4px 6px); mask: repeating-linear-gradient(90deg, #000 0 4px, transparent 4px 6px); filter: drop-shadow(0 0 3px rgba(80, 240, 220, 0.5)); }
+[data-theme='night'] .sb-v { color: var(--vfd); text-shadow: var(--vfd-glow); }
+
 /* Segmented meters already show their scale: no quarter cuts; the pace mark takes the theme's ink. */
-:is([data-theme='muthur'], [data-theme='brown'], [data-theme='console']) .meter-q { display: none; }
+:is([data-theme='muthur'], [data-theme='brown'], [data-theme='console'], [data-theme='night']) .meter-q { display: none; }
 [data-theme='brown'] .sb-meter .meter-pace { background: #1E2618; }
 
 /* ================================================================

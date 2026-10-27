@@ -20,23 +20,39 @@ export const sessionTasks = (snapshot: TasksSnapshot | null, sessionId: string):
 export { sessionPrs, type SessionPr } from '@shared/links'
 
 const CI_LABEL: Record<Ci, [string, string]> = {
-  pass: ['CI passing', 'var(--ok)'],
-  fail: ['CI failing', 'var(--bad)'],
-  pending: ['CI running', 'var(--info)'],
+  pass: ['passing', 'var(--ok)'],
+  fail: ['failing', 'var(--bad)'],
+  pending: ['running', 'var(--info)'],
   none: ['no CI', 'var(--faint)'],
 }
+// The session bar lists PRs worst CI first, so trouble is never behind +N.
+const CI_RANK: Record<Ci, number> = { fail: 0, pending: 1, none: 2, pass: 3 }
+const SHOWN_PRS = 3
+// The PR a session bar segment asked for: a new GitHub view has no URL yet when the sidebar mounts.
+let wantedPr: string | null = null
+const prNumber = (url: string) => /\/pull\/(\d+)/.exec(url)?.[1] ?? ''
 
 /**
  * The session bar under the taskbar, belonging to the open session: its task (status rail, title, status) and its
  * PR (CI state), each opening its sidebar, and the branch at the right.
  */
 export function SessionBar({ session }: { session: Session }) {
-  const { tasks, git, runpr, side, toggle } = useStore(useShallow((s) => ({ tasks: s.tasks, git: s.git, runpr: s.runpr, side: s.sessionSides[session.id] ?? null, toggle: s.toggleSessionSide })))
+  const { tasks, git, runpr, side, toggle, setSessionSide } = useStore(useShallow((s) => ({ tasks: s.tasks, git: s.git, runpr: s.runpr, side: s.sessionSides[session.id] ?? null, toggle: s.toggleSessionSide, setSessionSide: s.setSessionSide })))
   const taskId = sessionTasks(tasks, session.id)[0]
   const task = taskId ? tasks?.tasks.find((t) => t.id === taskId) : undefined
   const prs = sessionPrs(session.id, tasks, git, runpr)
-  const pr = prs[0]
-  const ci = pr?.ci ? CI_LABEL[pr.ci] : null
+  const ranked = [...prs].sort((a, b) => (a.ci ? CI_RANK[a.ci] : 2.5) - (b.ci ? CI_RANK[b.ci] : 2.5))
+  const shown = prs.length > SHOWN_PRS ? ranked.slice(0, SHOWN_PRS) : ranked
+  const hidden = ranked.slice(shown.length)
+  const paneUrl = useStore((s) => s.pane?.prUrl)
+  const prOpen = (url: string) => side === 'pr' && paneUrl === url
+  // A PR's segment opens the sidebar on it, or closes the sidebar when it's the one shown.
+  const openPr = async (url: string) => {
+    if (prOpen(url)) return setSessionSide(null)
+    wantedPr = url
+    await window.workbench.pane.open(url)
+    setSessionSide('pr')
+  }
   return (
     <div className="session-bar">
       <span className="faint">session</span>
@@ -58,15 +74,39 @@ export function SessionBar({ session }: { session: Session }) {
         )}
         <span className="faint">⌘I</span>
       </button>
-      {pr && (
-        <button className={`sbar-btn pad${side === 'pr' ? ' on' : ''}`} aria-pressed={side === 'pr'} title={`${pr.title} (⌘⇧I)`} onClick={() => toggle('pr')}>
-          <GitHubIcon />
-          {ci && <span style={{ color: ci[1] }}>● {ci[0]}</span>}
-          {prs.length > 1 && <span className="faint">+{prs.length - 1}</span>}
+      {shown.length > 0 && (
+        <>
+          <span className="sbar-gh">
+            <GitHubIcon />
+          </span>
+          {shown.map((p) => {
+            const ci = p.ci ? CI_LABEL[p.ci] : null
+            return (
+              <button
+                key={p.url}
+                className={`sbar-btn seg${prOpen(p.url) ? ' on' : ''}`}
+                aria-pressed={prOpen(p.url)}
+                title={`${p.title} · ${p.label} #${prNumber(p.url)}${ci ? ` · CI ${ci[0]}` : ''}`}
+                onClick={() => void openPr(p.url)}
+              >
+                <span>{p.label}</span>
+                {ci && <span style={{ color: ci[1] }}>● {ci[0]}</span>}
+              </button>
+            )
+          })}
+          {hidden.length > 0 && (
+            <button
+              className={`sbar-btn seg${hidden.some((p) => prOpen(p.url)) ? ' on' : ''}`}
+              title={hidden.map((p) => p.title).join('\n')}
+              onClick={() => void openPr(hidden.find((p) => prOpen(p.url))?.url ?? hidden[0]!.url)}
+            >
+              <span className="faint">+{hidden.length}</span>
+            </button>
+          )}
           <span className="faint">⌘⇧I</span>
-        </button>
+        </>
       )}
-      {!pr && (
+      {!prs.length && (
         <LinkPrButton sessionId={session.id} className="sbar-btn pad">
           <GitHubIcon />
           <span className="muted">link PR…</span>
@@ -84,10 +124,11 @@ export function PrSide({ session }: { session: Session }) {
   const { tasks, git, runpr, pane, setSessionSide } = useStore(useShallow((s) => ({ tasks: s.tasks, git: s.git, runpr: s.runpr, pane: s.pane, setSessionSide: s.setSessionSide })))
   const prs = sessionPrs(session.id, tasks, git, runpr)
   const current = prs.find((p) => pane?.prUrl === p.url)
-  const first = prs[0]?.url
-  // Show one of this session's PRs; a page the pane already has for one of them stays as it is.
+  const first = prs.find((p) => p.url === wantedPr)?.url ?? prs[0]?.url
+  // Show one of this session's PRs (the one a segment asked for, else the first); a page the pane already has for one of them stays as it is.
   useEffect(() => {
-    if (first && !current) void window.workbench.pane.open(first)
+    if (current) wantedPr = null
+    else if (first) void window.workbench.pane.open(first)
   }, [session.id, first, !!current])
 
   return (

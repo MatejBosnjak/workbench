@@ -147,6 +147,9 @@ let sid = null
 if (wantSession && t1) {
   const s = await api((id) => window.workbench.tasks.start(id), t1.id)
   sid = s.id
+  // A second PR, failing if I have one, so the session bar shows several (worst first).
+  const extra = git.mine.find((p) => p.ci === 'fail' && !(p.taskRefs ?? []).includes(t1.id)) ?? git.mine.find((p) => !(p.taskRefs ?? []).includes(t1.id))
+  if (extra) await api(([id, url]) => window.workbench.tasks.linkPr(id, url), [sid, extra.url])
   await click('.tab >> nth=-1')
   await until(async () => (await page.$eval('.term', (e) => e.innerText)).includes('lets look at this task'), 40_000)
   const send = async (text) => {
@@ -173,16 +176,16 @@ await shot('session-legend', async () => {
 })
 await shot('session-task-side', async () => {
   await session()
-  await click('.session-bar .sbar-btn:not(.pad)')
+  await click('.session-bar .sbar-btn:not(.pad):not(.seg)')
 })
-await click('.session-bar .sbar-btn:not(.pad)').catch(() => {})
+await click('.session-bar .sbar-btn:not(.pad):not(.seg)').catch(() => {})
 await shot('session-pr-side', async () => {
   await session()
-  await click('.session-bar .sbar-btn.pad')
-  await page.click('.sb-chip', { timeout: 5000 }).catch(() => {})
+  await click('.session-bar .sbar-btn.seg >> nth=0')
+  await page.click('.sb-chip:not(.lk-add)', { timeout: 5000 }).catch(() => {})
   await wait(5000)
 })
-await click('.session-bar .sbar-btn.pad').catch(() => {})
+await click('.session-bar .sbar-btn.seg.on').catch(() => {})
 const menu = (cmd) => app.evaluate(({ BrowserWindow }, c) => BrowserWindow.getAllWindows()[0].webContents.send('menu', c), cmd)
 await shot('focus', async () => {
   await session()

@@ -1010,6 +1010,11 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .sbar-btn.pad, .sbar-btn:not(:has(.sbar-rail)) { padding-left: 10px; }
 .sbar-btn:hover, .session-bar .new-sess:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
 .sbar-btn.on { background: var(--bg); color: var(--text); }
+/* PRs: the GitHub mark once, then a segment per PR with no hairlines between them. */
+.sbar-gh { position: relative; display: flex; align-items: center; height: 28px; padding-left: 4px; margin-right: -6px; color: var(--text-2); }
+.sbar-gh::before { content: ''; position: absolute; left: -6px; top: 6px; bottom: 6px; width: 1px; background: var(--line-heavy); }
+.sbar-btn.seg { gap: 8px; padding: 0 10px; }
+.sbar-btn.seg + .sbar-btn.seg::before { content: none; }
 .sbar-rail { width: 6px; align-self: stretch; background: var(--st); flex-shrink: 0; }
 .sbar-title { min-width: 0; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
 .sbar-cup-wrap { position: relative; margin-left: auto; }

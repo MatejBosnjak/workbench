@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { statusColors, type Person, type Task, type TaskComment, type TaskDetail } from '@shared/tasks'
 import { useShallow } from 'zustand/react/shallow'
-import { useStore } from '../store'
+import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
 
 /**
@@ -151,14 +151,14 @@ export function shortUrl(url: string): string {
   return gh ? `${gh[1]} ${url.includes('/issues/') ? 'issue' : 'PR'}` : url.replace(/^https?:\/\/(www\.)?/, '')
 }
 
-/** Plain text with its URLs as links that open in the browser. */
+/** Plain text with its URLs as links: productiveio PRs open in the pane (⌘-click the browser), the rest in the browser. */
 function Linked({ text }: { text: string }) {
   const parts = text.split(/(https?:\/\/[^\s<>"]+)/g)
   return (
     <>
       {parts.map((p, i) =>
         i % 2 ? (
-          <a key={i} href={p} title={p} onClick={(e) => (e.preventDefault(), void window.workbench.openExternal(p))}>
+          <a key={i} href={p} title={p} onClick={(e) => (e.preventDefault(), openPrLink(p, e.metaKey))}>
             {shortUrl(p)}
           </a>
         ) : (

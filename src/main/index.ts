@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import type { AgentSettings } from '@shared/agent'
 import { parsePrUrl, prRepo, shortRepo, type DraftTarget, type GitSnapshot, type Pr } from '@shared/git'
 import type { Person, SessionPrLink } from '@shared/tasks'
@@ -75,6 +75,14 @@ function createWindow(): BrowserWindow {
   w.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
     return { action: 'deny' }
+  })
+  // Right-click on an in-app link: the browser and the address, whatever a plain click does.
+  w.webContents.on('context-menu', (_e, p) => {
+    if (!/^https?:\/\//.test(p.linkURL)) return
+    Menu.buildFromTemplate([
+      { label: 'Open Link in Browser', click: () => void shell.openExternal(p.linkURL) },
+      { label: 'Copy Link Address', click: () => clipboard.writeText(p.linkURL) },
+    ]).popup({ window: w })
   })
   if (process.env.ELECTRON_RENDERER_URL) void w.loadURL(process.env.ELECTRON_RENDERER_URL)
   else void w.loadFile(join(import.meta.dirname, '../renderer/index.html'))

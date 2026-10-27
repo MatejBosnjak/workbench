@@ -187,7 +187,7 @@ Image: `docs/design/current/today-tasks.png`. Code: `TodayView.tsx` (Home, TaskS
 Image: `docs/design/current/today-task-card.png`. Code: `TaskPreview.tsx`, `TaskDetails.tsx`, `Chips.tsx`.
 
 - **Card** (box titled `<project> › <task list>`): the parent (opens its workstream), the title (links to Productive, underlined in the status colour) with the **status button** (Productive's pastel tag; ▾ menu of the workflow's statuses, keyboard-navigable; a pick applies at once, no confirm), due and last activity.
-- **PR** row: PR chips (▶ Run app on frontend ones); GitHub links in the Productive description, to-dos and comments read `frontend PR` (the URL in the tooltip); **sessions (N)** with **link ✻** to link an open session by hand.
+- **PR** row: PR chips (▶ Run app on frontend ones); GitHub links in the Productive description, to-dos and comments read `frontend PR` (the URL in the tooltip) and open in the GitHub pane like any productiveio PR link (⌘-click or right-click for the browser; other links open the browser); **sessions (N)** with **link ✻** to link an open session by hand.
 - Linked sessions: mark, time, first prompt; a yellow unlink icon (always shown) unlinks. **left off**: Summarize / refresh runs `claude -p --model haiku` over the latest linked transcript's tail; cached per session.
 - On the box's bottom edge: **+ new ✻** (always a new session) and **⏎ continue** (switch to the live session, open the latest tab, or resume it; hidden with no session).
 - **Productive box** below it: description (URLs clickable); **to-dos** with done count, `+` add form (text, assignee from my colleagues or unassigned), hide/show done; each to-do has a checkbox and an assignee avatar with a searchable people picker. On someone else's task, my open to-dos are highlighted. **comments** newest first under a composer that's one quiet line until focused, then three lines with `@` tagging (tags notify), post, and **draft with Claude**.
@@ -232,11 +232,12 @@ Image: `docs/design/current/github-pane.png`. Code: `GitPane.tsx`, `PrLinks.tsx`
 
 ## Links: tasks, PRs, sessions
 
-Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `session.png`. Code: `src/shared/links.ts`, `Chips.tsx`, `linker.ts`.
+Image: chips appear in `today-tasks.png`, `today-prs.png`, `github-pane.png`, `session.png`. Code: `src/shared/links.ts`, `Chips.tsx`, `linker.ts`, `src/main/index.ts` (the link right-click menu).
 
 - Worked out once in `links.ts` for every view (task row, card, session bar, GitHub pane, PR lists, Needs you) and for `wb status`, so they always agree. A session's PRs (`sessionPrs`) live there too, shared by the renderer and the main process.
 - **Task chip:** status rail, Productive logo, title. Click shows it in My tasks; ⌘-click opens Productive.
 - **PR chip:** GitHub logo, title, CI dot. Click opens the pane; ⌘-click the browser.
+- **Right-click** on any link in the app's own pages (Productive text, cards) offers Open Link in Browser and Copy Link Address, whatever a plain click does. Chips and other button links don't have it (⌘-click them instead).
 - **Session mark:** ● running / ● waiting / ● failed in the tab colours, ○ idle (tab open, claude exited), ↺ closed (resume). "Best" session = live first, then most recent.
 - Chips cut short grow into the full title after 120ms hover or on focus (10% larger, state in words, accent glow, drawn above everything, growing leftwards near the right edge); no animation with reduced motion.
 - **+ new ✻** (the spark means "session") always starts a new session on the task: tab named after it without its repo prefix (`FE: Service markup…` → `Service markup…`; FE/BE/AI agent/API/E2E…), linked "started from this task", in the task's worktree if one exists, and its first prompt prefilled (`lets look at this task <url> `) once claude's input box is up. A task session that never got a prompt gets the prompt again whenever it starts fresh.

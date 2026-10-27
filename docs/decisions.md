@@ -83,3 +83,7 @@ Personal local GUI for working with Claude Code instead of the terminal: today's
 ## realtime is a service, meilisearch stays a brew chip
 
 Measured idle: realtime (nodemon + node) ~0% CPU and ~40–60 MB, meilisearch ~0% and under 30 MB, so both can run all the time. realtime goes in the profiles that run the app (full, Frontend only) so its socket is there when the app is. meilisearch stays a brew service: it isn't tied to a checkout, and with no master key (launchd doesn't read `~/.zprofile`) it accepts the API's key anyway.
+
+## Running tab: a faint dot ring that moves
+
+A tab title cut with `…` next to the `···` running glyph read as two ellipses. The title now fades instead of being cut, and running is a braille cell's six dots, all always shown, with a soft highlight going round (canvas: TabRunGlyph, E3 picked over a full-contrast spinner and calmer stand-ins). It's the one loop in the app, kept as low-contrast as it can be while still showing the session is alive. Drawn in CSS rather than by swapping braille characters each frame, which stepped and jittered.

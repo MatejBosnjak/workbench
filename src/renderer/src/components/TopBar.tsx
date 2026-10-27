@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Session, SessionState } from '@shared/types'
 import { activeSessionId, useOverlay, useStore } from '../store'
 import { CaffeinateButton, holdOf } from './CaffeinateControl'
@@ -364,10 +364,7 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
           }}
         />
       ) : (
-        <span className="tab-title">
-          {n <= 9 ? `${n} ` : ''}
-          {s.title}
-        </span>
+        <TabTitle text={`${n <= 9 ? `${n} ` : ''}${s.title}`} />
       )}
       {!editing && <StateGlyph session={s} />}
       {cup && (
@@ -386,5 +383,25 @@ function Tab({ n, session: s, selected, dropBefore, cup, onSelect, onClose, onMe
         ×
       </button>
     </div>
+  )
+}
+
+/** A tab's title. One too long for the tab fades out at its end instead of ending in …, so it never runs into the running glyph. */
+function TabTitle({ text }: { text: string }) {
+  const el = useRef<HTMLSpanElement>(null)
+  const [cut, setCut] = useState(false)
+  useLayoutEffect(() => {
+    const e = el.current
+    if (!e) return
+    const check = () => setCut(e.scrollWidth > e.clientWidth)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(e)
+    return () => ro.disconnect()
+  }, [text])
+  return (
+    <span ref={el} className={`tab-title${cut ? ' cut' : ''}`}>
+      {text}
+    </span>
   )
 }

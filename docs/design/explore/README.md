@@ -31,5 +31,6 @@ Each file is a self-contained HTML mock: the markup sits inside `<x-dc>`, and th
 | `SessionTabsThemes.dc.html` | Chosen: per-theme palettes and MU/TH/UR sigils; the number-in-a-tile shape was not built (the bar was picked) | `theme-*-session.png` |
 | `SessionTabsLive.dc.html` | Reference: now vs new, animated, with what we lose and gain | — |
 | `SessionBarPrs.dc.html` | Chosen: **B · repo + CI word, worst first**; a segment per PR, numbers in the tooltip | `session.png`, `session-pr-side.png` |
+| `TabRunGlyph.dc.html` | Chosen: **C + E3** · titles fade instead of …; running is a dim six-dot ring with a soft highlight going round | `session.png` |
 
 When a new exploration is picked: mark its row here (Chosen: X), build it, then `pnpm snap` and update `docs/SPEC.md` in the same commit.

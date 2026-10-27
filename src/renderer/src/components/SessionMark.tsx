@@ -23,11 +23,17 @@ export function stateTip(s: Session): string | null {
   return null
 }
 
-/** State without colour: ? waiting, ··· running, ! failed, ◷ background work out, nothing when idle. Hover says which. */
+/** State without colour: ? waiting, a dim six-dot ring with a highlight going round for running, ! failed, ◷ background work out, nothing when idle. Hover says which. */
 export function StateGlyph({ session: s }: { session: Session }) {
   const tip = stateTip(s) ?? undefined
   if (s.state === 'waiting') return <span className="st-glyph st-q" role="img" aria-label={tip} title={tip}>?</span>
-  if (s.state === 'running') return <span className="st-glyph st-run" role="img" aria-label={tip} title={tip}>···</span>
+  if (s.state === 'running') return (
+      <span className="st-glyph st-run" role="img" aria-label={tip} title={tip}>
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <i key={i} />
+        ))}
+      </span>
+    )
   if (s.state === 'failed') return <span className="st-glyph st-fail" role="img" aria-label={tip} title={tip}>!</span>
   if (s.background?.length) return <span className="st-glyph st-bg" role="img" aria-label={tip} title={tip}>◷</span>
   return null

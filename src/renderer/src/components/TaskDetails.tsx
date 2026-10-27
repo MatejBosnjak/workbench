@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { statusColors, type Person, type Task, type TaskComment, type TaskDetail } from '@shared/tasks'
+import { createContext, Fragment, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
+import { statusColors, taskIdsFromText, type Person, type Task, type TaskComment, type TaskDetail } from '@shared/tasks'
 import { useShallow } from 'zustand/react/shallow'
 import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
@@ -16,10 +17,13 @@ const put = (id: string, d: TaskDetail) => {
 }
 const subscribe = (l: () => void) => (listeners.add(l), () => void listeners.delete(l))
 
+/** A task's title from its last fetched detail, if it has been shown. */
+export const cachedTitle = (id: string): string | undefined => cache.get(id)?.task.title
+
 const clean = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
 /** The task's detail, fetched fresh each time the task is shown. */
-function useTaskDetail(taskId: string): {
+export function useTaskDetail(taskId: string): {
   detail: TaskDetail | null
   error: string | null
   retry(): void
@@ -151,21 +155,111 @@ export function shortUrl(url: string): string {
   return gh ? `${gh[1]} ${url.includes('/issues/') ? 'issue' : 'PR'}` : url.replace(/^https?:\/\/(www\.)?/, '')
 }
 
-/** Plain text with its URLs as links: productiveio PRs open in the pane (⌘-click the browser), the rest in the browser. */
+/** Opens a Productive task in the sidebar showing this one (TaskTrail); without it, task links open Productive. */
+export const TaskNav = createContext<((id: string) => void) | null>(null)
+
+/**
+ * Plain text with its URLs as links: productiveio PRs open in the pane, Productive tasks in the sidebar (titled, with a
+ * hover card), the rest in the browser. ⌘-click always opens the browser.
+ */
 function Linked({ text }: { text: string }) {
+  const nav = useContext(TaskNav)
+  const tasks = useStore((s) => s.tasks?.tasks)
+  const [card, setCard] = useState<{ id: string; url: string; x: number; y: number } | null>(null)
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
   const parts = text.split(/(https?:\/\/[^\s<>"]+)/g)
   return (
     <>
-      {parts.map((p, i) =>
-        i % 2 ? (
-          <a key={i} href={p} title={p} onClick={(e) => (e.preventDefault(), openPrLink(p, e.metaKey))}>
-            {shortUrl(p)}
+      {parts.map((p, i) => {
+        if (!(i % 2)) return <Fragment key={i}>{p}</Fragment>
+        const id = taskIdsFromText(p)[0]
+        if (!id)
+          return (
+            <a key={i} href={p} title={p} onClick={(e) => (e.preventDefault(), openPrLink(p, e.metaKey))}>
+              {shortUrl(p)}
+            </a>
+          )
+        return (
+          <a
+            key={i}
+            href={p}
+            onClick={(e) => {
+              e.preventDefault()
+              clearTimeout(timer.current)
+              setCard(null)
+              if (e.metaKey || !nav) void window.workbench.openExternal(p)
+              else nav(id)
+            }}
+            onMouseEnter={(e) => {
+              const at = { id, url: p, x: e.clientX, y: e.clientY }
+              clearTimeout(timer.current)
+              timer.current = setTimeout(() => setCard(at), 300)
+            }}
+            // A short grace period lets the pointer move onto the card (it has buttons).
+            onMouseLeave={() => (clearTimeout(timer.current), (timer.current = setTimeout(() => setCard(null), 250)))}
+          >
+            {tasks?.find((t) => t.id === id)?.title ?? cachedTitle(id) ?? 'Productive task'}
           </a>
-        ) : (
-          <Fragment key={i}>{p}</Fragment>
-        ),
-      )}
+        )
+      })}
+      {card &&
+        createPortal(
+          <TaskCard
+            {...card}
+            onOpen={nav ? () => (setCard(null), nav(card.id)) : undefined}
+            onEnter={() => clearTimeout(timer.current)}
+            onLeave={() => setCard(null)}
+          />,
+          document.body,
+        )}
     </>
+  )
+}
+
+/** The hover card on a task link: title, place, status, assignee and to-dos, with open here / Productive. */
+function TaskCard({ id, url, x, y, onOpen, onEnter, onLeave }: { id: string; url: string; x: number; y: number; onOpen?(): void; onEnter(): void; onLeave(): void }) {
+  const { detail, error } = useTaskDetail(id)
+  const t = detail?.task
+  const done = detail?.todos.filter((d) => d.closed).length ?? 0
+  const [bg, fg] = statusColors({ colorId: t?.statusColorId ?? null })
+  const left = Math.min(x, window.innerWidth - 380)
+  const top = y + 18 + 170 > window.innerHeight ? y - 180 : y + 18
+  return (
+    <div className="pr-card task-card-hover" role="dialog" aria-label="Task preview" style={{ left, top }} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+      {!detail && !error && <span className="muted">Loading task…</span>}
+      {!detail && error && <span className="bad-text">{error}</span>}
+      {t && detail && (
+        <>
+          <span className="pr-card-title">{t.title}</span>
+          <span className="pr-card-head">
+            {t.projectName}
+            {t.taskListName ? ` › ${t.taskListName}` : ''}
+          </span>
+          <span className="pr-card-meta">
+            <span className="tch-status" style={{ background: bg, color: fg }}>
+              {t.statusName}
+            </span>
+            <span>{t.assignedTo?.name ?? 'unassigned'}</span>
+            {detail.todos.length > 0 && (
+              <span>
+                to-dos {done}/{detail.todos.length}
+              </span>
+            )}
+          </span>
+          <span className="tch-actions">
+            {onOpen && (
+              <button className="ghost" onClick={onOpen}>
+                open here
+              </button>
+            )}
+            <button className="ghost" onClick={() => void window.workbench.openExternal(url)}>
+              ↗ Productive
+            </button>
+          </span>
+        </>
+      )}
+    </div>
   )
 }
 

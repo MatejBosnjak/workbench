@@ -1193,3 +1193,10 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 .tl-close:hover { color: var(--tl-red); }
 .tl-unlink:hover { color: var(--tl-yellow); }
 .tl-full:hover { color: var(--tl-green); }
+
+/* Task links: the hover card and the sidebar's ← back to the task before */
+.task-card-hover { pointer-events: auto; }
+.tch-status { padding: 0 6px; }
+.tch-actions { display: flex; gap: 8px; margin-top: 2px; }
+.tch-actions .ghost, .trail-back { margin-left: 0; }
+.trail-back { align-self: flex-start; margin-bottom: 6px; scroll-margin-top: 12px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }

@@ -12,6 +12,7 @@ import { GitPane } from './GitPane'
 import { LinkSuggest } from './LinkSuggest'
 import { TaskDetails } from './TaskDetails'
 import { LinkPrButton } from './LinkPicker'
+import { TaskTrail } from './TaskTrail'
 import { TaskPreview } from './TaskPreview'
 
 /** Tasks linked to the session, latest link first. */
@@ -186,8 +187,12 @@ export function TaskSide({ session }: { session: Session }) {
           </div>
         </Box>
       )}
-      {id && task && snapshot && <TaskPreview task={task} snapshot={snapshot} onClose={close} onUnlink={() => void window.workbench.tasks.unlink(session.id, task.id)} />}
-      {id && <TaskDetails taskId={id} withTitle={!task} />}
+      {id && (
+        <TaskTrail baseId={id} onClose={close}>
+          {task && snapshot && <TaskPreview task={task} snapshot={snapshot} onClose={close} onUnlink={() => void window.workbench.tasks.unlink(session.id, task.id)} />}
+          <TaskDetails taskId={id} withTitle={!task} />
+        </TaskTrail>
+      )}
     </aside>
   )
 }

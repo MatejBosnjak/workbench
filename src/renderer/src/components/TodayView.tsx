@@ -18,6 +18,7 @@ import { NeedPreview } from './NeedPreview'
 import { Avatar, TaskDetails } from './TaskDetails'
 import { SevenSeg } from './SevenSeg'
 import { statusCode, type ThemeId } from '@shared/theme'
+import { TaskTrail } from './TaskTrail'
 import { TaskPreview, taskPrimary } from './TaskPreview'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -300,11 +301,12 @@ function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab
   const item = tab === 'needs' ? needs.find((n) => n.key === peekNeed) : undefined
   if (item?.pr) return <NeedPreview item={item} tasks={snapshot} onOpen={() => openNeedItem(item, snapshot)} onClose={() => setPeekNeed(null)} />
   const task = tab === 'needs' ? (item?.task ?? null) : snapshot.tasks.find((t) => t.id === peekTask)
+  const close = () => (tab === 'needs' ? setPeekNeed(null) : setPeekTask(null))
   return task ? (
-    <>
-      <TaskPreview task={task} snapshot={snapshot} onClose={() => (tab === 'needs' ? setPeekNeed(null) : setPeekTask(null))} />
+    <TaskTrail baseId={task.id} onClose={close}>
+      <TaskPreview task={task} snapshot={snapshot} onClose={close} />
       <TaskDetails taskId={task.id} />
-    </>
+    </TaskTrail>
   ) : (
     <Box title={tab === 'needs' ? 'Preview' : 'Task'}>
       <span className="faint">{tab === 'needs' ? 'Click an item or press ⏎ to see it here; ⏎ again or a double-click opens it.' : 'Select a task with j / k or a click.'}</span>

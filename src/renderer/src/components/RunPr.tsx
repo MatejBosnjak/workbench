@@ -45,7 +45,7 @@ export function RunAppButton({ repo, n, compact = false }: { repo: string; n: nu
       <button
         className="run-btn"
         disabled={busy}
-        title={busy ? 'Another run is in progress' : api ? 'Serve this PR as the api: puma-dev and sidekiq move to its worktree (or the base checkout), after bundle and db:migrate' : 'Run this PR in the app'}
+        title={busy ? 'Another run is in progress' : api ? 'Serve this PR as the api: puma-dev and sidekiq move to its worktree (or the base checkout), after bundle, db:migrate and data:migrate' : 'Run this PR in the app'}
         onClick={(e) => (e.stopPropagation(), void runPr(n, { target }))}
       >
         <Play /> Run {target}

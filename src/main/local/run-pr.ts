@@ -25,7 +25,7 @@ class Cancelled extends Error {}
  * Puts a frontend PR into the `app` service: its worktree when there is one, otherwise the base checkout
  * (the folder `app` is configured with) after fetch → checkout → install → package build.
  * An api PR goes to the api the same way: puma-dev's link and the `api` service (sidekiq) move to its worktree
- * or the base checkout, after config links → bundle → db:migrate. One job at a time across both.
+ * or the base checkout, after config links → bundle → db:migrate → data:migrate. One job at a time across both.
  */
 export class RunPr {
   private job: RunJob | null = null
@@ -313,6 +313,7 @@ export class RunPr {
       ...(wt ? [] : [step('checkout', `git checkout ${ref}`, svc.branch ? `was: ${svc.branch}` : null)]),
       step('bundle', 'bundle install'),
       step('migrate', 'rails db:migrate', 'shared dev database'),
+      step('data', 'rails data:migrate', 'pending data migrations'),
       step('puma', 'point puma-dev here', basename(link)),
       step('start', 'start sidekiq'),
       step('wait', 'wait for the api to answer'),
@@ -357,6 +358,7 @@ export class RunPr {
       this.repo.setSetting('runapi:back', back)
       await this.step('bundle', () => this.bundle(path))
       await this.step('migrate', () => this.migrate(path))
+      await this.step('data', () => this.dataMigrate(path))
       await this.step('puma', () => this.pointPuma(link, path))
       await this.step('start', async () => {
         await this.local.setCwd(svc.name, path)
@@ -457,6 +459,11 @@ export class RunPr {
     const clean = !(await gitOut(cwd, ['status', '--porcelain', 'db/schema.rb']))?.trim()
     await this.sh('bundle', ['exec', 'rails', 'db:migrate'], cwd, { ANNOTATERB_SKIP_ON_DB_TASKS: '1' })
     if (clean && (await gitOut(cwd, ['status', '--porcelain', 'db/schema.rb']))?.trim()) await this.sh('git', ['checkout', '--', 'db/schema.rb'], cwd)
+  }
+
+  /** data:migrate: without it every api request raises PendingDataMigrationError in development; a no-op when none are pending. */
+  private async dataMigrate(cwd: string): Promise<void> {
+    await this.sh('bundle', ['exec', 'rails', 'data:migrate'], cwd)
   }
 
   /** Repoints the link and stops puma-dev's apps, so the next request boots from the new folder. */

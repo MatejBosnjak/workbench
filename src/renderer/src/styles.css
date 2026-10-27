@@ -418,6 +418,9 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .link-btn { border: 0; background: transparent; color: var(--link); cursor: pointer; padding: 0; font-size: inherit; }
 .link-btn:hover { color: var(--link-hover); }
+/* A CI word that opens its Semaphore run: looks like the text it was, underlines on hover. */
+.ci-link { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0; font: inherit; }
+.ci-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .sync { display: flex; align-items: center; gap: 8px; color: var(--faint); font-weight: 400; }
 
 /* Today */

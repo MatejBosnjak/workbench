@@ -2,6 +2,16 @@
 
 export type Ci = 'pass' | 'fail' | 'pending' | 'none'
 
+/** Where a CI word links when the PR's checks name no Semaphore run. */
+export const SEMAPHORE_URL = 'https://productive.semaphoreci.com/'
+
+/** The Semaphore run behind a PR's checks: a failing one first, then one still running, then any; null when none is Semaphore's. */
+export function semaphoreRun(checks: { state?: string | null; url?: string | null }[]): string | null {
+  const runs = checks.filter((c) => c.url && /semaphoreci\.com\//.test(c.url))
+  const pick = runs.find((c) => /FAIL|ERROR/i.test(c.state ?? '')) ?? runs.find((c) => /PENDING|EXPECTED/i.test(c.state ?? '')) ?? runs[0]
+  return pick?.url ?? null
+}
+
 export interface GhMessage {
   id: string
   author: string
@@ -40,6 +50,8 @@ export interface Pr {
   draft: boolean
   reviewDecision: string | null
   ci: Ci
+  /** The Semaphore run behind `ci`, when its checks name one. */
+  ciUrl: string | null
   conflict: boolean
   branch: string
   headSha: string

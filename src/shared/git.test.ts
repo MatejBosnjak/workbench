@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { askedForChanges, gitEvents, groupByStage, groupReviews, mergeChecks, mergeScore, needsReply, parsePrUrl, type Conversation, type Pr } from './git'
+import { askedForChanges, gitEvents, groupByStage, groupReviews, mergeChecks, mergeScore, needsReply, parsePrUrl, semaphoreRun, type Conversation, type Pr } from './git'
 
 let n = 0
 const pr = (p: Partial<Pr>): Pr => ({
@@ -14,6 +14,7 @@ const pr = (p: Partial<Pr>): Pr => ({
   draft: false,
   reviewDecision: 'REVIEW_REQUIRED',
   ci: 'pass',
+  ciUrl: null,
   conflict: false,
   branch: 'b',
   headSha: 'sha',
@@ -121,5 +122,17 @@ describe('parsePrUrl', () => {
   it('cleans a pasted PR URL and rejects anything else', () => {
     expect(parsePrUrl(' https://github.com/productiveio/frontend/pull/30301/files?w=1 ')).toEqual({ owner: 'productiveio', repo: 'frontend', number: 30301, url: 'https://github.com/productiveio/frontend/pull/30301' })
     expect(parsePrUrl('https://github.com/productiveio/frontend/issues/3')).toBeNull()
+  })
+})
+
+describe('semaphoreRun', () => {
+  const sem = (id: string) => `https://productive.semaphoreci.com/workflows/${id}?pipeline_id=p`
+  it('links the failing run first, then a running one, then any', () => {
+    expect(semaphoreRun([{ state: 'SUCCESS', url: sem('a') }, { state: 'FAILURE', url: sem('b') }, { state: 'PENDING', url: sem('c') }])).toBe(sem('b'))
+    expect(semaphoreRun([{ state: 'SUCCESS', url: sem('a') }, { state: 'PENDING', url: sem('c') }])).toBe(sem('c'))
+    expect(semaphoreRun([{ state: 'SUCCESS', url: sem('a') }])).toBe(sem('a'))
+  })
+  it('ignores checks that are not Semaphore', () => {
+    expect(semaphoreRun([{ state: 'FAILURE', url: 'https://github.com/o/r/actions/runs/1' }, {}])).toBeNull()
   })
 })

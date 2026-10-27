@@ -6,7 +6,7 @@ import type { TasksSnapshot } from '@shared/tasks'
 import { useKeyTarget } from '../keys'
 import { openInPane, useStore } from '../store'
 import { Box } from './Box'
-import { TaskChip } from './Chips'
+import { CiLink, TaskChip } from './Chips'
 import { RunAppButton, runPr } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -260,14 +260,17 @@ function Reviewers({ p, author }: { p: Pr; author?: boolean }) {
 }
 
 /** Merge checks one under another, short labels with the full one as a tooltip. */
-function Checks({ checks }: { checks: MergeCheck[] }) {
+function Checks({ checks, ciUrl }: { checks: MergeCheck[]; ciUrl: string | null }) {
   return (
     <div className="pr-checks">
-      {checks.map((c) => (
-        <span key={c.key} className={`pr-check ${c.state}`} title={c.label}>
-          {c.key === 'ci' ? (c.state === 'wait' ? 'CI running' : 'CI') : c.key === 'conflicts' ? (c.state === 'bad' ? 'conflict' : 'merge') : c.state === 'ok' ? 'threads' : c.label.replace(/ open/, '')} {c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'}
-        </span>
-      ))}
+      {checks.map((c) => {
+        const text = `${c.key === 'ci' ? (c.state === 'wait' ? 'CI running' : 'CI') : c.key === 'conflicts' ? (c.state === 'bad' ? 'conflict' : 'merge') : c.state === 'ok' ? 'threads' : c.label.replace(/ open/, '')} ${c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'}`
+        return (
+          <span key={c.key} className={`pr-check ${c.state}`} title={c.label}>
+            {c.key === 'ci' && c.label !== 'no CI' ? <CiLink url={ciUrl}>{text}</CiLink> : text}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -308,7 +311,7 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
       </div>
       <Reviewers p={p} />
       <div className="pr-end">
-        <Checks checks={checks.filter((c) => c.key !== 'reviews')} />
+        <Checks checks={checks.filter((c) => c.key !== 'reviews')} ciUrl={p.ciUrl} />
         <div className="pr-go">
           <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
             {score}/4
@@ -397,7 +400,7 @@ function ReviewRow({ p, tasks, focused, selected, tone }: { p: Pr; tasks: TasksS
       </div>
       <Reviewers p={p} author />
       <div className="pr-end">
-        <Checks checks={checks} />
+        <Checks checks={checks} ciUrl={p.ciUrl} />
         <div className="pr-go">
           {p.repo === 'productiveio/frontend' && (
             <span className="pr-run">

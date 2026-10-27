@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { semaphoreRun } from '@shared/git'
 import type { PrInfo } from '@shared/types'
 import { shellEnv, which } from './shell-env'
 
@@ -11,6 +12,7 @@ interface Check {
   conclusion?: string | null
   status?: string | null
   state?: string | null
+  targetUrl?: string | null
 }
 
 /** Rolls the checks up the way GitHub's PR badge does: any failure wins, then anything unfinished. */
@@ -64,6 +66,7 @@ async function fetchPr(url: string, repo: string): Promise<PrInfo | null> {
             isDraft: d.isDraft,
             reviewDecision: d.reviewDecision || null,
             checks: rollup(d.statusCheckRollup ?? []),
+            ciUrl: semaphoreRun((d.statusCheckRollup ?? []).map((c) => ({ state: c.state, url: c.targetUrl }))),
           })
         } catch {
           resolve(null)

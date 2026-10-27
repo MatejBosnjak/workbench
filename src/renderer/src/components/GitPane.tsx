@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { prRef, prRepo, shortRepo, type Pr } from '@shared/git'
 import { FE_REPO } from '@shared/runpr'
 import { useStore } from '../store'
-import { UnlinkIcon } from './Chips'
+import { CiLink, UnlinkIcon } from './Chips'
 import { PrLinks } from './PrLinks'
 import { RunAppButton } from './RunPr'
 import { useShallow } from 'zustand/react/shallow'
@@ -117,9 +117,9 @@ export function GitPane({
       <span className="gp-title">{pr?.title ?? pane?.title ?? ''}</span>
       {state && <span className={`gp-state st-${state.replace(' ', '-')}`}>{state}</span>}
       {pr && (
-        <span style={{ color: ciColor }} title={ciText}>
+        <CiLink url={pr.ciUrl} color={ciColor}>
           ●{side ? ` ${ciText}` : ''}
-        </span>
+        </CiLink>
       )}
       {replies > 0 && (
         <span className="gp-reply" title={`${replies} ${replies === 1 ? 'reply' : 'replies'} needed`}>

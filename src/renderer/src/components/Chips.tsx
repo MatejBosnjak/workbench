@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import type { Ci, Pr } from '@shared/git'
+import { SEMAPHORE_URL, type Ci, type Pr } from '@shared/git'
 import { MARK_GLYPH, MARK_WORD, type LinkedSession, type Mark } from '@shared/links'
 import { statusVivid, type Task } from '@shared/tasks'
 import { openPrLink, useStore } from '../store'
@@ -49,6 +49,23 @@ export const Spark = () => (
 export const MarkGlyph = ({ mark }: { mark: Mark }) => <span className={`mk-${mark}`}>{MARK_GLYPH[mark]}</span>
 
 const CI_WORD: Record<Ci, string> = { pass: 'CI passing', fail: 'CI failing', pending: 'CI running', none: 'no CI' }
+
+/** A CI word that opens the PR's Semaphore run in the browser, or Semaphore itself when the checks name no run. */
+export function CiLink({ url, color, children }: { url: string | null; color?: string; children: ReactNode }) {
+  return (
+    <button
+      className="ci-link"
+      style={color ? { color } : undefined}
+      title={url ? 'Open the Semaphore run in the browser' : 'Open Semaphore in the browser'}
+      onClick={(e) => {
+        e.stopPropagation()
+        void window.workbench.openExternal(url ?? SEMAPHORE_URL)
+      }}
+    >
+      {children}
+    </button>
+  )
+}
 
 export async function goToSession(s: Pick<LinkedSession, 'id' | 'open'>): Promise<void> {
   if (!s.open) await window.workbench.reopenSession(s.id)

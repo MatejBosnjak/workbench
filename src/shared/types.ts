@@ -110,6 +110,8 @@ export interface PrInfo {
   reviewDecision: string | null
   /** Rolled-up CI: SUCCESS, FAILURE, PENDING, or null when there are no checks. */
   checks: 'SUCCESS' | 'FAILURE' | 'PENDING' | null
+  /** The Semaphore run behind `checks`, when they name one. */
+  ciUrl: string | null
   repo: string
 }
 

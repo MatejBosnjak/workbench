@@ -1,6 +1,7 @@
 import { shortRepo } from '@shared/git'
 import { useEffect, useState } from 'react'
 import type { PrInfo } from '@shared/types'
+import { CiLink } from './Chips'
 import { RunAppButton } from './RunPr'
 
 export interface CardAnchor {
@@ -51,7 +52,7 @@ export function PrCard({ anchor, onEnter, onLeave }: { anchor: CardAnchor; onEnt
           <span className="pr-card-meta">
             <span style={{ color: stateOf(pr)[1] }}>{stateOf(pr)[0]}</span>
             {pr.reviewDecision && <span>{REVIEW[pr.reviewDecision] ?? pr.reviewDecision}</span>}
-            {pr.checks && <span style={{ color: CHECKS[pr.checks][1] }}>{CHECKS[pr.checks][0]}</span>}
+            {pr.checks && <CiLink url={pr.ciUrl} color={CHECKS[pr.checks][1]}>{CHECKS[pr.checks][0]}</CiLink>}
           </span>
           {pr.repo === 'productiveio/frontend' && pr.state === 'OPEN' && <RunAppButton n={pr.number} />}
           <span className="pop-note">Click opens it in Workbench · ⌘-click opens the browser</span>

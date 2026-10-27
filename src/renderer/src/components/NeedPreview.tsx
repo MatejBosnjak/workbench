@@ -7,7 +7,7 @@ import type { NeedItem } from '../needs'
 import { tomorrowMorning, UNTIL_CHANGED } from '../needs'
 import { useStore } from '../store'
 import { Box } from './Box'
-import { NewSessionButton, SessionChip, TaskChip } from './Chips'
+import { CiLink, NewSessionButton, SessionChip, TaskChip } from './Chips'
 import { replyInPane } from './GitView'
 import { RunAppButton } from './RunPr'
 
@@ -34,7 +34,7 @@ export function NeedPreview({ item, tasks, onOpen, onClose }: { item: NeedItem; 
     <Box title="PR" className="peek" aside={<button className="icon-btn" aria-label="Close" onClick={onClose}>×</button>}>
       <span className={`need-kind need-${item.kind.replace(' ', '-')}`}>{item.kind}</span>
       <span className="gp-ref">
-        {prRepo(p)} <span style={{ color: ciColor, fontWeight: 400 }}>● {ciText}</span>
+        {prRepo(p)} <CiLink url={p.ciUrl} color={ciColor}>● {ciText}</CiLink>
       </span>
       <h2 className="peek-title">{p.title}</h2>
       <div className="kv">

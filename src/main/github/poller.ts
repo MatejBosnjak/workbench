@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import type { Ci, Conversation, GhMessage, Pr, Reviewer } from '@shared/git'
-import { isBot } from '@shared/git'
+import { isBot, semaphoreRun } from '@shared/git'
 import { taskIdsFromText } from '@shared/tasks'
 import { shellEnv, which } from '../shell-env'
 import type { Repo } from '../store/repo'
@@ -11,7 +11,7 @@ const PR_FIELDS = `
   id number title url isDraft createdAt updatedAt headRefName headRefOid body reviewDecision mergeable
   repository { nameWithOwner name }
   author { login __typename avatarUrl(size: 48) }
-  commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state } } } }
+  commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state contexts(first: 40) { nodes { ... on StatusContext { state targetUrl } } } } } } }
   reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login avatarUrl(size: 48) } } } }
   latestReviews(first: 10) { nodes { state author { login avatarUrl(size: 48) } } }
 `
@@ -78,7 +78,7 @@ interface RawPr {
   mergeable: string
   repository: { nameWithOwner: string; name: string }
   author: Actor | null
-  commits: { nodes: { commit: { committedDate?: string; statusCheckRollup: { state: string } | null } }[] }
+  commits: { nodes: { commit: { committedDate?: string; statusCheckRollup: { state: string; contexts?: { nodes: { state?: string; targetUrl?: string | null }[] } } | null } }[] }
   reviewRequests?: { nodes: { requestedReviewer: { login?: string; avatarUrl?: string } | null }[] }
   latestReviews?: { nodes: { state: string; author: { login: string; avatarUrl?: string } | null }[] }
   reviewThreads?: { nodes: { id: string; isResolved: boolean; path: string; head: { nodes: { diffHunk: string }[] }; comments: { nodes: RawComment[] } }[] }
@@ -185,6 +185,7 @@ function toPr(p: RawPr, withTalk: boolean, viewer = ''): Pr {
     draft: p.isDraft,
     reviewDecision: p.reviewDecision || null,
     ci: ci(p),
+    ciUrl: semaphoreRun((p.commits.nodes[0]?.commit.statusCheckRollup?.contexts?.nodes ?? []).map((c) => ({ state: c.state, url: c.targetUrl }))),
     conflict: p.mergeable === 'CONFLICTING',
     branch: p.headRefName,
     headSha: p.headRefOid,

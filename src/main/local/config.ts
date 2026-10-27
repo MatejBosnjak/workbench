@@ -32,6 +32,7 @@ export const DEFAULT_CONFIG: LocalConfig = {
       repo: 'frontend',
     },
     { name: 'api', cwd: join(P, 'api'), command: 'bundle exec sidekiq', panes: 0, profiles: ['full', 'frontend', 'ai', 'exports'], repo: 'api' },
+    { name: 'realtime', cwd: join(P, 'realtime'), command: 'npm start', port: 4220, panes: 0, profiles: ['full', 'frontend'] },
     { name: 'e2e-tests', cwd: join(P, 'e2e-tests'), command: 'npm run cli', panes: 1, profiles: ['full'], repo: 'e2e-tests' },
     { name: 'exporter', cwd: join(P, 'exporter'), command: 'npm run start', panes: 0, profiles: ['full', 'exports'] },
     { name: 'pdf-generator', cwd: join(P, 'pdf-generator'), command: 'npm run start', panes: 0, profiles: ['full', 'exports'] },

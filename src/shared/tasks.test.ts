@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupByStatus, groupTasks, mentionToken, readMentions, statusCounts, taskIdsFromName, taskIdsFromText, treeShapes, idsInPrompt, type Task } from './tasks'
+import { figmaName, figmaOf, groupByStatus, groupTasks, inheritDesign, mentionToken, readMentions, statusCounts, taskIdsFromName, taskIdsFromText, treeShapes, idsInPrompt, type Task } from './tasks'
 
 let n = 0
 const task = (p: Partial<Task>): Task => ({
@@ -132,5 +132,36 @@ describe('idsInPrompt', () => {
     expect(idsInPrompt('check 12014975, the copy is off; also 21129723.')).toEqual(['12014975', '21129723'])
     expect(idsInPrompt('see https://app.productive.io/109-productive/tasks/12014975 and fe #30301')).toEqual([])
     expect(idsInPrompt('worktrees/frontend-21071362-markup and v1.20240101 and 123456')).toEqual([])
+  })
+})
+
+describe('design links', () => {
+  const url = 'https://www.figma.com/design/F2S5lsOHjITdNFZoVp7I70/Contacts?node-id=4472-86167&t=x-1'
+
+  it('reads a Figma custom field first, then the description', () => {
+    expect(figmaOf({ '1120': 'https://review.example.com', '3855': url }, 'see https://www.figma.com/design/k/Other')).toBe(url)
+    expect(figmaOf({}, `<p><a href="${url.replace('&', '&amp;')}">design</a></p>`)).toBe(url)
+    expect(figmaOf(null, 'no link')).toBeNull()
+  })
+
+  it('names the file', () => {
+    expect(figmaName(url)).toBe('Contacts')
+    expect(figmaName('https://www.figma.com/design/k/Deal-View%20v2?node-id=1')).toBe('Deal View v2')
+  })
+
+  it('inherits from the nearest ancestor with a link; own links win', () => {
+    const nodes = new Map([
+      ['1', { title: 'Feature', parentId: null, own: url }],
+      ['2', { title: 'Phase', parentId: '1', own: null }],
+    ])
+    const out = inheritDesign(
+      [
+        { id: '3', parentId: '2', design: null },
+        { id: '4', parentId: '2', design: { url: 'mine', from: null } },
+        { id: '5', parentId: null, design: null },
+      ],
+      nodes,
+    )
+    expect(out.map((t) => t.design)).toEqual([{ url, from: 'Feature' }, { url: 'mine', from: null }, null])
   })
 })

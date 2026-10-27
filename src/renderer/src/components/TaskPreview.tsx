@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { FigmaMark } from './FigmaMark'
 import { isLive, MARK_WORD, markOf, taskPrs, taskSessions, type LinkedSession } from '@shared/links'
-import { statusColors, type Task, type TasksSnapshot } from '@shared/tasks'
+import { figmaName, statusColors, type Task, type TasksSnapshot } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import { openWorkstream, useStore, type View } from '../store'
 import { Box } from './Box'
@@ -107,6 +108,19 @@ export function TaskPreview({ task, snapshot, onClose, onUnlink }: { task: Task;
         </span>
       </div>
 
+      {task.design && (
+        <div className="peek-links peek-design">
+          <span className="k">Design</span>
+          <button
+            className="chip figma-chip"
+            title={`${task.design.url}\nclick opens Figma · ⌘-click copies the link`}
+            onClick={(e) => (e.metaKey ? void navigator.clipboard.writeText(task.design!.url) : void window.workbench.openFigma(task.design!.url))}
+          >
+            <FigmaMark design={task.design} />
+            {figmaName(task.design.url)} ↗{task.design.from && <span className="faint" title={task.design.from}> · from parent</span>}
+          </button>
+        </div>
+      )}
       <div className="peek-links">
         <span className="k">PR</span>
         {prs.length === 0 && <span className="faint">none</span>}

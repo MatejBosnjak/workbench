@@ -109,7 +109,10 @@ await shot('today-needs', () => today('Needs you'))
 await shot('today-tasks', () => today('My tasks'))
 await shot('today-task-card', async () => {
   await today('My tasks')
-  await click('.task-line.row:not(.parent)')
+  // A subtask with a design link (its own or its parent's), so the card shows the Design row.
+  const withDesign = page.locator('.task-line.row:not(.parent):has(.figma-mark)').first()
+  if (await withDesign.count()) await withDesign.click()
+  else await click('.task-line.row:not(.parent)')
   await page.waitForSelector('.td-todo, .task-desc, .peek', { timeout: 15_000 }).catch(() => {})
 })
 await shot('today-prs', () => today('My PRs'))

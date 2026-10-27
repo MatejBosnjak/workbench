@@ -24,6 +24,50 @@ export interface Task {
   assignedTo?: { id: string; name: string; avatarUrl: string | null } | null
   /** Open to-dos assigned to me on a task assigned to someone else: why it's in my list. */
   myTodos?: number
+  /** Its Figma design: its own link, or the nearest ancestor's (`from` names that ancestor). */
+  design?: Design | null
+}
+
+export interface Design {
+  url: string
+  /** The ancestor's title when inherited; null when the task has its own. */
+  from: string | null
+}
+
+const FIGMA_URL = /https:\/\/(?:www\.)?figma\.com\/(?:design|file|proto|board)\/[^\s"'<>)\]]+/
+
+/** A task's own Figma link: a custom field holding one (Productive's Figma field), else the first in its description. */
+export function figmaOf(customFields: unknown, description: unknown): string | null {
+  const values = customFields && typeof customFields === 'object' ? Object.values(customFields as Record<string, unknown>) : []
+  for (const v of [...values, description]) {
+    const m = typeof v === 'string' ? FIGMA_URL.exec(v.replaceAll('&amp;', '&')) : null
+    if (m) return m[0]
+  }
+  return null
+}
+
+/** The file's name from a Figma URL: `…/design/<key>/Contacts?node-id=…` → "Contacts". */
+export function figmaName(url: string): string {
+  const seg = /figma\.com\/[a-z]+\/[^/]+\/([^/?#]+)/.exec(url)?.[1]
+  return seg ? decodeURIComponent(seg).replaceAll('-', ' ') : 'Figma'
+}
+
+/**
+ * Fills `design` from the nearest ancestor that has one. `nodes` covers the tasks and every ancestor
+ * known (id → title, parent, own link); a task's own link always wins.
+ */
+export function inheritDesign<T extends Pick<Task, 'id' | 'parentId' | 'design'>>(tasks: T[], nodes: Map<string, { title: string; parentId: string | null; own: string | null }>): T[] {
+  return tasks.map((t) => {
+    if (t.design) return t
+    let id = nodes.get(t.id)?.parentId ?? t.parentId
+    for (let depth = 0; id && depth < 8; depth++) {
+      const n = nodes.get(id)
+      if (!n) break
+      if (n.own) return { ...t, design: { url: n.own, from: n.title } }
+      id = n.parentId
+    }
+    return t
+  })
 }
 
 export interface TaskLink {

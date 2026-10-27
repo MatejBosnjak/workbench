@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { FigmaMark } from './FigmaMark'
 import type { Ci } from '@shared/git'
 import { sessionPrs, sessionTaskIds } from '@shared/links'
 import { statusVivid, type TasksSnapshot } from '@shared/tasks'
@@ -75,6 +76,11 @@ export function SessionBar({ session }: { session: Session }) {
         )}
         <span className="faint">⌘I</span>
       </button>
+      {task?.design && (
+        <span className="sbar-figma">
+          <FigmaMark design={task.design} size={12} />
+        </span>
+      )}
       {shown.length > 0 && (
         <>
           <span className="sbar-gh">

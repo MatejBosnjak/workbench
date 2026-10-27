@@ -312,6 +312,8 @@ export interface WorkbenchApi {
     startInfra(name: string): Promise<void>
     refreshInfra(): Promise<void>
   }
+  /** A figma.com link in the Figma app when installed, else the browser. */
+  openFigma(url: string): Promise<void>
   /** Local › Worktrees: classify the .wtrc worktrees and remove the done ones. Removals confirm natively first. */
   cleanup: {
     snapshot(): Promise<CleanupSnapshot>

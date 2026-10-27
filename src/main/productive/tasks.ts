@@ -1,4 +1,4 @@
-import { mentionToken, readMentions, type Person, type Task, type TaskDetail, type WorkflowStatus } from '@shared/tasks'
+import { figmaOf, inheritDesign, mentionToken, readMentions, type Person, type Task, type TaskDetail, type WorkflowStatus } from '@shared/tasks'
 import type { Repo } from '../store/repo'
 import { commentHtml, encodeParams, htmlText, Productive, type JsonApiResource } from './client'
 
@@ -60,7 +60,7 @@ export class TasksPoller {
         const id = t.relationships?.task?.data?.id
         if (id) myTodos.set(id, (myTodos.get(id) ?? 0) + 1)
       }
-      this.tasks = normalize(data, included, account.orgSlug).map((t) => (t.assignedTo && t.assignedTo.id !== account.personId && myTodos.has(t.id) ? { ...t, myTodos: myTodos.get(t.id) } : t))
+      this.tasks = (await this.withDesign(normalize(data, included, account.orgSlug))).map((t) => (t.assignedTo && t.assignedTo.id !== account.personId && myTodos.has(t.id) ? { ...t, myTodos: myTodos.get(t.id) } : t))
       this.fetchedAt = Date.now()
       this.error = null
       this.repo.setSetting('tasks:cache', { tasks: this.tasks, at: this.fetchedAt })
@@ -70,6 +70,35 @@ export class TasksPoller {
       this.loading = false
       this.changed()
     }
+  }
+
+  /** Ancestors read for design links: id → title, parent, own Figma link. Refreshed when older than 10 minutes. */
+  private nodes = new Map<string, { title: string; parentId: string | null; own: string | null; at: number }>()
+
+  /**
+   * Tasks without a Figma link of their own take the nearest ancestor's. Ancestors not among `tasks` (or
+   * included without their own parent, like context headers) are read by id, a level per request.
+   */
+  async withDesign<T extends Task>(tasks: T[]): Promise<T[]> {
+    const fresh = Date.now() - 10 * 60_000
+    const nodes = new Map<string, { title: string; parentId: string | null; own: string | null }>()
+    for (const t of tasks) if (!t.context) nodes.set(t.id, { title: t.title, parentId: t.parentId, own: t.design?.from === null ? t.design.url : null })
+    let want = [...new Set(tasks.filter((t) => !t.design && t.parentId).map((t) => t.parentId!))]
+    for (let level = 0; want.length && level < 6; level++) {
+      const missing = want.filter((id) => !nodes.has(id) && !((this.nodes.get(id)?.at ?? 0) > fresh))
+      if (missing.length) {
+        const { api } = await this.client()
+        for (let i = 0; i < missing.length; i += 100) {
+          const { data } = await api.getAll('/tasks', encodeParams('filter', { id: missing.slice(i, i + 100).join(',') }))
+          for (const t of data)
+            this.nodes.set(t.id, { title: String(t.attributes.title ?? ''), parentId: t.relationships?.parent_task?.data?.id ?? null, own: figmaOf(t.attributes.custom_fields, t.attributes.description), at: Date.now() })
+        }
+      }
+      for (const id of want) if (!nodes.has(id) && this.nodes.has(id)) nodes.set(id, this.nodes.get(id)!)
+      // Climb only from ancestors that have no link themselves.
+      want = [...new Set(want.map((id) => nodes.get(id)).filter((n) => n && !n.own && n.parentId).map((n) => n!.parentId!))]
+    }
+    return inheritDesign(tasks, nodes)
   }
 
   /** The client with the org set, for callers outside the poll (drafts). */
@@ -101,7 +130,7 @@ export class TasksPoller {
       )
     }
     return {
-      task: taskMapper(included, orgSlug)(data, false),
+      task: (await this.withDesign([taskMapper(included, orgSlug)(data, false)]))[0]!,
       description: readMentions(htmlText(String(data.attributes.description ?? ''))).body,
       statusId: status?.id ?? '',
       statuses: (workflowId && this.statuses.get(workflowId)) || [],
@@ -220,6 +249,7 @@ export function taskMapper(included: JsonApiResource[], orgSlug: string): (t: Js
     const list = inc.get(`task_lists:${rel(t, 'task_list')?.id}`)
     const status = inc.get(`workflow_statuses:${rel(t, 'workflow_status')?.id}`)
     const who = inc.get(`people:${rel(t, 'assignee')?.id}`)
+    const figma = figmaOf(t.attributes.custom_fields, t.attributes.description)
     return {
       id: t.id,
       number: attr<number>(t, 'task_number') ?? null,
@@ -240,6 +270,7 @@ export function taskMapper(included: JsonApiResource[], orgSlug: string): (t: Js
       url: `https://app.productive.io/${orgSlug}/tasks/${t.id}`,
       context,
       assignedTo: who ? { id: who.id, name: personName(who), avatarUrl: (who.attributes.avatar_url as string | null) ?? null } : null,
+      design: figma ? { url: figma, from: null } : null,
     }
   }
 }

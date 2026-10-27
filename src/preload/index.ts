@@ -136,6 +136,7 @@ const api: WorkbenchApi = {
     startInfra: (name) => ipcRenderer.invoke('local:infra-start', name),
     refreshInfra: () => ipcRenderer.invoke('local:infra-refresh'),
   },
+  openFigma: (url) => ipcRenderer.invoke('figma:open', url),
   cleanup: {
     snapshot: () => ipcRenderer.invoke('cleanup:snapshot'),
     onChanged: (cb) => on('cleanup:changed', (_e, s: CleanupSnapshot) => cb(s)),

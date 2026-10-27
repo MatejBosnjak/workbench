@@ -93,3 +93,7 @@ A tab title cut with `…` next to the `···` running glyph read as two ellips
 
 `wt`'s cleanup calls a worktree merged when git says its branch is merged or its upstream is gone. Squash merges never look merged to git and most remote branches outlive their PR, so only 21 of 127 worktrees with merged PRs showed up. Local › Worktrees asks GitHub (and Productive for tasks without a PR) instead, and checks the PR's head has HEAD before deleting a branch. It's a view in Local next to Services (canvas: Local › Worktrees board), not a mode of the switcher, which is for picking a worktree. Only Done is swept in bulk; branches are deleted only for merged PRs, so everything else can come back with `git worktree add`. Sizes and the low-disk line came from a parallel proposal: 94% full with ~150 GB in done worktrees made the case. `du` is slow on node_modules, so sizes come after the verdicts rather than holding them up.
 
+## Figma link: a grey mark that inherits
+
+A task's design lives in Productive's Figma custom field, and subtasks usually don't repeat it, so a subtask without one shows the nearest ancestor's. The mark sits after the title in grey and only takes Figma's colours on hover or selection (canvas: Figma link board, B): the brand colours on every linked row (A) would be the only coloured logo in a quiet list, and a separate column (C) put it away from the title and was empty on most rows. Inherited marks are fainter so a glance says whose link it is.
+

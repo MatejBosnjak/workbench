@@ -715,6 +715,11 @@ void app.whenReady().then(() => {
     })
     if (res.response === 0) await cleanup.remove([path], true)
   })
+  ipcMain.handle('figma:open', (_e, url: string) => {
+    // The desktop app when it's installed; it takes figma.com URLs.
+    if (/^https:\/\/(www\.)?figma\.com\//.test(url) && existsSync('/Applications/Figma.app')) execFile('open', ['-a', 'Figma', url])
+    else void shell.openExternal(url)
+  })
   ipcMain.handle('editor:open', async (_e, path: string) => {
     const env = await shellEnv()
     const code = which('code', env)

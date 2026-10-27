@@ -82,6 +82,12 @@ button { font: inherit; color: inherit; }
 .local-icon { display: block; flex-shrink: 0; }
 .local-icon .li-off { fill: color-mix(in srgb, var(--text-3) 22%, var(--chrome)); }
 .place-bang { position: absolute; right: -7px; top: -7px; width: 15px; height: 15px; border-radius: 50%; background: var(--bad); color: var(--on-accent); font-size: 10.5px; font-weight: 800; line-height: 15px; text-align: center; box-shadow: 0 0 0 2px var(--chrome); }
+/* Figma mark (FigmaMark.tsx): grey at rest, its own colours on hover and on a selected row. */
+.figma-mark { --fm: var(--text-3); --fm1: var(--fm); --fm2: var(--fm); --fm3: var(--fm); --fm4: var(--fm); --fm5: var(--fm); display: inline-flex; align-items: center; margin-left: 6px; padding: 2px 3px; cursor: pointer; flex-shrink: 0; vertical-align: -1px; }
+.figma-chip .figma-mark, .sbar-figma .figma-mark { margin-left: 0; }
+.figma-mark.inherited { --fm: var(--faint); }
+.figma-mark:hover, .sel .figma-mark, .on .figma-mark { --fm1: #f24e1e; --fm2: #ff7262; --fm3: #a259ff; --fm4: #1abcfe; --fm5: #0acf83; }
+.figma-mark.inherited:hover, .sel .figma-mark.inherited { opacity: 0.75; }
 .place-pile.low { color: var(--warn); border-color: var(--warn); }
 .place-pile { position: absolute; right: -9px; bottom: -5px; min-width: 15px; height: 14px; padding: 0 3px; background: var(--raised); border: 1px solid var(--line-heavy); color: var(--text-3); font-size: 9.5px; line-height: 12px; text-align: center; }
 .place-bang-tip { display: none; position: absolute; left: 0; top: 22px; z-index: 50; width: 300px; padding: 10px 12px; background: var(--popover); border: 1px solid var(--line-heavy); box-shadow: 0 18px 44px var(--shadow); color: var(--text-2); font-size: 12px; font-weight: 400; line-height: 1.55; text-align: left; white-space: normal; }
@@ -1222,6 +1228,10 @@ button.run-chip { cursor: pointer; font: inherit; font-size: 12px; }
 /* Task peek: the PR row with the sessions header across from it; + new ✻ and ⏎ continue sit on the box's bottom edge. */
 .peek-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; color: var(--text-2); }
 .peek-links .k { color: var(--text-3); }
+.peek-design + .peek-links { margin-top: 6px; }
+.figma-chip { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-2); }
+.figma-chip:hover .figma-mark { --fm1: #f24e1e; --fm2: #ff7262; --fm3: #a259ff; --fm4: #1abcfe; --fm5: #0acf83; }
+.sbar-figma { display: inline-flex; align-items: center; margin-left: -4px; }
 .peek-links .peek-pr { gap: 6px; min-width: 0; max-width: 100%; }
 .peek-sess-head { margin-left: auto; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .peek.has-edge { padding-bottom: 20px; margin-bottom: 12px; }

@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { FigmaMark } from './FigmaMark'
 import { MARK_WORD, taskSessions, type LinkedSession } from '@shared/links'
 import { FE_REPO, runTarget } from '@shared/runpr'
 import { groupByStatus, groupTasks, statusCounts, statusVivid, treeShapes, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
@@ -575,6 +576,7 @@ function Home({
                     <span className="task-name">
                       {t.title}
                       {shape.kids > 0 && <span className="task-kids">{shape.kids}</span>}
+                      {t.design && <FigmaMark design={t.design} />}
                       {parent && <span className="faint">{`  ${parent.milestone ? '◆' : '◇'} ${parent.title}`}</span>}
                     </span>
                     {!!t.myTodos && <span className="task-todos">☐ {t.myTodos === 1 ? '1 to-do' : `${t.myTodos} to-dos`}</span>}

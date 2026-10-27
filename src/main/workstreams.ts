@@ -113,7 +113,7 @@ export class Workstreams {
       }
     })
     const unique = [...new Map(out.map((t) => [t.id, t])).values()]
-    return treeOrder(rootId, unique)
+    return treeOrder(rootId, await this.tasks.withDesign(unique))
   }
 
   private async loadActivity(ids: string[]): Promise<WsActivity[]> {

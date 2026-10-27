@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { FigmaMark } from './FigmaMark'
 import type { TaskLink } from '@shared/tasks'
 import type { Session } from '@shared/types'
 import type { TimelineItem, Workstream, WsLink, WsPr, WsTask } from '@shared/workstream'
@@ -373,6 +374,7 @@ function Structure({ ws, sessionsOf, prsOf, live, onTask }: { ws: Workstream | n
                 <StatusGlyph task={t} size={13} />
                 {t.milestone && <Diamond />}
                 <span className={`ws-node-title${t.depth === 0 ? ' root' : ''}`}>{t.title}</span>
+                {t.design && <FigmaMark design={t.design} />}
                 <span className="ws-who" title={t.mine ? 'Assigned to you' : t.assignee ? `Assigned to ${t.assignee}` : 'Unassigned'}>
                   <Avatar name={t.assignee} url={t.assigneeAvatar} mine={t.mine} />
                 </span>

@@ -78,14 +78,16 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
         <span className="muted wtc-when">
           {snap.removing
             ? `removing ${snap.removing.done} of ${snap.removing.total}…`
-            : snap.scanning
+            : snap.removed && snap.removed.n
+              ? `removed ${snap.removed.n}${snap.removed.freed ? ` · freed ${gb(snap.removed.freed)}` : ''}`
+              : snap.scanning
               ? 'checking worktrees, GitHub and Productive…'
               : snap.scannedAt
                 ? `checked ${ago(snap.scannedAt) === 'today' ? new Date(snap.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ago(snap.scannedAt)}`
                 : ''}
         </span>
-        <button className="ghost" disabled={busy} onClick={() => void window.workbench.cleanup.scan()}>
-          ↻ Refresh
+        <button className={`ghost${snap.scanning ? ' wtc-working' : ''}`} disabled={busy} onClick={() => void window.workbench.cleanup.scan()}>
+          {snap.scanning ? 'Checking…' : '↻ Refresh'}
         </button>
       </div>
       {snap.error && <div className="wtc-error">Couldn’t check: {snap.error}</div>}
@@ -109,12 +111,15 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
                 </span>
                 <span className="muted wtc-why">{g.why}</span>
                 <span className="muted wtc-size">{sizeOf(list)}</span>
-                {g.verdict === 'done' && (
-                  <button className="primary" disabled={busy} onClick={() => void window.workbench.cleanup.remove(list.map((r) => r.path))}>
-                    Remove {list.length}
-                    {list.some((r) => r.deleteBranch) ? ' · delete their branches' : ''}
-                  </button>
-                )}
+                {g.verdict === 'done' &&
+                  (snap.removing ? (
+                    <Progress removing={snap.removing} />
+                  ) : (
+                    <button className="primary" disabled={busy} onClick={() => void window.workbench.cleanup.remove(list.map((r) => r.path))}>
+                      Remove {list.length}
+                      {list.some((r) => r.deleteBranch) ? ' · delete their branches' : ''}
+                    </button>
+                  ))}
                 {g.verdict === 'maybe' && (
                   <button
                     className="ghost"
@@ -130,6 +135,7 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
                   key={r.path}
                   r={r}
                   busy={busy}
+                  going={!!snap.removing?.paths.includes(r.path)}
                   failed={snap.failed[r.path]}
                   picked={g.verdict === 'maybe' ? picked.has(r.path) : undefined}
                   onPick={() =>
@@ -156,6 +162,15 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
   )
 }
 
+/** In place of the Remove button while removals run: a bar that fills, the count, and what's freed so far. */
+function Progress({ removing }: { removing: { done: number; total: number; freed: number } }) {
+  return (
+    <span className="wtc-progress" role="progressbar" aria-valuemin={0} aria-valuemax={removing.total} aria-valuenow={removing.done} style={{ ['--p' as string]: `${(removing.done / removing.total) * 100}%` }}>
+      Removing {removing.done} of {removing.total}…{removing.freed ? ` · ${gb(removing.freed)} freed` : ''}
+    </span>
+  )
+}
+
 function sizeOf(list: CleanupRow[]): string {
   const known = list.filter((r) => r.bytes !== null)
   if (!known.length) return ''
@@ -163,12 +178,12 @@ function sizeOf(list: CleanupRow[]): string {
   return known.length < list.length ? `≥ ${sum} · measuring ${known.length}/${list.length}` : sum
 }
 
-function Row({ r, busy, failed, picked, onPick, open, onOpen }: { r: CleanupRow; busy: boolean; failed?: string; picked?: boolean; onPick: () => void; open: boolean; onOpen: () => void }) {
+function Row({ r, busy, going, failed, picked, onPick, open, onOpen }: { r: CleanupRow; busy: boolean; going: boolean; failed?: string; picked?: boolean; onPick: () => void; open: boolean; onOpen: () => void }) {
   const pr = r.pr
   const changes = r.changes.length
   return (
     <>
-      <div className={`wtc-row${open ? ' open' : ''}`} title={r.reason}>
+      <div className={`wtc-row${open ? ' open' : ''}${going ? ' going' : ''}`} title={going ? 'removing…' : r.reason}>
         <span className="wtc-pick">{picked !== undefined && <input type="checkbox" checked={picked} onChange={onPick} aria-label={`Select ${r.name}`} />}</span>
         <span className="wtc-repo muted">{short(r.repo)}</span>
         <span className="wtc-name">
@@ -201,7 +216,9 @@ function Row({ r, busy, failed, picked, onPick, open, onOpen }: { r: CleanupRow;
           <button className="icon-btn" title="Open in editor" onClick={() => void window.workbench.openInEditor(r.path)}>
             ⌘.
           </button>
-          {r.verdict === 'keep' ? (
+          {going ? (
+            <span className="muted wtc-going">waiting…</span>
+          ) : r.verdict === 'keep' ? (
             changes > 0 && !r.tabs.length && !r.services.length ? (
               <button className="icon-btn" title="Show changes" aria-expanded={open} onClick={onOpen}>
                 {open ? '▴' : '▾'}

@@ -60,7 +60,9 @@ export interface CleanupSnapshot {
   scannedAt: number | null
   scanning: boolean
   /** Removal in progress: done of total. */
-  removing: { done: number; total: number } | null
+  removing: { done: number; total: number; freed: number; paths: string[] } | null
+  /** The last removal, for the line after it ends. */
+  removed: { n: number; freed: number } | null
   /** Folder → git's message for removals that failed. */
   failed: Record<string, string>
   error: string | null

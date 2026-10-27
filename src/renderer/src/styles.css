@@ -374,6 +374,10 @@ span.cafpop-until { border-color: transparent; cursor: default; }
 .wtc-acts { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .wtc-acts .icon-btn { height: 22px; width: 26px; font-size: 12px; }
 .wtc-x { font-size: 16px !important; }
+.wtc-progress { position: relative; display: inline-flex; align-items: center; height: 26px; min-width: 300px; padding: 0 12px; border: 1px solid var(--accent); color: var(--text); font-size: 12px; font-weight: 600; white-space: nowrap; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 38%, transparent) var(--p), transparent var(--p)); }
+.wtc-row.going { opacity: 0.45; }
+.wtc-going { font-size: 11px; }
+.wtc-working { color: var(--muted); }
 .wtc-x:hover { color: var(--bad) !important; }
 .wtc-use { padding: 0 6px; border: 1px solid var(--accent-line); color: var(--accent); font-size: 11px; white-space: nowrap; }
 .wtc-use.ok { border-color: var(--ok-line); }

@@ -141,7 +141,7 @@ async function inPr(r: Raw, pr: CleanupPr | undefined): Promise<boolean> {
 }
 
 export class WorktreeCleanup {
-  private snap: CleanupSnapshot = { rows: [], scannedAt: null, scanning: false, removing: null, failed: {}, error: null, disk: null }
+  private snap: CleanupSnapshot = { rows: [], scannedAt: null, scanning: false, removing: null, removed: null, failed: {}, error: null, disk: null }
   /** Sizes survive rescans; a worktree's size barely changes once it's done. */
   private sizes = new Map<string, number>()
   private measuring = false
@@ -232,18 +232,20 @@ export class WorktreeCleanup {
     if (!rows.length || this.snap.removing) return
     const failed: Record<string, string> = { ...this.snap.failed }
     const gone = new Set<string>()
-    this.set({ removing: { done: 0, total: rows.length } })
+    let freed = 0
+    this.set({ removing: { done: 0, total: rows.length, freed, paths: rows.map((r) => r.path) }, removed: null })
     await pool(rows, 4, async (r) => {
       const err = await run(r.root, ['worktree', 'remove', ...(force ? ['--force'] : []), r.path])
       if (err) failed[r.path] = err
       else {
         gone.add(r.path)
+        freed += r.bytes ?? 0
         delete failed[r.path]
         if (r.deleteBranch && r.branch) await run(r.root, ['branch', '-D', r.branch])
       }
-      this.set({ removing: { done: (this.snap.removing?.done ?? 0) + 1, total: rows.length }, rows: this.snap.rows.filter((x) => !gone.has(x.path)) })
+      this.set({ removing: { done: (this.snap.removing?.done ?? 0) + 1, total: rows.length, freed, paths: rows.map((x) => x.path) }, rows: this.snap.rows.filter((x) => !gone.has(x.path)) })
     })
     for (const root of new Set(rows.map((r) => r.root))) await run(root, ['worktree', 'prune'])
-    this.set({ removing: null, failed, disk: this.disk() })
+    this.set({ removing: null, removed: { n: gone.size, freed }, failed, disk: this.disk() })
   }
 }

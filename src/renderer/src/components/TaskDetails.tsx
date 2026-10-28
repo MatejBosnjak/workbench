@@ -1,6 +1,7 @@
 import { createContext, Fragment, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { statusColors, taskIdsFromText, type Person, type Task, type TaskComment, type TaskDetail } from '@shared/tasks'
+import { prKey } from '@shared/pane'
 import { useShallow } from 'zustand/react/shallow'
 import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
@@ -155,14 +156,24 @@ export function shortUrl(url: string): string {
   return gh ? `${gh[1]} ${url.includes('/issues/') ? 'issue' : 'PR'}` : url.replace(/^https?:\/\/(www\.)?/, '')
 }
 
+/** Links a GitHub PR to a task (pr_tasks) unless it already names it. */
+function linkPr(url: string, taskId: string): void {
+  const key = prKey(url)
+  if (!key) return
+  const git = useStore.getState().git
+  const pr = [...(git?.mine ?? []), ...(git?.reviews ?? [])].find((p) => p.url === key)
+  if (!pr?.taskRefs.includes(taskId)) void window.workbench.tasks.linkPrTask(key, taskId)
+}
+
 /** Opens a Productive task in the sidebar showing this one (TaskTrail); without it, task links open Productive. */
 export const TaskNav = createContext<((id: string) => void) | null>(null)
 
 /**
  * Plain text with its URLs as links: productiveio PRs open in the pane, Productive tasks in the sidebar (titled, with a
- * hover card), the rest in the browser. ⌘-click always opens the browser.
+ * hover card), the rest in the browser. ⌘-click always opens the browser. With `linkTo` (the task's own description and
+ * to-dos), opening a PR also links it to that task.
  */
-function Linked({ text }: { text: string }) {
+function Linked({ text, linkTo }: { text: string; linkTo?: string }) {
   const nav = useContext(TaskNav)
   const tasks = useStore((s) => s.tasks?.tasks)
   const [card, setCard] = useState<{ id: string; url: string; x: number; y: number } | null>(null)
@@ -176,7 +187,7 @@ function Linked({ text }: { text: string }) {
         const id = taskIdsFromText(p)[0]
         if (!id)
           return (
-            <a key={i} href={p} title={p} onClick={(e) => (e.preventDefault(), openPrLink(p, e.metaKey))}>
+            <a key={i} href={p} title={p} onClick={(e) => (e.preventDefault(), linkTo && linkPr(p, linkTo), openPrLink(p, e.metaKey))}>
               {shortUrl(p)}
             </a>
           )
@@ -642,7 +653,7 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
           <div className="peek-sub">description</div>
           {detail.description ? (
             <div className="td-desc">
-              <Linked text={detail.description} />
+              <Linked text={detail.description} linkTo={taskId} />
             </div>
           ) : (
             <span className="faint">none</span>
@@ -672,7 +683,7 @@ export function TaskDetails({ taskId, withTitle = false }: { taskId: string; wit
               <div className="td-check">
                 <input type="checkbox" aria-label={t.closed ? 'Reopen to-do' : 'Mark to-do done'} checked={t.closed} disabled={!!busy} onChange={() => void write(`t:${t.id}`, () => window.workbench.tasks.setTodo(taskId, t.id, !t.closed))} />
                 <span>
-                  <Linked text={t.text} />
+                  <Linked text={t.text} linkTo={taskId} />
                 </span>
               </div>
               <PersonPicker

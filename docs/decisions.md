@@ -109,3 +109,17 @@ Asked for a background "for better readability", two rounds of decoration (auror
 ## Added 2026-10-28
 
 - **My own to-dos live in Needs you, not in Productive.** Personal to-dos (car registration, the dentist) have no Productive task to hang on, and a separate list would be one more place to look; they're Needs you rows like any other (canvas: Needs you to-dos, option C), with the same sleep. Rejected: B, an own To-dos box that only lets due ones into Needs you (the counter stays "act now", but undated ones get forgotten). A to-do dated later sleeps until its day rather than counting, so a backlog doesn't swell the number. Captured from a session, it keeps the link so ⏎ goes back there; capture is ⌥⌘T (a menu accelerator, so it works inside a terminal) because the to-do usually comes up mid-prompt.
+
+## ADHD review: less to weigh, one place to start, only what's wrong
+
+A review of every screen for ADHD (canvas: ADHD review boards, Today and Session/Focus/Local) found the costs in the same few places: totals that can't be acted on shown as loudly as the one that can, no obvious first row, the same thing listed several times, and long lists of ✓ hiding the one ✕. Built from it:
+- **Counters, option B:** the boxes stay (the themes draw on them), but My tasks / My PRs / Reviews show their actionable part with the total as a faint `of n`. Rejected A, one text line for the three: it loses the four-box rhythm.
+- **NEXT in Needs you** is picked by rule, not a model: what unblocks a merge or a person first. It's moved to the top rather than marked in place, so ⏎ on opening Today works without moving the selection; z sleeps a wrong pick.
+- **Threads box dropped:** the reply's last message is quoted on its row instead; each thing shows once.
+- **My PRs state cell:** only failing checks are spelled out; the 4/4 score went (its tint stays). Drafts fold; Hide drafts went with it. The list is full width until a PR opens.
+- **Focus** asks for an optional line and shows whole minutes (so nothing ticks), amber from 45 minutes; leaving says the line back with done / keep going / to-do for later, because the expensive moment is coming back after an interruption. The session bar's red PR segments fade in Focus: the failure is already in Needs you.
+- **Bookmark rail:** prompts are plain grey; violet and glow stay for questions only (violet means "needs you").
+- **Worktrees:** a one-at-a-time pass for Probably done (two keys, n / y; skip was dropped as a third choice that meant the same as keep), removals only at the end.
+- **Workstream:** a "Since your last session" box, timeline newest first by day, status changes folded. "Since" counts from my last linked session rather than a stored last visit.
+- **Contrast and time:** `--faint` raised to pass 4.5:1 in every theme; past times are ages everywhere.
+- Left out on purpose: My tasks' "next moves" view (review item 6).

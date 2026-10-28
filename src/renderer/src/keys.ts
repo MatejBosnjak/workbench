@@ -50,7 +50,7 @@ export function installKeys(newSession: () => void): () => void {
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return
     const st = useStore.getState()
-    if (st.paletteOpen || st.capture || st.runGuard || st.cafOpen) return
+    if (st.paletteOpen || st.capture || st.runGuard || st.cafOpen || st.focusAsk) return
     if (e.key === 'Escape') {
       if (st.keysOpen) st.setKeysOpen(false)
       // Esc in a terminal belongs to claude; elsewhere it leaves focus.

@@ -110,7 +110,7 @@ export function SessionBar({ session }: { session: Session }) {
               <span className="faint">+{hidden.length}</span>
             </button>
           )}
-          <span className="faint">⌘⇧I</span>
+          <span className="faint sbar-key">⌘⇧I</span>
         </>
       )}
       {!prs.length && (

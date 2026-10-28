@@ -126,8 +126,19 @@ interface State {
   held: number
   /** What was held, shown once focus ends; null when there's nothing to show. */
   digest: HeldNote[] | null
+  /** ⌘F's one line asking what this focus is for is open. */
+  focusAsk: boolean
+  /** What I said I'd do (may be empty) and since when. */
+  focusIntent: string
+  focusSince: number | null
+  /** The focus that just ended, when it had an intent: shown with done / keep going / to-do for later. */
+  focusEnded: { intent: string; since: number; ended: number } | null
+  /** ⌘F: asks what for (then starts), or leaves. */
   toggleFocus(): Promise<void>
+  startFocus(intent: string, since?: number): Promise<void>
+  setFocusAsk(v: boolean): void
   setDigest(d: HeldNote[] | null): void
+  setFocusEnded(v: State['focusEnded']): void
   /** PRs opened from a link that aren't in My git or My reviews: a temporary "Opened" group. */
   openedPrs: { url: string; title: string }[]
   /** Needs-you items put to sleep: item key → until (ms). Kept in SQLite as ui:snoozed. */
@@ -239,13 +250,25 @@ export const useStore = create<State>((set, get) => ({
   focus: false,
   held: 0,
   digest: null,
+  focusAsk: false,
+  focusIntent: '',
+  focusSince: null,
+  focusEnded: null,
   toggleFocus: async () => {
-    const on = !get().focus
-    set({ focus: on, digest: null })
-    const held = await window.workbench.setFocus(on)
-    if (!on && held.length) set({ digest: held })
+    const st = get()
+    if (!st.focus) return set({ focusAsk: !st.focusAsk })
+    const ended = st.focusIntent && st.focusSince ? { intent: st.focusIntent, since: st.focusSince, ended: Date.now() } : null
+    set({ focus: false, digest: null, focusIntent: '', focusSince: null, focusEnded: ended })
+    const held = await window.workbench.setFocus(false)
+    if (held.length) set({ digest: held })
   },
+  startFocus: async (intent, since) => {
+    set({ focus: true, focusAsk: false, digest: null, focusEnded: null, focusIntent: intent.trim(), focusSince: since ?? Date.now() })
+    await window.workbench.setFocus(true)
+  },
+  setFocusAsk: (focusAsk) => set({ focusAsk }),
   setDigest: (digest) => set({ digest }),
+  setFocusEnded: (focusEnded) => set({ focusEnded }),
   openedPrs: [],
   snoozed: {},
   snooze: (key, until) => {

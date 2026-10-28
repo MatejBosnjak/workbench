@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Conversation, DraftTarget, GitSnapshot, GroupTone, MergeCheck, Pr, Reviewer } from '@shared/git'
+import type { Conversation, DraftTarget, GitSnapshot, GroupTone, MergeCheck, Pr, PrGroup, Reviewer } from '@shared/git'
+import { age as ago } from '@shared/time'
 import { ageDays, askedForChanges, groupByStage, groupReviews, lastMessage, mergeChecks, needsReply, prRef, prRepo, shortRepo } from '@shared/git'
 import { prTasks } from '@shared/links'
 import { runTarget } from '@shared/runpr'
@@ -13,11 +14,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 const TONE: Record<GroupTone, string> = { bad: 'var(--bad)', ok: 'var(--ok)', accent: 'var(--accent)', info: 'var(--info)', faint: 'var(--faint)' }
 
-function age(iso: string): string {
-  const d = ageDays(iso)
-  if (d <= 0) return 'today'
-  return d < 60 ? `${d}d` : `${Math.round(d / 30)}mo`
-}
+const age = (iso: string) => ago(iso)
 
 function usePref(key: string, initial: boolean): [boolean, (v: boolean) => void] {
   const [v, setV] = useState(() => {
@@ -151,14 +148,28 @@ function Toggle({ on, label, set }: { on: boolean; label: string; set(v: boolean
   )
 }
 
-function GroupHead({ title, tone, count }: { title: string; tone: GroupTone; count: number }) {
+function GroupHead({ title, tone, count, fold }: { title: string; tone: GroupTone; count: number; fold?: { open: boolean; set(v: boolean): void } }) {
   return (
     <div className="pr-group-head">
       <span className="tone-dot" style={{ background: TONE[tone] }} />
-      <span className="group-name">{title}</span>
+      {fold ? (
+        <button className="fold-btn group-name" aria-expanded={fold.open} onClick={() => fold.set(!fold.open)}>
+          {fold.open ? '▾' : '▸'} {title}
+        </button>
+      ) : (
+        <span className="group-name">{title}</span>
+      )}
       <span className="mono muted">{count}</span>
     </div>
   )
+}
+
+/** One line for folded drafts: all fine, or what's still running or open on them. */
+function draftSummary(prs: Pr[], git: GitSnapshot): string {
+  const running = prs.filter((p) => p.ci === 'pending').length
+  const replies = prs.filter((p) => p.conversations.some((c) => needsReply(c, git.viewer, git.seen))).length
+  const parts = [running && `${running} CI running`, replies && `${replies} with a reply waiting`].filter(Boolean)
+  return parts.length ? parts.join(' · ') : 'all ✓ · nothing waiting on you'
 }
 
 function TaskRef({ p, tasks }: { p: Pr; tasks: TasksSnapshot | null }) {
@@ -168,33 +179,43 @@ function TaskRef({ p, tasks }: { p: Pr; tasks: TasksSnapshot | null }) {
 
 export function GitView({ git, tasks }: { git: GitSnapshot; tasks: TasksSnapshot | null }) {
   const [repo, setRepo] = useState('All')
-  const [hideDrafts, setHideDrafts] = usePref('workbench.hideDrafts', false)
+  const [draftsOpen, setDraftsOpen] = usePref('workbench.draftsOpen', false)
   const [newest, setNewest] = usePref('workbench.prsNewestFirst', false)
   const focus = useFocus()
-  const shown = git.mine.filter((p) => !(hideDrafts && p.draft) || p.id === focus)
+  const shown = git.mine
   // Stages nearest to merge first; replies waiting on me live in Needs you, so here they're only a ↩ badge.
   const groups = groupByStage(shown.filter((p) => repo === 'All' || p.repoName === repo), newest ? 'opened' : 'progress')
-  const sel = useRowKeys(groups.flatMap((g) => g.prs))
+  // Drafts fold to one line; one with something wrong (or the one a link points at) stays out of the fold.
+  const inView = (g: PrGroup) => (g.title !== 'Draft' || draftsOpen ? g.prs : g.prs.filter((p) => p.id === focus || mergeChecks(p).some((c) => c.state === 'bad')))
+  const sel = useRowKeys(groups.flatMap(inView))
 
   return (
     <>
       <div className="chips">
         <RepoChips prs={shown} repo={repo} setRepo={setRepo} />
         <Toggle on={newest} label="Newest first" set={setNewest} />
-        <Toggle on={hideDrafts} label="Hide drafts" set={setHideDrafts} />
       </div>
       {git.fetchedAt === null && git.loading && <div className="today-empty muted">Loading your PRs from GitHub…</div>}
       {git.fetchedAt !== null && groups.length === 0 && <div className="today-empty muted">Nothing here.</div>}
       <div className="groups">
         <OpenedGroup git={git} />
-        {groups.map((g) => (
-          <section key={g.title} className="group">
-            <GroupHead title={g.title} tone={g.tone} count={g.prs.length} />
-            {g.prs.map((p) => (
-              <PrRow key={p.id} p={p} git={git} tasks={tasks} focused={focus === p.id} selected={sel === p.id} tone={g.tone} />
-            ))}
-          </section>
-        ))}
+        {groups.map((g) => {
+          const rows = inView(g)
+          const folded = g.prs.length - rows.length
+          return (
+            <section key={g.title} className="group">
+              <GroupHead title={g.title} tone={g.tone} count={g.prs.length} fold={g.title === 'Draft' ? { open: draftsOpen, set: setDraftsOpen } : undefined} />
+              {rows.map((p) => (
+                <PrRow key={p.id} p={p} git={git} tasks={tasks} focused={focus === p.id} selected={sel === p.id} tone={g.tone} />
+              ))}
+              {folded > 0 && (
+                <button className="fold-line pr-fold" onClick={() => setDraftsOpen(true)}>
+                  ▸ {folded} {rows.length ? 'more' : folded === 1 ? 'draft' : 'drafts'} · {draftSummary(g.prs.filter((p) => !rows.includes(p)), git)}
+                </button>
+              )}
+            </section>
+          )
+        })}
       </div>
     </>
   )
@@ -260,11 +281,23 @@ function Reviewers({ p, author }: { p: Pr; author?: boolean }) {
   )
 }
 
-/** Merge checks one under another, short labels with the full one as a tooltip. */
+/**
+ * What stands between the PR and merging: only the checks that aren't passing, one under another (short labels, the
+ * full one as a tooltip); a single ✓ when all of them pass.
+ */
 function Checks({ checks, ciUrl }: { checks: MergeCheck[]; ciUrl: string | null }) {
+  const open = checks.filter((c) => c.state !== 'ok')
+  if (!open.length)
+    return (
+      <div className="pr-checks">
+        <span className="pr-check ok" title={checks.map((c) => c.label).join(' · ')}>
+          ✓
+        </span>
+      </div>
+    )
   return (
     <div className="pr-checks">
-      {checks.map((c) => {
+      {open.map((c) => {
         const text = `${c.key === 'ci' ? (c.state === 'wait' ? 'CI running' : 'CI') : c.key === 'conflicts' ? (c.state === 'bad' ? 'conflict' : 'merge') : c.state === 'ok' ? 'threads' : c.label.replace(/ open/, '')} ${c.state === 'ok' ? '✓' : c.state === 'bad' ? '✕' : '·'}`
         return (
           <span key={c.key} className={`pr-check ${c.state}`} title={c.label}>
@@ -314,9 +347,6 @@ function PrRow({ p, git, tasks, focused, selected, tone }: { p: Pr; git: GitSnap
       <div className="pr-end">
         <Checks checks={checks.filter((c) => c.key !== 'reviews')} ciUrl={p.ciUrl} />
         <div className="pr-go">
-          <span className={`pr-score mono${score === 4 ? ' full' : ''}`} title="Checks passing: CI, reviews, conflicts, threads">
-            {score}/4
-          </span>
           {runTarget(p.repo) && (
             <span className="pr-run">
               <RunAppButton repo={p.repo} n={p.number} compact />

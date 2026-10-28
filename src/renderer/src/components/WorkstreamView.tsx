@@ -5,6 +5,8 @@ import type { Session } from '@shared/types'
 import type { TimelineItem, Workstream, WsLink, WsPr, WsTask } from '@shared/workstream'
 import { itemRepos, repoFromTitle, timeline } from '@shared/workstream'
 import { shortRepo } from '@shared/git'
+import { statusVivid } from '@shared/tasks'
+import { age, exact } from '@shared/time'
 import { openPrLink, useStore } from '../store'
 import { Box } from './Box'
 import { DraftPanel } from './DraftPanel'
@@ -25,9 +27,28 @@ function duration(start: string | null, end: string | null): string {
   return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
 }
 
-function when(ms: number): string {
+const clock = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+const dayOf = (ms: number) => new Date(ms).toDateString()
+const dayLabel = (ms: number) => {
   const d = new Date(ms)
-  return `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}\n${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+  const today = new Date()
+  const yday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
+  if (d.toDateString() === today.toDateString()) return 'Today'
+  if (d.toDateString() === yday.toDateString()) return 'Yesterday'
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** The timeline newest first, a day at a time; a day's status changes fold into one line when there's more than one. */
+function byDay(items: TimelineItem[]): { day: string; at: number; items: TimelineItem[]; statuses: TimelineItem[] }[] {
+  const out: { day: string; at: number; items: TimelineItem[]; statuses: TimelineItem[] }[] = []
+  for (const it of [...items].reverse()) {
+    let g = out.at(-1)
+    if (!g || g.day !== dayOf(it.at)) out.push((g = { day: dayOf(it.at), at: it.at, items: [], statuses: [] }))
+    if (it.kind === 'task' && it.chip === 'STATUS') g.statuses.push(it)
+    else g.items.push(it)
+  }
+  for (const g of out) if (g.statuses.length === 1) (g.items.push(g.statuses[0]!), (g.statuses = []), g.items.sort((a, b) => b.at - a.at))
+  return out
 }
 
 /** A repo guess for a new worktree from the title's prefix (FE:, BE:, AI: …); frontend when it names none. */
@@ -50,14 +71,8 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
     })
   }, [rootId])
 
-  // The timeline reads oldest to newest; land on the newest end once it has loaded.
   const main = useRef<HTMLElement>(null)
-  const landed = useRef(false)
-  useEffect(() => {
-    if (landed.current || !ws?.fetchedAt || tab !== 'timeline') return
-    landed.current = true
-    requestAnimationFrame(() => main.current?.scrollTo({ top: main.current.scrollHeight }))
-  }, [ws?.fetchedAt, tab])
+  const [openDays, setOpenDays] = useState<Set<string>>(new Set())
 
   const byId = useMemo(() => new Map((ws?.tasks ?? []).map((t) => [t.id, t])), [ws?.tasks])
   const liveById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions])
@@ -96,6 +111,13 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
     void window.workbench.git.openDraft(target)
   }
   const git = useStore((s) => s.git)
+  const onTask = (t: WsTask) => {
+    if (snap?.tasks.some((x) => x.id === t.id && !x.context)) {
+      setTodayTab('tasks')
+      setPeekTask(t.id)
+      show({ kind: 'today' })
+    } else void window.workbench.openExternal(t.url)
+  }
 
   const SessionCard = ({ sessionId, taskId }: { sessionId: string; taskId: string }) => {
     const l = links.find((x) => x.sessionId === sessionId && x.taskId === taskId) ?? links.find((x) => x.sessionId === sessionId)!
@@ -140,7 +162,7 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
 
   const Item = ({ it }: { it: TimelineItem }) => (
     <div className="ws-item">
-      <div className="ws-when mono">{when(it.at)}</div>
+      <div className="ws-when mono">{clock(it.at)}</div>
       <div className="ws-rail">
         <span className={it.kind === 'session' ? `ws-node${isLive(liveById.get(it.sessionId)) ? ' live' : ''}` : 'ws-node event'} />
       </div>
@@ -248,9 +270,30 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
               </div>
               {ws?.fetchedAt === null && ws.loading && <div className="today-empty muted">Loading the workstream from Productive and GitHub…</div>}
               {ws?.fetchedAt !== null && shown.length === 0 && <div className="today-empty muted">Nothing here yet.</div>}
+              {ws && <SinceLast ws={ws} rootId={rootId} items={items} lastSession={latest[0] ? (liveById.get(latest[0].sessionId)?.lastEventAt ?? latest[0].session.lastEventAt) : null} lastTitle={latest[0] ? (liveById.get(latest[0].sessionId)?.title ?? latest[0].session.title) : null} onResume={() => latest[0] && void open(latest[0].sessionId)} onTask={(t) => onTask(t)} />}
               <div className="ws-timeline">
-                {shown.map((it, i) => (
-                  <Item key={`${it.kind}:${i}`} it={it} />
+                {byDay(shown).map((g) => (
+                  <div key={g.day} className="ws-day">
+                    <div className="ws-day-head">{dayLabel(g.at)}</div>
+                    {g.items.map((it, i) => (
+                      <Item key={`${it.kind}:${i}`} it={it} />
+                    ))}
+                    {g.statuses.length > 0 &&
+                      (openDays.has(g.day) ? (
+                        g.statuses.map((it, i) => <Item key={`st:${i}`} it={it} />)
+                      ) : (
+                        <div className="ws-item">
+                          <div className="ws-when mono" />
+                          <div className="ws-rail">
+                            <span className="ws-node event" />
+                          </div>
+                          <button className="ws-event ws-fold" onClick={() => setOpenDays(new Set([...openDays, g.day]))}>
+                            <span className="ws-chip">STATUS</span>
+                            <span>▸ {g.statuses.length} status changes</span>
+                          </button>
+                        </div>
+                      ))}
+                  </div>
                 ))}
               </div>
             </>
@@ -292,13 +335,7 @@ export function WorkstreamView({ rootId }: { rootId: string }) {
               sessionsOf={sessionsOf}
               prsOf={prsOf}
               live={(id) => sessionsOf(id).some((s) => isLive(liveById.get(s)))}
-              onTask={(t) => {
-                if (snap?.tasks.some((x) => x.id === t.id && !x.context)) {
-                  setTodayTab('tasks')
-                  setPeekTask(t.id)
-                  show({ kind: 'today' })
-                } else void window.workbench.openExternal(t.url)
-              }}
+              onTask={onTask}
             />
             <StartWork ws={ws} rootId={rootId} sessionsOf={sessionsOf} liveById={liveById} open={open} />
             <Box title="Where I left off" aside={latest[0] && <Summarize taskId={latest[0].taskId} />}>
@@ -485,5 +522,70 @@ function Notes({ rootId, initial }: { rootId: string; initial: string }) {
     <div className="ws-notes">
       <textarea className="draft-text" placeholder="Notes for this workstream. Stored locally." value={body} onChange={(e) => setBody(e.target.value)} />
     </div>
+  )
+}
+
+/**
+ * Top of the timeline: coming back to a workstream. My last session here, what happened since, and my open subtasks;
+ * the timeline below is the detail.
+ */
+function SinceLast({
+  ws,
+  rootId,
+  items,
+  lastSession,
+  lastTitle,
+  onResume,
+  onTask,
+}: {
+  ws: Workstream
+  rootId: string
+  items: TimelineItem[]
+  lastSession: number | null
+  lastTitle: string | null
+  onResume(): void
+  onTask(t: WsTask): void
+}) {
+  // Without a session of mine here, the last week stands in.
+  const from = lastSession ?? Date.now() - 7 * 86_400_000
+  const since = items.filter((i) => i.at > from)
+  const statuses = since.filter((i) => i.kind === 'task' && i.chip === 'STATUS').length
+  const opened = since.filter((i) => i.kind === 'pr' && i.what === 'opened').length
+  const merged = since.filter((i) => i.kind === 'pr' && i.what === 'merged').length
+  const changes = [statuses && `${statuses} status change${statuses === 1 ? '' : 's'}`, opened && `${opened} PR${opened === 1 ? '' : 's'} opened`, merged && `${merged} merged`].filter(Boolean)
+  const mine = ws.tasks.filter((t) => t.mine && !t.closed && t.id !== rootId)
+  return (
+    <Box title="Since your last session" className="ws-since">
+      <div className="ws-since-row">
+        <span className="faint">last</span>
+        {lastSession && lastTitle ? (
+          <span>
+            <button className="link-btn" onClick={onResume}>
+              {lastTitle}
+            </button>{' '}
+            <span className="faint" title={exact(lastSession)}>· {age(lastSession)} ago</span>
+          </span>
+        ) : (
+          <span className="faint">no session here yet</span>
+        )}
+      </div>
+      <div className="ws-since-row">
+        <span className="faint">{lastSession ? 'since' : '7 days'}</span>
+        <span>{changes.length ? changes.join(' · ') : 'nothing new'}</span>
+      </div>
+      <div className="ws-since-row">
+        <span className="faint">yours</span>
+        <span className="ws-since-tasks">
+          {mine.length
+            ? mine.slice(0, 5).map((t) => (
+                <button key={t.id} className="ws-since-task" onClick={() => onTask(t)}>
+                  <StatusGlyph task={t} size={11} /> {t.title} <span style={{ color: statusVivid({ colorId: t.statusColorId }) }}>{t.statusName.toLowerCase()}</span>
+                </button>
+              ))
+            : <span className="faint">no open subtasks of yours</span>}
+          {mine.length > 5 && <span className="faint">+{mine.length - 5} more in Structure</span>}
+        </span>
+      </div>
+    </Box>
   )
 }

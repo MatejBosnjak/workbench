@@ -105,7 +105,7 @@ const today = async (tab) => {
   await click('.place:has-text("Today")')
   if (tab) await click(`.counter:has-text("${tab}")`)
 }
-// A few to-dos of my own through the add line (one dated later, so it sleeps), the first one shown in the sidebar.
+// A few to-dos of my own through the add line (one dated later, so it sleeps); the NEXT row shown in the sidebar.
 await shot('today-needs', async () => {
   await today('Needs you')
   if (!(await api(() => window.workbench.todos.list())).length) {
@@ -115,7 +115,7 @@ await shot('today-needs', async () => {
     }
     await page.evaluate(() => document.activeElement?.blur())
   }
-  await click('.need-row:has(.need-to-do) >> nth=0')
+  await click('.need-row >> nth=0')
 })
 await shot('today-tasks', () => today('My tasks'))
 await shot('today-task-card', async () => {
@@ -154,6 +154,14 @@ await shot('local-worktrees', async () => {
   await until(() => api(() => window.workbench.cleanup.snapshot().then((s) => s.rows.filter((r) => r.verdict === 'done').every((r) => r.bytes !== null))), 480_000)
   await wait(800)
 })
+// Probably done, one worktree at a time.
+await shot('worktrees-pass', async () => {
+  await click('.place[aria-label^="Local"]')
+  await click('.local-tabs button:nth-child(2)')
+  await until(() => api(() => window.workbench.cleanup.snapshot().then((s) => s.scannedAt && !s.scanning)), 240_000)
+  await click('button:has-text("Go through")')
+})
+await page.keyboard.press('Escape').catch(() => {})
 await page.click('.local-tabs button:nth-child(1)').catch(() => {})
 
 // A session started from a task: it prefills the task prompt; replace it with two one-word prompts, the second naming
@@ -166,7 +174,7 @@ const git = await api(() => window.workbench.git.snapshot())
 const withPr = new Set([...git.mine, ...git.reviews].flatMap((p) => p.taskRefs ?? []))
 const t1 = mine.find((t) => withPr.has(t.id)) ?? mine[0] ?? snap.tasks[0]
 const t2 = mine.find((t) => t !== t1)
-const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || n.startsWith('theme-') || ['focus', 'palette', 'todo-capture', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
+const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || n.startsWith('theme-') || ['focus', 'focus-ask', 'focus-ended', 'palette', 'todo-capture', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
 let sid = null
 const send = async (text) => {
   await api(([id, t]) => window.workbench.writeSession(id, t), [sid, text])
@@ -226,12 +234,30 @@ await shot('session-pr-side', async () => {
 })
 await click('.session-bar .sbar-btn.seg.on').catch(() => {})
 const menu = (cmd) => app.evaluate(({ BrowserWindow }, c) => BrowserWindow.getAllWindows()[0].webContents.send('menu', c), cmd)
-await shot('focus', async () => {
+// ⌘F asks what for; the chip then carries it with the minutes; leaving shows it back with done / keep going / to-do.
+await shot('focus-ask', async () => {
   await session()
   await menu({ type: 'focus' })
+  await page.keyboard.type('fix service name wrap, then push')
 })
-// Leaving may list what was held; the next shot's Escape closes it.
-await menu({ type: 'focus' })
+await shot('focus', async () => {
+  if (!(await page.locator('.focus-ask').count())) {
+    await session()
+    await menu({ type: 'focus' })
+    await page.keyboard.type('fix service name wrap, then push')
+  }
+  await page.keyboard.press('Enter')
+})
+await shot('focus-ended', async () => {
+  if (!(await page.locator('.focus-chip').count())) {
+    await session()
+    await menu({ type: 'focus' })
+    await page.keyboard.type('fix service name wrap, then push')
+    await page.keyboard.press('Enter')
+  }
+  await menu({ type: 'focus' })
+})
+await page.keyboard.press('Escape').catch(() => {})
 const blurred = async (fn) => {
   await session()
   await page.evaluate(() => document.activeElement?.blur())

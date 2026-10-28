@@ -31,6 +31,8 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [open, setOpen] = useState<string | null>(null)
   const [bySize, setBySize] = useState(false)
+  // Going through Probably done one worktree at a time: the queue, where I am, what I said to remove.
+  const [pass, setPass] = useState<{ paths: string[]; i: number; remove: Set<string> } | null>(null)
 
   useEffect(() => {
     if (active && snap && !snap.scanning && (!snap.scannedAt || Date.now() - snap.scannedAt > STALE_MS)) void window.workbench.cleanup.scan()
@@ -52,6 +54,8 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
   if (bySize) rows.sort((a, b) => (b.bytes ?? -1) - (a.bytes ?? -1))
   const busy = snap.scanning || !!snap.removing
   const pickedNow = rows.filter((r) => r.verdict === 'maybe' && picked.has(r.path))
+  const maybe = rows.filter((r) => r.verdict === 'maybe')
+  const allPicked = maybe.length > 0 && maybe.every((r) => picked.has(r.path))
 
   return (
     <section className="wtc" aria-label="Worktrees">
@@ -97,6 +101,20 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
           {doneBytes.n > 0 && ` The ${doneBytes.n} done worktrees take ${doneBytes.partial ? 'at least ' : ''}${gb(doneBytes.bytes)}.`}
         </div>
       )}
+      {pass ? (
+        <Pass
+          active={active}
+          rows={pass.paths.map((p) => snap.rows.find((r) => r.path === p)).filter((r): r is CleanupRow => !!r)}
+          i={pass.i}
+          remove={pass.remove}
+          busy={busy}
+          onStep={(i, remove) => setPass({ ...pass, i, remove })}
+          onDone={(go) => {
+            if (go && pass.remove.size) void window.workbench.cleanup.remove([...pass.remove])
+            setPass(null)
+          }}
+        />
+      ) : (
       <div className="wtc-list">
         {!snap.scannedAt && snap.scanning && <div className="wtc-empty muted">Reading {`~/…/worktrees`}: each worktree’s git state, its PR on GitHub, its task in Productive…</div>}
         {GROUPS.map((g) => {
@@ -121,12 +139,23 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
                     </button>
                   ))}
                 {g.verdict === 'maybe' && (
+                  <label className="wtc-all">
+                    <input type="checkbox" checked={allPicked} disabled={busy} onChange={() => setPicked(allPicked ? new Set() : new Set(maybe.map((r) => r.path)))} />
+                    select all
+                  </label>
+                )}
+                {g.verdict === 'maybe' && (
                   <button
                     className="ghost"
                     disabled={busy || !pickedNow.length}
                     onClick={() => void window.workbench.cleanup.remove(pickedNow.map((r) => r.path)).then(() => setPicked(new Set()))}
                   >
                     Remove selected{pickedNow.length ? ` (${pickedNow.length})` : ''}
+                  </button>
+                )}
+                {g.verdict === 'maybe' && (
+                  <button className="primary" disabled={busy} title="One worktree at a time: n remove, y keep, ← back" onClick={() => setPass({ paths: list.map((r) => r.path), i: 0, remove: new Set() })}>
+                    Go through {list.length} ▸
                   </button>
                 )}
               </div>
@@ -158,7 +187,116 @@ export function WorktreeCleanup({ active }: { active: boolean }) {
           )
         })}
       </div>
+      )}
     </section>
+  )
+}
+
+/**
+ * Probably done, one at a time: the facts that decide it and two keys. n remove, y keep, ← back, esc stops.
+ * Nothing is removed until the end, where one button removes what was picked.
+ */
+function Pass({ active, rows, i, remove, busy, onStep, onDone }: { active: boolean; rows: CleanupRow[]; i: number; remove: Set<string>; busy: boolean; onStep(i: number, remove: Set<string>): void; onDone(go: boolean): void }) {
+  const r = rows[i]
+  const decide = (out: boolean) => {
+    if (!r) return
+    const next = new Set(remove)
+    if (out) next.add(r.path)
+    else next.delete(r.path)
+    onStep(i + 1, next)
+  }
+  useEffect(() => {
+    if (!active) return
+    const key = (e: KeyboardEvent) => {
+      const el = document.activeElement
+      if (e.metaKey || e.ctrlKey || e.altKey || (el && (el.closest('.xterm') || /^(INPUT|TEXTAREA)$/.test(el.tagName)))) return
+      const k = e.key
+      if (r && (k === 'n' || k === 'y')) decide(k === 'n')
+      else if (k === 'ArrowLeft' && i > 0) onStep(i - 1, remove)
+      else if (k === 'Escape') onDone(false)
+      else if (!r && k === 'Enter') onDone(true)
+      else return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+    }
+    window.addEventListener('keydown', key, true)
+    return () => window.removeEventListener('keydown', key, true)
+  })
+  const freed = gb(rows.filter((x) => remove.has(x.path)).reduce((n, x) => n + (x.bytes ?? 0), 0))
+  if (!r)
+    return (
+      <div className="wtc-pass">
+        <div className="wtc-card">
+          <div className="wtc-card-name">
+            {remove.size ? `Remove ${remove.size}` : 'Nothing to remove'} <span className="muted">· kept {rows.length - remove.size}</span>
+          </div>
+          {remove.size > 0 && <div className="muted">frees {freed}; branches are kept, so each can come back with git worktree add</div>}
+          <div className="wtc-card-acts">
+            {remove.size > 0 && (
+              <button className="primary" disabled={busy} onClick={() => onDone(true)}>
+                Remove {remove.size} ⏎
+              </button>
+            )}
+            <button className="ghost" onClick={() => onStep(i - 1, remove)}>
+              ← back
+            </button>
+            <button className="ghost" onClick={() => onDone(false)}>
+              {remove.size ? 'Cancel' : 'Back to the list'} <span className="faint">esc</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  const pr = r.pr
+  const changes = r.changes.length
+  return (
+    <div className="wtc-pass">
+      <div className="wtc-card">
+        <div className="muted">
+          {i + 1} of {rows.length} · {remove.size} to remove so far
+        </div>
+        <div className="wtc-card-name">{shortName(r)}</div>
+        <div className="faint">
+          {short(r.repo)} · {r.branch ?? 'detached'}
+        </div>
+        <div className="wtc-card-facts">
+          {pr ? <span className={pr.state === 'MERGED' ? 'ok' : pr.state === 'OPEN' ? 'info' : 'bad'}>{pr.state === 'MERGED' ? '✓ merged' : pr.state === 'OPEN' ? '● open' : '✕ closed'}</span> : <span className="faint">no PR</span>}
+          <span>last commit {ago(r.ts * 1000)}</span>
+          {r.bytes !== null && <span>{gb(r.bytes)}</span>}
+          {r.unpushed > 0 && !r.inPr && <span className="warn">{r.unpushed} unpushed</span>}
+          {changes > 0 ? <span className="warn">{changes} uncommitted</span> : <span>nothing uncommitted</span>}
+          {r.task && <span className={`task-pill${r.task.closed ? ' closed' : ''}`}>{r.task.title}{r.task.closed ? ' ✓' : ''}</span>}
+        </div>
+        <div className="muted">{r.reason}</div>
+        <div className="wtc-card-acts">
+          <button className="primary" disabled={busy} onClick={() => decide(true)}>
+            remove <span className="wtc-k">n</span>
+          </button>
+          <button className="ghost" onClick={() => decide(false)}>
+            keep <span className="faint">y</span>
+          </button>
+          {i > 0 && (
+            <button className="ghost" onClick={() => onStep(i - 1, remove)}>
+              ← back
+            </button>
+          )}
+          <button className="ghost" onClick={() => onDone(false)}>
+            stop <span className="faint">esc</span>
+          </button>
+        </div>
+      </div>
+      {rows.length > i + 1 && (
+        <div className="wtc-next muted">
+          <span>up next</span>
+          {rows.slice(i + 1, i + 4).map((x) => (
+            <span key={x.path}>
+              <span className="t2">{shortName(x)}</span> · {x.pr ? (x.pr.state === 'MERGED' ? 'merged' : 'closed') : 'no PR'}
+              {x.bytes !== null ? ` · ${gb(x.bytes)}` : ''}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

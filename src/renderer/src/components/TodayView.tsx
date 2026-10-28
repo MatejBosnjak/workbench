@@ -3,14 +3,15 @@ import { FigmaMark } from './FigmaMark'
 import { MARK_WORD, taskSessions, type LinkedSession } from '@shared/links'
 import { FE_REPO, runTarget } from '@shared/runpr'
 import { groupByStatus, groupTasks, statusCounts, statusVivid, treeShapes, type StatusCount, type Task, type TasksSnapshot } from '@shared/tasks'
-import type { GitSnapshot } from '@shared/git'
+import { groupReviews, type GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
-import { needsBreakdown, needsYou, todoLater, tomorrowMorning, UNTIL_CHANGED, type NeedItem } from '../needs'
+import { needsBreakdown, needsYou, needWhen, todoLater, tomorrowMorning, UNTIL_CHANGED, withNext, type NeedItem } from '../needs'
+import { exact } from '@shared/time'
 import { dayText, isoDay, parseCapture, type MyTodo } from '@shared/todos'
 import { sessionStyle } from './SessionMark'
 import { TodoPreview } from './TodoPreview'
-import { navigate, openInPane, openWorkstream, useStore, type TodayTab } from '../store'
+import { openInPane, openWorkstream, useStore, type TodayTab } from '../store'
 import { Box } from './Box'
 import { goToSession, MarkGlyph, NewSessionButton } from './Chips'
 import { Group, Panel, Separator } from 'react-resizable-panels'
@@ -96,7 +97,13 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
     draft,
     paneFull,
     theme,
-  } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, paneFull: s.paneFull, theme: s.theme })))
+    paneOpen,
+  } = useStore(useShallow((s) => ({ todayTab: s.todayTab, setTodayTab: s.setTodayTab, draft: s.draft, paneFull: s.paneFull, theme: s.theme, paneOpen: !!s.pane?.url })))
+  // The pane's state is needed before a GitPane is mounted: with no PR open, the list takes the whole width.
+  useEffect(() => {
+    void window.workbench.pane.state().then((p) => useStore.getState().setPane(p))
+    return window.workbench.pane.onChanged((p) => useStore.getState().setPane(p))
+  }, [])
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 60_000)
@@ -108,20 +115,17 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
   const allNeeds = useMemo(() => needsYou(git, snapshot, myTodos), [git, snapshot, myTodos])
   const now = Date.now()
   const asleep = (n: NeedItem) => snoozed[n.key]! > now || todoLater(n)
-  const needs = allNeeds.filter((n) => !asleep(n))
+  const { items: needs, next } = withNext(allNeeds.filter((n) => !asleep(n)))
   const sleeping = allNeeds.filter(asleep)
   const mine = snapshot?.tasks.filter((t) => !t.context) ?? []
-  const byStatus = new Map<string, number>()
-  for (const t of mine) if (t.statusCategory === 2) byStatus.set(t.statusName, (byStatus.get(t.statusName) ?? 0) + 1)
-  const topStatuses = [...byStatus.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([name, n]) => `${n} ${name.toLowerCase()}`)
-    .join(' · ')
+  // Each counter's number is the part I can act on; the total is a faint "of n" under it.
+  const started = mine.filter((t) => t.statusCategory === 2)
+  const working = started.filter((t) => /work|progress|doing/i.test(t.statusName))
+  const moving = working.length ? working : started
+  const movingWord = working.length ? 'working' : 'started'
   const replies = new Set(needs.filter((n) => n.kind === 'reply needed').map((n) => n.pr!.id)).size
-  const drafts = git?.mine.filter((p) => p.draft).length ?? 0
-  const bots = git?.reviews.filter((p) => p.authorBot).length ?? 0
-  const asked = git?.reviews.filter((p) => p.requested === false && !p.authorBot).length ?? 0
+  const waitingReviews = git?.reviews.filter((p) => p.requested !== false && !p.authorBot) ?? []
+  const fresh = groupReviews(waitingReviews).find((g) => g.title === 'New this week')?.prs.length ?? 0
 
   const counters: { id: string; title: string; value: string; unit?: string; note: string; tone?: string; to?: TodayTab }[] = [
     {
@@ -132,14 +136,14 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
       tone: needs.length ? 'var(--accent)' : undefined,
       to: 'needs',
     },
-    { id: 'tasks', title: 'My tasks', value: snapshot?.fetchedAt ? String(mine.length) : '—', note: topStatuses || 'nothing started', to: 'tasks' },
-    { id: 'prs', title: 'My PRs', value: git?.fetchedAt ? String(git.mine.length) : '—', note: `${replies} need a reply · ${drafts} drafts`, to: 'git' },
+    { id: 'tasks', title: 'My tasks', value: snapshot?.fetchedAt ? String(moving.length) : '—', note: `${movingWord} · of ${mine.length}`, to: 'tasks' },
+    { id: 'prs', title: 'My PRs', value: git?.fetchedAt ? String(replies) : '—', note: `${replies === 1 ? 'needs' : 'need'} a reply · of ${git?.mine.length ?? 0}`, to: 'git' },
     {
       id: 'reviews',
       title: 'Reviews',
-      // Only reviews waiting on me; PRs where I asked for changes are the author's move.
-      value: git?.fetchedAt ? String(git.reviews.filter((p) => p.requested !== false && !p.authorBot).length) : '—',
-      note: [asked && `${asked} waiting on authors`, `${bots} bot PRs hidden`].filter(Boolean).join(' · '),
+      // Reviews waiting on me (PRs where I asked for changes are the author's move); new this week first.
+      value: git?.fetchedAt ? String(fresh) : '—',
+      note: `new this week · of ${waitingReviews.length}`,
       to: 'reviews',
     },
   ]
@@ -175,7 +179,9 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
               </span>
               <span className="counter-note">
                 {c.note.split(' · ').map((part) => (
-                  <span key={part}>{part}</span>
+                  <span key={part} className={part.startsWith('of ') ? 'counter-of' : undefined}>
+                    {part}
+                  </span>
                 ))}
               </span>
             </button>
@@ -185,9 +191,13 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
       {tab === 'needs' || tab === 'tasks' ? (
         <div className="today-body">
           <main className="today-main">
-            <Home view={tab} snapshot={snapshot} git={git} needs={needs} sleeping={sleeping} active={active} />
+            <Home view={tab} snapshot={snapshot} git={git} needs={needs} next={next} sleeping={sleeping} active={active} />
           </main>
           <aside className="today-side">{draft && git ? <DraftPanel target={draft} git={git} /> : snapshot && <Peek snapshot={snapshot} tab={tab} needs={needs} />}</aside>
+        </div>
+      ) : !paneOpen ? (
+        <div className="today-body">
+          <main className="today-main">{list}</main>
         </div>
       ) : paneFull ? (
         <div className="today-body full">
@@ -344,12 +354,20 @@ function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab
   )
 }
 
-/** The row's kind; a to-do's carries a box that ticks it off. */
-function NeedKind({ n }: { n: NeedItem }) {
-  if (!n.todo) return <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
+/** The row's kind; a to-do's carries a box that ticks it off. The row to start with is marked NEXT. */
+function NeedKind({ n, next = false }: { n: NeedItem; next?: boolean }) {
+  const tag = next && <span className="need-next">next</span>
+  if (!n.todo)
+    return (
+      <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>
+        {tag}
+        {n.kind}
+      </span>
+    )
   const t = n.todo
   return (
     <span className="need-kind need-to-do">
+      {tag}
       <button className="todo-check" aria-label={`Done: ${t.text}`} title="Done (x)" onClick={(e) => (e.stopPropagation(), finishTodo(t))} />
       to-do
     </span>
@@ -376,6 +394,7 @@ function Home({
   snapshot,
   git,
   needs,
+  next,
   sleeping,
   active,
 }: {
@@ -383,6 +402,7 @@ function Home({
   snapshot: TasksSnapshot | null
   git: GitSnapshot | null
   needs: NeedItem[]
+  next: { key: string; why: string } | null
   sleeping: NeedItem[]
   active: boolean
 }) {
@@ -443,7 +463,7 @@ function Home({
     return groupBy === 'status' ? groupByStatus(shown) : groupTasks(shown)
   }, [snapshot?.tasks, filter, only, groupBy])
   const order = groups.flatMap((g) => g.lines.filter((l) => !l.header).map((l) => l.task.id))
-  const threads = needs.filter((n) => n.kind === 'reply needed')
+  const [showSleeping, setShowSleeping] = useState(false)
 
   // A click or ⏎ shows an item in the sidebar; ⏎ again on the same item, a double-click or the sidebar's open button opens it.
   const peekNeed = useStore((st) => st.peekNeed)
@@ -529,18 +549,23 @@ function Home({
         <Box title={`Needs you (${needs.length})`} active>
           {needs.length === 0 && <span className="faint">Nothing waiting on you.</span>}
           {needs.map((n, i) => (
+            <div key={n.key} className={`need-item${next?.key === n.key ? ' next' : ''}`}>
             <div
-              key={n.key}
               className={`need-row${i === needIdx ? ' sel' : ''}${peekNeed === n.key ? ' shown' : ''}`}
               role="button"
               tabIndex={-1}
               onClick={() => (setNeedIdx(i), previewNeed(n))}
               onDoubleClick={() => openNeed(n)}
             >
-              <NeedKind n={n} />
+              <NeedKind n={n} next={next?.key === n.key} />
               <NeedRef n={n} sessions={sessions} />
-              <span className="need-text">{n.text}</span>
-              <span className={`need-detail${n.todo?.due && n.todo.due < isoDay(new Date()) ? ' bad-text' : ''}`}>{n.detail}</span>
+              <span className="need-text">
+                {n.text}
+                {n.quote && <span className="need-said">“{n.quote}”</span>}
+              </span>
+              <span className={`need-detail${(n.todo?.due && n.todo.due < isoDay(new Date())) || n.kind === 'overdue' ? ' bad-text' : ''}`} title={n.at ? exact(n.at) : undefined}>
+                {needWhen(n)}
+              </span>
               <button
                 className="need-sleep"
                 title="Sleep until tomorrow 08:00 (z). Comes back sooner if something new happens. ⇧-click (⇧Z): sleep until something new happens."
@@ -552,6 +577,8 @@ function Home({
               >
                 zz
               </button>
+            </div>
+            {next?.key === n.key && next.why && <div className="need-why">{next.why}</div>}
             </div>
           ))}
           {todoUndo && (
@@ -697,34 +724,21 @@ function Home({
           </Box>
         ))}
 
-      {pane === 'needs' && threads.length > 0 && (
-        <Box title={`Threads (${threads.length})`}>
-          {threads.slice(0, 6).map((n) => {
-            const last = n.conversation!.messages.at(-1)!
-            return (
-              <button key={n.key} className={`thread${peekNeed === n.key ? ' shown' : ''}`} onClick={() => (setNeedIdx(needs.indexOf(n)), previewNeed(n))} onDoubleClick={() => openNeed(n)}>
-                <span className="thread-head">
-                  <span className="warn-text">reply</span>
-                  <span className="need-ref">{n.ref}</span>
-                  <span>
-                    {last.author}
-                    {n.conversation!.path ? ` · ${n.conversation!.path.split('/').pop()}` : ''}
-                  </span>
-                </span>
-                <span className="thread-quote">{last.body.replace(/\s+/g, ' ').slice(0, 220) || '(no text)'}</span>
-              </button>
-            )
-          })}
-          {threads.length > 6 && (
-            <button className="link-btn" onClick={() => navigate({ kind: 'git', prId: null })}>
-              {threads.length - 6} more in My PRs
+      {pane === 'needs' && sleeping.length > 0 && (
+        <Box
+          title={
+            <button className="fold-btn" aria-expanded={showSleeping} onClick={() => setShowSleeping(!showSleeping)}>
+              {showSleeping ? '▾' : '▸'} Sleeping ({sleeping.length})
+            </button>
+          }
+          className={showSleeping ? undefined : 'folded'}
+        >
+          {!showSleeping && (
+            <button className="fold-line" onClick={() => setShowSleeping(true)}>
+              {sleeping.map((n) => n.text).join(' · ')}
             </button>
           )}
-        </Box>
-      )}
-      {pane === 'needs' && sleeping.length > 0 && (
-        <Box title={`Sleeping (${sleeping.length})`}>
-          {sleeping.map((n) => (
+          {showSleeping && sleeping.map((n) => (
             <div key={n.key} className="need-row asleep">
               <NeedKind n={n} />
               <NeedRef n={n} sessions={sessions} />

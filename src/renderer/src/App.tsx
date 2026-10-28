@@ -9,7 +9,7 @@ import { WorkstreamView } from './components/WorkstreamView'
 import { DirtyGuardModal } from './components/RunPr'
 import { Palette } from './components/Palette'
 import { TodoCapture } from './components/TodoCapture'
-import { FocusDigest } from './components/Focus'
+import { FocusAsk, FocusDigest } from './components/Focus'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
@@ -80,6 +80,7 @@ export function App() {
 
   const git = useStore((s) => s.git)
   const capture = useStore((s) => s.capture)
+  const focusAsk = useStore((s) => s.focusAsk)
   useEffect(() => {
     const { setGit } = useStore.getState()
     void window.workbench.git.snapshot().then(setGit)
@@ -195,6 +196,7 @@ export function App() {
       <FocusDigest />
       {paletteOpen && <Palette onNew={(pick) => void newSession(pick)} />}
       {capture && <TodoCapture />}
+      {focusAsk && <FocusAsk />}
     </div>
   )
 }

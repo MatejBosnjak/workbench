@@ -32,5 +32,6 @@ Each file is a self-contained HTML mock: the markup sits inside `<x-dc>`, and th
 | `SessionTabsLive.dc.html` | Reference: now vs new, animated, with what we lose and gain | — |
 | `SessionBarPrs.dc.html` | Chosen: **B · repo + CI word, worst first**; a segment per PR, numbers in the tooltip | `session.png`, `session-pr-side.png` |
 | `TabRunGlyph.dc.html` | Chosen: **C + E3** · titles fade instead of …; running is a dim six-dot ring with a soft highlight going round | `session.png` |
+| `NeedsTodos.dc.html` | Chosen: **C** · to-dos as Needs you rows with an add line, plus ⌥⌘T / ⌘K `todo` capture linked to the session on screen; B (own box) rejected | `today-needs.png`, `todo-capture.png` |
 
 When a new exploration is picked: mark its row here (Chosen: X), build it, then `pnpm snap` and update `docs/SPEC.md` in the same commit.

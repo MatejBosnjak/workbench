@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Needs you to-dos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.wrap{width:2400px;box-sizing:border-box;padding:40px;background:#0E0D12;color:#ECE8F2;font-family:'JetBrains Mono',monospace;font-size:12.5px;display:flex;flex-direction:column;gap:56px}
+.opt{display:flex;gap:40px;align-items:flex-start}
+.cap{color:#A69FB4;margin-bottom:12px;line-height:1.5;width:1512px} .cap b{color:#ECE8F2;font-size:18px;display:block;margin-bottom:4px}
+.app{width:1512px;background:#0E0D12;border:1px solid #25232E;padding:24px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+.ctrs{display:grid;grid-template-columns:508px 1fr 1fr 1fr;gap:14px}
+.ctr{border:1px solid #25232E;padding:14px 16px 12px;position:relative;display:flex;align-items:center;justify-content:space-between;height:74px;box-sizing:border-box}
+.ctr .t{position:absolute;top:-9px;left:10px;background:#0E0D12;padding:0 6px;font-weight:700}
+.ctr .n{font-size:28px;font-weight:700} .ctr.lead{border-color:#4A3A72} .ctr.lead .n{font-size:52px;color:#A07EEA;text-shadow:0 0 14px rgba(160,126,234,.45)}
+.ctr .bd{text-align:right;color:#8E879E;font-size:11.5px;line-height:1.45}
+.cols{display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:22px}
+.box{border:1px solid #3A3647;padding:16px 10px 10px;position:relative}
+.box.act{border-color:#ECE8F2}
+.box>.t{position:absolute;top:-9px;left:10px;background:#0E0D12;padding:0 6px;font-weight:700}
+.row{display:flex;align-items:center;gap:12px;min-height:19px;padding:0 4px;white-space:nowrap}
+.row.sel{background:#1E1C26;box-shadow:inset 3px 0 0 #ECE8F2}
+.k{width:150px;flex-shrink:0} .ref{width:120px;flex-shrink:0;color:#A69FB4} .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis} .dt{color:#6A647A;flex-shrink:0} .zz{width:36px;text-align:right;color:#6A647A;flex-shrink:0}
+.bad{color:#EE6F86} .warn{color:#E8B07A} .ok{color:#5FD0B0} .muted{color:#8E879E} .faint{color:#6A647A} .acc{color:#A07EEA} .t2{color:#CDC7D8}
+.todo{color:#57C7CC}
+.chk{display:inline-block;width:11px;height:11px;border:1px solid #6A647A;margin-right:8px;vertical-align:-1px}
+.chk.on{border-color:#5FD0B0;background:#10201D;position:relative}
+.done .tx{text-decoration:line-through;color:#6A647A}
+.add{display:flex;align-items:center;gap:12px;padding:3px 4px;margin-top:6px;border-top:1px dashed #25232E}
+.add .in{flex:1;border:1px solid #4A3A72;background:#121117;padding:3px 8px;color:#ECE8F2}
+.add .in .cur{display:inline-block;width:7px;height:13px;background:#A07EEA;vertical-align:-2px;margin-left:1px}
+.add .hint{color:#6A647A}
+.kb{border:1px solid #3A3647;padding:0 5px;color:#A69FB4;font-size:11px}
+.prev{border:1px solid #3A3647;padding:16px 14px 12px;position:relative;line-height:1.55}
+.prev>.t{position:absolute;top:-9px;left:10px;background:#0E0D12;padding:0 6px;font-weight:700}
+.prev h3{margin:2px 0 8px;font-size:14px;font-weight:700}
+.prev .meta{color:#8E879E;margin-bottom:10px}
+.prev .note{border:1px solid #25232E;background:#121117;padding:8px 10px;color:#CDC7D8;margin-bottom:12px;min-height:44px}
+.prev .acts{display:flex;flex-wrap:wrap;gap:6px 14px;color:#8FD3EA}
+.btn{border:1px solid #3A3647;padding:2px 9px;color:#CDC7D8}
+.btn.pri{background:#A07EEA;border-color:#A07EEA;color:#120E16;font-weight:700}
+.chip{border:1px solid #2E2B39;padding:0 6px;color:#CDC7D8;font-size:11px}
+.side{width:768px;padding-top:60px;display:flex;flex-direction:column;gap:18px;line-height:1.55}
+.side .h{font-weight:700;font-size:14px}
+.side ul{margin:0;padding-left:18px;color:#A69FB4} .side li{margin-bottom:4px}
+.pro{color:#5FD0B0} .con{color:#E8B07A}
+.pal{width:620px;background:#1A1921;border:1px solid #3A3647;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.pal .q{padding:10px 12px;border-bottom:1px solid #25232E}
+.pal .it{padding:6px 12px;display:flex;justify-content:space-between} .pal .it.on{background:#211A30}
+</style>
+</helmet>
+<div class="wrap">
+
+<!-- A -->
+<div class="opt">
+<div>
+<div class="cap"><b>A · In the list — a to-do is just another Needs you row</b>Kind <span class="todo">to-do</span> (teal: mine, not an alarm). An add line under the rows; <span class="kb">a</span> focuses it from anywhere on Today, ⏎ adds, a trailing day word (<i>tomorrow</i>, <i>fri</i>, <i>3 nov</i>) sets a date. <span class="kb">x</span> or the box ticks it off. zz / ⇧Z sleep work as on every row.</div>
+<div class="app">
+<div class="ctrs">
+<div class="ctr lead"><span class="t">Needs you</span><span class="n">5</span><span class="bd">2 PRs · 1 thread<br>2 to-dos</span></div>
+<div class="ctr"><span class="t">My tasks</span><span class="n">30</span><span class="bd">8 on latest<br>7 working</span></div>
+<div class="ctr"><span class="t">My PRs</span><span class="n">13</span><span class="bd">1 need a reply<br>8 drafts</span></div>
+<div class="ctr"><span class="t">Reviews</span><span class="n">2</span><span class="bd">2 waiting on authors<br>1 bot PRs hidden</span></div>
+</div>
+<div class="cols">
+<div class="box act"><span class="t">Needs you (5)</span>
+<div class="row"><span class="k bad">conflicts</span><span class="ref">ai</span><span class="tx">fix: proposals fall back to a Standard/Elegant doc…</span><span class="dt">fix/6082-proposal-document-template</span><span class="zz"></span></div>
+<div class="row"><span class="k bad">changes requested</span><span class="ref">ai</span><span class="tx">fix: reject custom field placeholders in sent proposals</span><span class="dt">MartaJerkovic · 26 Oct 21:26</span><span class="zz"></span></div>
+<div class="row"><span class="k warn">reply needed</span><span class="ref">fe</span><span class="tx">ShockwaVee commented</span><span class="dt">15 Oct 08:50</span><span class="zz"></span></div>
+<div class="row sel"><span class="k todo"><span class="chk"></span>to-do</span><span class="ref">me</span><span class="tx">Renew car registration</span><span class="dt bad">due today</span><span class="zz">zz</span></div>
+<div class="row"><span class="k todo"><span class="chk"></span>to-do</span><span class="ref">me</span><span class="tx">Book dentist</span><span class="dt">added Mon</span><span class="zz"></span></div>
+<div class="add"><span class="acc">+</span><span class="in">Call the bank about the card fri<span class="cur"></span></span><span class="hint">⏎ add · <span class="t2">fri</span> → Fri 31 Oct</span></div>
+</div>
+<div class="prev"><span class="t">Preview</span>
+<div class="todo" style="margin-bottom:2px"><span class="chk"></span>to-do · me</div>
+<h3>Renew car registration</h3>
+<div class="meta">due today · added 24 Oct</div>
+<div class="note">Docs in the drawer; HAK office Savska, open till 19h.</div>
+<div class="acts"><span class="btn pri">✓ Done  x</span><span class="btn">edit  e</span><span>zz until tomorrow</span><span>until …</span><span class="bad">delete</span></div>
+</div>
+</div>
+</div>
+</div>
+<div class="side">
+<div class="h">How it behaves</div>
+<ul>
+<li>Sorted with the rest by date: a dated to-do sits at its due date, an undated one at when it was added.</li>
+<li>Undated to-dos always show (that's the point: they need you). A dated one stays out of the list until its day, then turns red when late.</li>
+<li>Done: the row strikes through, fades after 3 s; <span class="kb">⌘Z</span> brings it back. Done items are kept a week, not shown.</li>
+<li>Stored in SQLite (<code>todos</code> table), local only; nothing goes to Productive.</li>
+</ul>
+<div><span class="pro">+ one list, one muscle memory; nothing new to look at.</span><br><span class="con">− a long personal list pushes PR alarms down.</span></div>
+</div>
+</div>
+
+<!-- B -->
+<div class="opt">
+<div>
+<div class="cap"><b>B · Own box — a To-dos box under Needs you; only what's due rises into it</b>Like Threads: a <b>To-dos</b> box with checkboxes and its own add line. Needs you only lists to-dos due today or late (kind <span class="todo">to-do due</span>), so the counter keeps meaning "act now".</div>
+<div class="app">
+<div class="ctrs">
+<div class="ctr lead"><span class="t">Needs you</span><span class="n">4</span><span class="bd">2 PRs · 1 thread<br>1 to-do due</span></div>
+<div class="ctr"><span class="t">My tasks</span><span class="n">30</span><span class="bd">8 on latest<br>7 working</span></div>
+<div class="ctr"><span class="t">My PRs</span><span class="n">13</span><span class="bd">1 need a reply<br>8 drafts</span></div>
+<div class="ctr"><span class="t">Reviews</span><span class="n">2</span><span class="bd">2 waiting on authors<br>1 bot PRs hidden</span></div>
+</div>
+<div class="cols">
+<div class="stack">
+<div class="box act"><span class="t">Needs you (4)</span>
+<div class="row"><span class="k bad">conflicts</span><span class="ref">ai</span><span class="tx">fix: proposals fall back to a Standard/Elegant doc…</span><span class="dt">fix/6082-proposal-document-template</span><span class="zz"></span></div>
+<div class="row"><span class="k bad">changes requested</span><span class="ref">ai</span><span class="tx">fix: reject custom field placeholders in sent proposals</span><span class="dt">MartaJerkovic · 26 Oct 21:26</span><span class="zz"></span></div>
+<div class="row"><span class="k warn">reply needed</span><span class="ref">fe</span><span class="tx">ShockwaVee commented</span><span class="dt">15 Oct 08:50</span><span class="zz"></span></div>
+<div class="row sel"><span class="k todo">to-do due</span><span class="ref">me</span><span class="tx">Renew car registration</span><span class="dt bad">today</span><span class="zz">zz</span></div>
+</div>
+<div class="box"><span class="t">To-dos (4)</span>
+<div class="row"><span class="tx"><span class="chk"></span>Renew car registration</span><span class="dt bad">today</span></div>
+<div class="row"><span class="tx"><span class="chk"></span>Call the bank about the card</span><span class="dt">Fri</span></div>
+<div class="row"><span class="tx"><span class="chk"></span>Book dentist</span><span class="dt"></span></div>
+<div class="row"><span class="tx"><span class="chk"></span>Read the Electron 40 release notes</span><span class="dt"></span></div>
+<div class="row done"><span class="tx"><span class="chk on"></span>Send invoice to accountant</span><span class="dt">done 09:12</span></div>
+<div class="add"><span class="acc">+</span><span class="in">add a to-do… <span class="faint">(day word sets a date)</span></span><span class="hint"><span class="kb">a</span></span></div>
+</div>
+</div>
+<div class="prev"><span class="t">Preview</span>
+<div class="todo" style="margin-bottom:2px">to-do due · me</div>
+<h3>Renew car registration</h3>
+<div class="meta">due today · added 24 Oct</div>
+<div class="note">Docs in the drawer; HAK office Savska, open till 19h.</div>
+<div class="acts"><span class="btn pri">✓ Done  x</span><span class="btn">edit  e</span><span>move to tomorrow</span><span class="bad">delete</span></div>
+</div>
+</div>
+</div>
+</div>
+<div class="side">
+<div class="h">How it behaves</div>
+<ul>
+<li>To-dos box: undated first in the order added, then by date; drag to reorder. ↑↓ move, <span class="kb">x</span> ticks, <span class="kb">e</span> edits in place.</li>
+<li>Needs you: a to-do joins on its due day and stays until done. "move to tomorrow" instead of zz (re-dates it).</li>
+<li>Undated to-dos never nag; they wait in their box.</li>
+</ul>
+<div><span class="pro">+ the counter stays honest; a backlog of personal stuff doesn't drown PR alarms.</span><br><span class="con">− one more box; an undated to-do is easy to forget.</span></div>
+</div>
+</div>
+
+<!-- C -->
+<div class="opt">
+<div>
+<div class="cap"><b>C · A, plus capture from anywhere</b>Rows as in A. <span class="kb">⌥⌘T</span> (or ⌘K <i>todo …</i>) opens a one-line capture over any screen, a session too; made from a session, the to-do remembers it and ⏎ in Needs you jumps back there.</div>
+<div class="app" style="position:relative">
+<div class="ctrs">
+<div class="ctr lead"><span class="t">Needs you</span><span class="n">5</span><span class="bd">2 PRs · 1 thread<br>2 to-dos</span></div>
+<div class="ctr"><span class="t">My tasks</span><span class="n">30</span><span class="bd">8 on latest<br>7 working</span></div>
+<div class="ctr"><span class="t">My PRs</span><span class="n">13</span><span class="bd">1 need a reply<br>8 drafts</span></div>
+<div class="ctr"><span class="t">Reviews</span><span class="n">2</span><span class="bd">2 waiting on authors<br>1 bot PRs hidden</span></div>
+</div>
+<div class="cols">
+<div class="box act"><span class="t">Needs you (5)</span>
+<div class="row"><span class="k bad">conflicts</span><span class="ref">ai</span><span class="tx">fix: proposals fall back to a Standard/Elegant doc…</span><span class="dt">fix/6082-proposal-document-template</span><span class="zz"></span></div>
+<div class="row"><span class="k bad">changes requested</span><span class="ref">ai</span><span class="tx">fix: reject custom field placeholders in sent proposals</span><span class="dt">MartaJerkovic · 26 Oct 21:26</span><span class="zz"></span></div>
+<div class="row"><span class="k warn">reply needed</span><span class="ref">fe</span><span class="tx">ShockwaVee commented</span><span class="dt">15 Oct 08:50</span><span class="zz"></span></div>
+<div class="row"><span class="k todo"><span class="chk"></span>to-do</span><span class="ref">me</span><span class="tx">Renew car registration</span><span class="dt bad">due today</span><span class="zz"></span></div>
+<div class="row sel"><span class="k todo"><span class="chk"></span>to-do</span><span class="ref" style="color:#7088A8">▌proposal-pdf</span><span class="tx">Ask Marta if the Elegant fallback is wanted</span><span class="dt">added 11:40</span><span class="zz">zz</span></div>
+<div class="add"><span class="acc">+</span><span class="faint">add a to-do  <span class="kb">a</span> · anywhere <span class="kb">⌥⌘T</span></span></div>
+</div>
+<div class="prev"><span class="t">Preview</span>
+<div class="todo" style="margin-bottom:2px"><span class="chk"></span>to-do</div>
+<h3>Ask Marta if the Elegant fallback is wanted</h3>
+<div class="meta">added 11:40 from <span style="color:#7088A8">▌proposal-pdf</span> <span class="chip">#6082</span></div>
+<div class="note faint">no note</div>
+<div class="acts"><span class="btn pri">✓ Done  x</span><span class="btn">⏎ open session</span><span class="btn">edit  e</span><span>zz</span><span class="bad">delete</span></div>
+</div>
+</div>
+</div>
+</div>
+<div class="side">
+<div class="h">Capture (over a session)</div>
+<div class="pal">
+<div class="q"><span class="acc">+ to-do</span>  Ask Marta if the Elegant fallback is wanted<span class="cur" style="display:inline-block;width:7px;height:13px;background:#A07EEA;vertical-align:-2px"></span></div>
+<div class="it on"><span>link to <span style="color:#7088A8">▌proposal-pdf</span> <span class="chip">#6082</span></span><span class="faint">⇥ toggles</span></div>
+<div class="it"><span class="muted">⏎ add · esc cancel · a day word sets a date</span><span></span></div>
+</div>
+<ul>
+<li>The link is on by default when captured from a session tab, off elsewhere.</li>
+<li>Closing that session keeps the to-do; ⏎ then resumes the session.</li>
+</ul>
+<div><span class="pro">+ catches the "oh, I must also…" mid-session without leaving it.</span><br><span class="con">− more to build (global shortcut, link); A first, C on top later is possible.</span></div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2400,"height":1900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

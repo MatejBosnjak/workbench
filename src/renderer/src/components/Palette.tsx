@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 interface Item {
   key: string
-  group: 'Run in session' | 'Sessions' | 'Recently closed' | 'Workstreams' | 'Tasks' | 'PRs' | 'Actions' | 'Themes'
+  group: 'Run in session' | 'To-do' | 'Sessions' | 'Recently closed' | 'Workstreams' | 'Tasks' | 'PRs' | 'Actions' | 'Themes'
   title: string
   detail: string
   state?: SessionState
@@ -37,8 +37,8 @@ const matches = (q: string, text: string) => q.toLowerCase().split(/\s+/).filter
 
 export function Palette({ onNew }: { onNew(pick: boolean): void }) {
   useOverlay(true)
-  const { sessions, show, setPalette, view, tasks, git, setTodayTab, setPeekTask, theme, setTheme } = useStore(
-    useShallow((s) => ({ sessions: s.sessions, show: s.show, setPalette: s.setPalette, view: s.view, tasks: s.tasks, git: s.git, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask, theme: s.theme, setTheme: s.setTheme })),
+  const { sessions, show, setPalette, view, tasks, git, setTodayTab, setPeekTask, theme, setTheme, setCapture } = useStore(
+    useShallow((s) => ({ sessions: s.sessions, show: s.show, setPalette: s.setPalette, view: s.view, tasks: s.tasks, git: s.git, setTodayTab: s.setTodayTab, setPeekTask: s.setPeekTask, theme: s.theme, setTheme: s.setTheme, setCapture: s.setCapture })),
   )
   const [query, setQuery] = useState('')
   const [recent, setRecent] = useState<RecentSession[]>([])
@@ -124,6 +124,11 @@ export function Palette({ onNew }: { onNew(pick: boolean): void }) {
               : { key: 'slash', group: 'Run in session', title: `Run ${query}`, detail: 'Open a running session first', hint: '', run: () => {} },
         ]
       : []
+    // "todo call the bank fri" hands the rest to the to-do capture line.
+    const todo = /^(todo|to-do)\b\s*(.*)$/i.exec(query)
+    const todoItem: Item[] = todo
+      ? [{ key: 'todo', group: 'To-do', title: todo[2] ? `Add to-do: ${todo[2]}` : 'Add a to-do…', detail: 'To Needs you · ⌥⌘T from anywhere', hint: '↵ add', run: () => setCapture({ text: todo[2] ?? '' }) }]
+      : []
     const q = query.startsWith('/') ? '' : query
     const all = [...open, ...closed, ...streams, ...taskItems, ...prItems, ...actions].filter((it) => (q ? matches(q, `${it.title} ${it.detail}`) : !SEARCH_ONLY.has(it.group)))
     const counts = new Map<string, number>()
@@ -133,8 +138,8 @@ export function Palette({ onNew }: { onNew(pick: boolean): void }) {
       counts.set(it.group, n)
       return n <= PER_GROUP
     })
-    return [...slash, ...(query.startsWith('/') ? [] : capped)]
-  }, [sessions, recent, query, show, onNew, tasks, git, view, setTodayTab, setPeekTask, theme, setTheme])
+    return [...slash, ...todoItem, ...(query.startsWith('/') || todo ? [] : capped)]
+  }, [sessions, recent, query, show, onNew, tasks, git, view, setTodayTab, setPeekTask, theme, setTheme, setCapture])
 
   useEffect(() => setIndex(0), [query])
   useEffect(() => {

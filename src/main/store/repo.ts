@@ -1,6 +1,7 @@
 import type { Draft, DraftTarget } from '@shared/git'
 import type { SessionPrLink } from '@shared/tasks'
 import type { SessionState } from '@shared/types'
+import type { MyTodo, NewTodo, TodoPatch } from '@shared/todos'
 import { pickSessionColor } from '@shared/sessionColor'
 import type { Db } from './db'
 
@@ -310,6 +311,40 @@ export class Repo {
     this.db
       .prepare('INSERT INTO notes (workstream_id, body, updated_at) VALUES (?, ?, ?) ON CONFLICT(workstream_id) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at')
       .run(workstreamId, body, Date.now())
+  }
+
+  // --- my to-dos ---
+
+  /** Open ones, plus ones done in the last week (for undo). */
+  todos(): MyTodo[] {
+    const rows = this.db.prepare('SELECT * FROM todos WHERE done_at IS NULL OR done_at > ? ORDER BY created_at').all(Date.now() - 7 * 86_400_000) as {
+      id: number
+      text: string
+      note: string
+      due: string | null
+      session_id: string | null
+      session_title: string | null
+      created_at: number
+      done_at: number | null
+    }[]
+    return rows.map((r) => ({ id: r.id, text: r.text, note: r.note, due: r.due, sessionId: r.session_id, sessionTitle: r.session_title, createdAt: r.created_at, doneAt: r.done_at }))
+  }
+
+  addTodo(t: NewTodo): number {
+    return Number(
+      this.db.prepare('INSERT INTO todos (text, due, session_id, session_title, created_at) VALUES (?, ?, ?, ?, ?)').run(t.text, t.due, t.sessionId, t.sessionTitle, Date.now()).lastInsertRowid,
+    )
+  }
+
+  updateTodo(id: number, patch: TodoPatch): void {
+    const cols = { text: 'text', note: 'note', due: 'due', sessionId: 'session_id', sessionTitle: 'session_title', doneAt: 'done_at' } as const
+    const keys = (Object.keys(patch) as (keyof TodoPatch)[]).filter((k) => k in cols)
+    if (!keys.length) return
+    this.db.prepare(`UPDATE todos SET ${keys.map((k) => `${cols[k]} = ?`).join(', ')} WHERE id = ?`).run(...keys.map((k) => patch[k] ?? null), id)
+  }
+
+  deleteTodo(id: number): void {
+    this.db.prepare('DELETE FROM todos WHERE id = ?').run(id)
   }
 
   getSetting<T>(key: string, fallback: T): T {

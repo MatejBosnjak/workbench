@@ -3,6 +3,7 @@ import type { DraftTarget, GitSnapshot } from '@shared/git'
 import type { LocalSnapshot } from '@shared/local'
 import type { CleanupSnapshot } from '@shared/cleanup'
 import type { TasksSnapshot } from '@shared/tasks'
+import type { MyTodo } from '@shared/todos'
 import type { DirtyGuard, RunPrSnapshot, RunTarget } from '@shared/runpr'
 import type { PaneState } from '@shared/pane'
 import { prKey } from '@shared/pane'
@@ -59,6 +60,13 @@ interface State {
   hooks: HooksStatus | null
   caf: CaffeinateState | null
   paletteOpen: boolean
+  /** My own to-dos (Needs you), open and recently done. */
+  myTodos: MyTodo[]
+  /** The to-do just ticked off, offered back as undo for a few seconds. */
+  todoUndo: MyTodo | null
+  /** The ⌥⌘T capture line, with what's typed so far; null when closed. */
+  capture: { text: string } | null
+  setCapture(c: { text: string } | null): void
   cafOpen: boolean
   keysOpen: boolean
   setKeysOpen(open: boolean): void
@@ -162,6 +170,10 @@ export const useStore = create<State>((set, get) => ({
   hooks: null,
   caf: null,
   paletteOpen: false,
+  myTodos: [],
+  todoUndo: null,
+  capture: null,
+  setCapture: (capture) => set({ capture, paletteOpen: capture ? false : get().paletteOpen }),
   cafOpen: false,
   keysOpen: false,
   setKeysOpen: (keysOpen) => set({ keysOpen }),

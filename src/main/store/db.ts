@@ -110,6 +110,19 @@ const MIGRATIONS: string[] = [
   -- The tab's colour (an index into the theme's session palette), picked when the tab opens and kept for its life.
   ALTER TABLE sessions ADD COLUMN color INTEGER;
   `,
+  `
+  -- My own to-dos in Needs you; nothing to do with Productive's. Done ones are kept a week.
+  CREATE TABLE todos (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    text       TEXT NOT NULL,
+    note       TEXT NOT NULL DEFAULT '',
+    due        TEXT, -- YYYY-MM-DD
+    session_id TEXT, -- captured from this session
+    session_title TEXT, -- its title then, for when its tab is gone
+    created_at INTEGER NOT NULL,
+    done_at    INTEGER
+  );
+  `,
 ]
 
 export function openDb(file: string): Db {

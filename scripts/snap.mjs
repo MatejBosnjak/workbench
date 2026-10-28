@@ -105,7 +105,18 @@ const today = async (tab) => {
   await click('.place:has-text("Today")')
   if (tab) await click(`.counter:has-text("${tab}")`)
 }
-await shot('today-needs', () => today('Needs you'))
+// A few to-dos of my own through the add line (one dated later, so it sleeps), the first one shown in the sidebar.
+await shot('today-needs', async () => {
+  await today('Needs you')
+  if (!(await api(() => window.workbench.todos.list())).length) {
+    for (const t of ['Renew car registration today', 'Book dentist', 'Call the bank about the card fri']) {
+      await page.fill('.todo-add input', t)
+      await page.press('.todo-add input', 'Enter')
+    }
+    await page.evaluate(() => document.activeElement?.blur())
+  }
+  await click('.need-row:has(.need-to-do) >> nth=0')
+})
 await shot('today-tasks', () => today('My tasks'))
 await shot('today-task-card', async () => {
   await today('My tasks')
@@ -155,7 +166,7 @@ const git = await api(() => window.workbench.git.snapshot())
 const withPr = new Set([...git.mine, ...git.reviews].flatMap((p) => p.taskRefs ?? []))
 const t1 = mine.find((t) => withPr.has(t.id)) ?? mine[0] ?? snap.tasks[0]
 const t2 = mine.find((t) => t !== t1)
-const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || n.startsWith('theme-') || ['focus', 'palette', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
+const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || n.startsWith('theme-') || ['focus', 'palette', 'todo-capture', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
 let sid = null
 const send = async (text) => {
   await api(([id, t]) => window.workbench.writeSession(id, t), [sid, text])
@@ -227,6 +238,11 @@ const blurred = async (fn) => {
   await fn()
 }
 await shot('palette', () => blurred(() => click('.kbar')))
+await shot('todo-capture', async () => {
+  await session()
+  await menu({ type: 'capture-todo' })
+  await page.keyboard.type('Ask about the fallback document type fri')
+})
 // The session holds the Mac until I stop it, so the list has a row.
 await shot('caffeinate', async () => {
   if (sid) await api((id) => window.workbench.setCaffeinate(id, 'on', 'manual'), sid)

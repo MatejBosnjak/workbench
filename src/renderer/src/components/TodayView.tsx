@@ -6,10 +6,13 @@ import { groupByStatus, groupTasks, statusCounts, statusVivid, treeShapes, type 
 import type { GitSnapshot } from '@shared/git'
 import type { Session } from '@shared/types'
 import { useKeyTarget } from '../keys'
-import { needsBreakdown, needsYou, tomorrowMorning, UNTIL_CHANGED, type NeedItem } from '../needs'
+import { needsBreakdown, needsYou, todoLater, tomorrowMorning, UNTIL_CHANGED, type NeedItem } from '../needs'
+import { dayText, isoDay, parseCapture, type MyTodo } from '@shared/todos'
+import { sessionStyle } from './SessionMark'
+import { TodoPreview } from './TodoPreview'
 import { navigate, openInPane, openWorkstream, useStore, type TodayTab } from '../store'
 import { Box } from './Box'
-import { MarkGlyph, NewSessionButton } from './Chips'
+import { goToSession, MarkGlyph, NewSessionButton } from './Chips'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { DraftPanel } from './DraftPanel'
 import { GitPane } from './GitPane'
@@ -101,10 +104,12 @@ export const TodayView = memo(function TodayView({ snapshot, git, active }: { sn
   }, [])
 
   const snoozed = useStore((st) => st.snoozed)
-  const allNeeds = useMemo(() => needsYou(git, snapshot), [git, snapshot])
+  const myTodos = useStore((st) => st.myTodos)
+  const allNeeds = useMemo(() => needsYou(git, snapshot, myTodos), [git, snapshot, myTodos])
   const now = Date.now()
-  const needs = allNeeds.filter((n) => !(snoozed[n.key]! > now))
-  const sleeping = allNeeds.filter((n) => snoozed[n.key]! > now)
+  const asleep = (n: NeedItem) => snoozed[n.key]! > now || todoLater(n)
+  const needs = allNeeds.filter((n) => !asleep(n))
+  const sleeping = allNeeds.filter(asleep)
   const mine = snapshot?.tasks.filter((t) => !t.context) ?? []
   const byStatus = new Map<string, number>()
   for (const t of mine) if (t.statusCategory === 2) byStatus.set(t.statusName, (byStatus.get(t.statusName) ?? 0) + 1)
@@ -301,8 +306,22 @@ function Sync({ src, onRefresh }: { src: { loading: boolean; error: string | nul
 /** Opens a Needs you item: a PR (or its thread) in the GitHub pane, a task into its session. */
 function openNeedItem(n: NeedItem, snapshot: TasksSnapshot | null): void {
   if (n.pr) return openInPane(n.conversation?.messages.at(-1)?.url || n.pr.url)
+  if (n.todo) return void openTodo(n.todo)
   const { sessions, show } = useStore.getState()
   if (n.task && snapshot) void taskPrimary(n.task, snapshot, sessions, show)
+}
+
+/** A to-do opens the session it was captured from (resumed if its tab is closed); without one there's nothing to open. */
+export async function openTodo(t: MyTodo): Promise<void> {
+  if (!t.sessionId) return
+  const open = useStore.getState().sessions.some((s) => s.id === t.sessionId)
+  await goToSession({ id: t.sessionId, open })
+}
+
+/** Ticks a to-do off; the undo line in Needs you puts it back. */
+export function finishTodo(t: MyTodo): void {
+  void window.workbench.todos.update(t.id, { doneAt: Date.now() })
+  useStore.setState({ todoUndo: t })
 }
 
 /** The right sidebar: the Needs you item shown (a PR card or the task), or the selected task. */
@@ -310,6 +329,7 @@ function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab
   const { peekTask, setPeekTask, peekNeed, setPeekNeed } = useStore(useShallow((s) => ({ peekTask: s.peekTask, setPeekTask: s.setPeekTask, peekNeed: s.peekNeed, setPeekNeed: s.setPeekNeed })))
   const item = tab === 'needs' ? needs.find((n) => n.key === peekNeed) : undefined
   if (item?.pr) return <NeedPreview item={item} tasks={snapshot} onOpen={() => openNeedItem(item, snapshot)} onClose={() => setPeekNeed(null)} />
+  if (item?.todo) return <TodoPreview item={item} onClose={() => setPeekNeed(null)} />
   const task = tab === 'needs' ? (item?.task ?? null) : snapshot.tasks.find((t) => t.id === peekTask)
   const close = () => (tab === 'needs' ? setPeekNeed(null) : setPeekTask(null))
   return task ? (
@@ -321,6 +341,29 @@ function Peek({ snapshot, tab, needs }: { snapshot: TasksSnapshot; tab: TodayTab
     <Box title={tab === 'needs' ? 'Preview' : 'Task'}>
       <span className="faint">{tab === 'needs' ? 'Click an item or press ⏎ to see it here; ⏎ again or a double-click opens it.' : 'Select a task with j / k or a click.'}</span>
     </Box>
+  )
+}
+
+/** The row's kind; a to-do's carries a box that ticks it off. */
+function NeedKind({ n }: { n: NeedItem }) {
+  if (!n.todo) return <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
+  const t = n.todo
+  return (
+    <span className="need-kind need-to-do">
+      <button className="todo-check" aria-label={`Done: ${t.text}`} title="Done (x)" onClick={(e) => (e.stopPropagation(), finishTodo(t))} />
+      to-do
+    </span>
+  )
+}
+
+/** The PR's repo, `task`, or for a to-do the session it came from in that session's colour (`me` without one). */
+function NeedRef({ n, sessions }: { n: NeedItem; sessions: Session[] }) {
+  const s = n.todo?.sessionId ? sessions.find((x) => x.id === n.todo!.sessionId) : undefined
+  if (!n.todo?.sessionId) return <span className="need-ref">{n.ref}</span>
+  return (
+    <span className="need-ref todo-sess" style={s ? sessionStyle(s) : undefined} title={s ? s.title : `${n.ref} (closed; ⏎ resumes it)`}>
+      {s?.title ?? n.ref}
+    </span>
   )
 }
 
@@ -349,6 +392,21 @@ function Home({
   const sleep = (n: NeedItem, forever = false) => snooze(n.key, forever ? UNTIL_CHANGED : tomorrowMorning())
   const setPane = (v: 'needs' | 'tasks') => setTodayTab(v)
   const [needIdx, setNeedIdx] = useState(0)
+  const addRef = useRef<HTMLInputElement>(null)
+  const [adding, setAdding] = useState('')
+  const todoUndo = useStore((st) => st.todoUndo)
+  useEffect(() => {
+    if (!todoUndo) return
+    const t = setTimeout(() => useStore.setState({ todoUndo: null }), 6000)
+    return () => clearTimeout(t)
+  }, [todoUndo])
+  const addTodo = async () => {
+    const { text, due } = parseCapture(adding)
+    if (!text) return
+    setAdding('')
+    await window.workbench.todos.add({ text, due, sessionId: null, sessionTitle: null })
+  }
+  const addParsed = parseCapture(adding)
   const [filter, setFilter] = useState<string | null>(null)
   const filterRef = useRef<HTMLInputElement>(null)
   // My tasks: group by project (with the parent/subtask tree) or by status; the strip's chips filter by status.
@@ -428,7 +486,24 @@ function Home({
         return true
       },
       key: (k) => {
-        if ((k !== 'z' && k !== 'Z') || pane !== 'needs') return false
+        if (pane !== 'needs') return false
+        if (k === 'a') {
+          addRef.current?.focus()
+          return true
+        }
+        if (k === 'x' || k === 'e') {
+          const n = needs[needIdx]
+          if (!n?.todo) return false
+          if (k === 'x') {
+            finishTodo(n.todo)
+            setNeedIdx((i) => Math.max(0, Math.min(needs.length - 2, i)))
+          } else {
+            previewNeed(n)
+            setTimeout(() => document.querySelector<HTMLInputElement>('.todo-title')?.focus(), 0)
+          }
+          return true
+        }
+        if (k !== 'z' && k !== 'Z') return false
         const n = needs[needIdx]
         if (n) {
           sleep(n, k === 'Z')
@@ -462,10 +537,10 @@ function Home({
               onClick={() => (setNeedIdx(i), previewNeed(n))}
               onDoubleClick={() => openNeed(n)}
             >
-              <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
-              <span className="need-ref">{n.ref}</span>
+              <NeedKind n={n} />
+              <NeedRef n={n} sessions={sessions} />
               <span className="need-text">{n.text}</span>
-              <span className="need-detail">{n.detail}</span>
+              <span className={`need-detail${n.todo?.due && n.todo.due < isoDay(new Date()) ? ' bad-text' : ''}`}>{n.detail}</span>
               <button
                 className="need-sleep"
                 title="Sleep until tomorrow 08:00 (z). Comes back sooner if something new happens. ⇧-click (⇧Z): sleep until something new happens."
@@ -479,6 +554,29 @@ function Home({
               </button>
             </div>
           ))}
+          {todoUndo && (
+            <div className="todo-undo">
+              <span className="ok-text">✓</span> <span className="faint">{todoUndo.text}</span>
+              <button className="link-btn" onClick={() => (void window.workbench.todos.update(todoUndo.id, { doneAt: null }), useStore.setState({ todoUndo: null }))}>
+                undo
+              </button>
+            </div>
+          )}
+          <label className="todo-add">
+            <span className="accent-text">+</span>
+            <input
+              ref={addRef}
+              value={adding}
+              aria-label="Add a to-do"
+              placeholder="add a to-do (a) · a day word at the end sets a date · from anywhere ⌥⌘T"
+              onChange={(e) => setAdding(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void addTodo()
+                if (e.key === 'Escape') (setAdding(''), (e.target as HTMLInputElement).blur())
+              }}
+            />
+            {addParsed.due && adding.trim() && <span className="faint">⏎ add · due {dayText(addParsed.due)}</span>}
+          </label>
         </Box>
       )}
 
@@ -628,11 +726,22 @@ function Home({
         <Box title={`Sleeping (${sleeping.length})`}>
           {sleeping.map((n) => (
             <div key={n.key} className="need-row asleep">
-              <span className={`need-kind need-${n.kind.replace(' ', '-')}`}>{n.kind}</span>
-              <span className="need-ref">{n.ref}</span>
+              <NeedKind n={n} />
+              <NeedRef n={n} sessions={sessions} />
               <span className="need-text">{n.text}</span>
-              <span className="need-detail">until {snoozed[n.key]! >= UNTIL_CHANGED ? 'it changes' : new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-              <button className="need-sleep wake" title="Wake it now" onClick={() => snooze(n.key, null)}>
+              <span className="need-detail">
+                until{' '}
+                {!(snoozed[n.key]! > Date.now()) && n.todo?.due
+                  ? dayText(n.todo.due)
+                  : snoozed[n.key]! >= UNTIL_CHANGED
+                    ? 'it changes'
+                    : new Date(snoozed[n.key]!).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <button
+                className="need-sleep wake"
+                title="Wake it now"
+                onClick={() => (snoozed[n.key]! > Date.now() ? snooze(n.key, null) : n.todo && void window.workbench.todos.update(n.todo.id, { due: isoDay(new Date()) }))}
+              >
                 wake
               </button>
             </div>

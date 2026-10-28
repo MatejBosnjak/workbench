@@ -7,6 +7,7 @@ import type { AgentSettings } from '@shared/agent'
 import { parsePrUrl, prRepo, shortRepo, type DraftTarget, type GitSnapshot, type Pr } from '@shared/git'
 import type { Person, SessionPrLink } from '@shared/tasks'
 import type { RunTarget } from '@shared/runpr'
+import type { NewTodo, TodoPatch } from '@shared/todos'
 import type { HooksStatus, MenuCommand, NavigateTarget, TabMenuPick } from '@shared/types'
 import { Caffeinate } from './caffeinate'
 import { headlessPids, killHeadless } from './claude'
@@ -191,6 +192,7 @@ function buildMenu(theme: ThemeId): void {
           { label: 'New Session in Folder…', accelerator: 'CmdOrCtrl+Shift+T', click: () => send({ type: 'new-session-in' }) },
           { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send({ type: 'close-tab' }) },
           { label: 'Switch or Run…', accelerator: 'CmdOrCtrl+K', click: () => send({ type: 'palette' }) },
+          { label: 'Add To-do…', accelerator: 'Alt+CmdOrCtrl+T', click: () => send({ type: 'capture-todo' }) },
           { label: 'Task Sidebar', accelerator: 'CmdOrCtrl+I', click: () => send({ type: 'task-side' }) },
           { label: 'PR Sidebar', accelerator: 'CmdOrCtrl+Shift+I', click: () => send({ type: 'pr-side' }) },
           { label: 'Focus on This Screen', accelerator: 'CmdOrCtrl+F', click: () => send({ type: 'focus' }) },
@@ -530,6 +532,15 @@ void app.whenReady().then(() => {
   })
   ipcMain.handle('ws:open', (_e, rootId: string) => workstreams.open(rootId))
   ipcMain.handle('ws:refresh', (_e, rootId: string) => workstreams.refresh(rootId))
+  const todosChanged = () => win?.webContents.send('todos:changed', repo.todos())
+  ipcMain.handle('todos:list', () => repo.todos())
+  ipcMain.handle('todos:add', (_e, t: NewTodo) => {
+    const id = repo.addTodo(t)
+    todosChanged()
+    return id
+  })
+  ipcMain.handle('todos:update', (_e, id: number, patch: TodoPatch) => (repo.updateTodo(id, patch), todosChanged()))
+  ipcMain.handle('todos:remove', (_e, id: number) => (repo.deleteTodo(id), todosChanged()))
   ipcMain.handle('ws:note', (_e, rootId: string, body: string) => workstreams.setNote(rootId, body))
   ipcMain.handle('ws:repos', () => [...repoRoots().keys()])
   ipcMain.handle('ws:start', async (_e, taskId: string, repoName: string | null) => {

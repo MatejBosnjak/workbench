@@ -8,6 +8,7 @@ import { TodayView } from './components/TodayView'
 import { WorkstreamView } from './components/WorkstreamView'
 import { DirtyGuardModal } from './components/RunPr'
 import { Palette } from './components/Palette'
+import { TodoCapture } from './components/TodoCapture'
 import { FocusDigest } from './components/Focus'
 import { Picker } from './components/Picker'
 import { StatusBar } from './components/StatusBar'
@@ -61,6 +62,8 @@ function onMenu(cmd: MenuCommand): void {
       return void useStore.getState().toggleFocus()
     case 'theme':
       return useStore.getState().setTheme(cmd.theme)
+    case 'capture-todo':
+      return useStore.getState().setCapture(useStore.getState().capture ? null : { text: '' })
     case 'palette':
       return useStore.getState().setPalette(!useStore.getState().paletteOpen)
     case 'cycle-tab': {
@@ -76,6 +79,7 @@ export function App() {
   const { sessions, view, mounted, setSessions, show, setStatus, setHooks, paletteOpen, local, setLocal } = useStore(useShallow((s) => ({ sessions: s.sessions, view: s.view, mounted: s.mounted, setSessions: s.setSessions, show: s.show, setStatus: s.setStatus, setHooks: s.setHooks, paletteOpen: s.paletteOpen, local: s.local, setLocal: s.setLocal })))
 
   const git = useStore((s) => s.git)
+  const capture = useStore((s) => s.capture)
   useEffect(() => {
     const { setGit } = useStore.getState()
     void window.workbench.git.snapshot().then(setGit)
@@ -107,6 +111,11 @@ export function App() {
     const { setTasks } = useStore.getState()
     void window.workbench.tasks.snapshot().then(setTasks)
     return window.workbench.tasks.onChanged(setTasks)
+  }, [])
+
+  useEffect(() => {
+    void window.workbench.todos.list().then((myTodos) => useStore.setState({ myTodos }))
+    return window.workbench.todos.onChanged((myTodos) => useStore.setState({ myTodos }))
   }, [])
 
   useEffect(() => {
@@ -185,6 +194,7 @@ export function App() {
       <DirtyGuardModal />
       <FocusDigest />
       {paletteOpen && <Palette onNew={(pick) => void newSession(pick)} />}
+      {capture && <TodoCapture />}
     </div>
   )
 }

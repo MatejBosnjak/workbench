@@ -7,6 +7,7 @@ import type { RunPrSnapshot } from '@shared/runpr'
 import type { MemorySnapshot } from '@shared/memory'
 import type { PaneState } from '@shared/pane'
 import type { TasksSnapshot } from '@shared/tasks'
+import type { MyTodo } from '@shared/todos'
 import { SESSION_PORT_MESSAGE, type CaffeinateState, type HooksStatus, type MenuCommand, type NavigateTarget, type Session, type StatusSnapshot, type WorkbenchApi } from '@shared/types'
 
 function on<A extends unknown[]>(channel: string, handler: (e: IpcRendererEvent, ...args: A) => void): () => void {
@@ -74,6 +75,13 @@ const api: WorkbenchApi = {
     saveDraft: (id, body) => ipcRenderer.invoke('drafts:save', id, body),
     discardDraft: (id) => ipcRenderer.invoke('drafts:discard', id),
     send: (id, body) => ipcRenderer.invoke('drafts:send', id, body),
+  },
+  todos: {
+    list: () => ipcRenderer.invoke('todos:list'),
+    onChanged: (cb) => on('todos:changed', (_e, list: MyTodo[]) => cb(list)),
+    add: (t) => ipcRenderer.invoke('todos:add', t),
+    update: (id, patch) => ipcRenderer.invoke('todos:update', id, patch),
+    remove: (id) => ipcRenderer.invoke('todos:remove', id),
   },
   ws: {
     open: (rootId) => ipcRenderer.invoke('ws:open', rootId),

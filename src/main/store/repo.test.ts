@@ -25,6 +25,19 @@ describe('Repo', () => {
     expect(repo.openTabs().map((r) => r.id)).toEqual(['a', 'c'])
   })
 
+  it('adds, edits, finishes and deletes my to-dos', () => {
+    const repo = new Repo(openDb(':memory:'))
+    const id = repo.addTodo({ text: 'Book dentist', due: null, sessionId: 's1', sessionTitle: 'dentist' })
+    repo.updateTodo(id, { note: 'after 16h', due: '2026-11-03' })
+    expect(repo.todos()).toEqual([expect.objectContaining({ id, text: 'Book dentist', note: 'after 16h', due: '2026-11-03', sessionId: 's1', sessionTitle: 'dentist', doneAt: null })])
+    repo.updateTodo(id, { due: null, doneAt: Date.now() })
+    expect(repo.todos()[0]).toMatchObject({ due: null })
+    expect(repo.todos()[0]!.doneAt).toBeGreaterThan(0)
+    repo.updateTodo(id, { doneAt: Date.now() - 8 * 86_400_000 })
+    expect(repo.todos()).toEqual([])
+    repo.deleteTodo(id)
+  })
+
   it('reorders tabs', () => {
     const repo = new Repo(openDb(':memory:'))
     ;['a', 'b', 'c'].forEach((id) => repo.insertTab(row(id)))
@@ -69,7 +82,7 @@ describe('Repo', () => {
   it('migrations are idempotent', () => {
     const db = openDb(':memory:')
     migrate(db)
-    expect(db.pragma('user_version', { simple: true })).toBe(8)
+    expect(db.pragma('user_version', { simple: true })).toBe(9)
   })
 })
 

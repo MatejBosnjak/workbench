@@ -74,6 +74,9 @@ export const SHORTCUTS: [string, string][] = [
   ['1–9', 'switch tab'],
   ['c', 'caffeinate'],
   ['z', 'sleep until tomorrow'],
+  ['a', 'add a to-do'],
+  ['x', 'to-do done'],
+  ['⌥⌘T', 'to-do from anywhere'],
   ['esc', 'back'],
   ['?', 'all shortcuts'],
 ]

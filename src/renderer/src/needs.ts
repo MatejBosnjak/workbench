@@ -1,17 +1,19 @@
 import type { Conversation, GitSnapshot, Pr } from '@shared/git'
 import { changesPending, lastMessage, needsReply, prRepo, verb } from '@shared/git'
 import type { Task, TasksSnapshot } from '@shared/tasks'
+import { dayText, isoDay, type MyTodo } from '@shared/todos'
 
 export interface NeedItem {
   /** Changes when the item does (a new message, a new push, a new due date), so a snooze ends when something new happens. */
   key: string
-  kind: 'changes requested' | 'reply needed' | 'ci failing' | 'conflicts' | 'overdue'
+  kind: 'changes requested' | 'reply needed' | 'ci failing' | 'conflicts' | 'overdue' | 'to-do'
   ref: string
   text: string
   detail: string
   pr?: Pr
   conversation?: Conversation
   task?: Task
+  todo?: MyTodo
 }
 
 const short = (iso: string) => {
@@ -21,8 +23,8 @@ const short = (iso: string) => {
   return today ? time : `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${time}`
 }
 
-/** Today › Needs you: my PRs with changes requested, red CI or conflicts, threads waiting on me, overdue tasks. */
-export function needsYou(git: GitSnapshot | null, tasks: TasksSnapshot | null): NeedItem[] {
+/** Today › Needs you: my PRs with changes requested, red CI or conflicts, threads waiting on me, overdue tasks, my open to-dos. */
+export function needsYou(git: GitSnapshot | null, tasks: TasksSnapshot | null, todos: MyTodo[] = []): NeedItem[] {
   const out: NeedItem[] = []
   for (const p of git?.mine ?? []) {
     if (p.draft) continue
@@ -44,16 +46,31 @@ export function needsYou(git: GitSnapshot | null, tasks: TasksSnapshot | null): 
     if (t.context || !t.dueDate || t.dueDate >= today || t.statusCategory === 3) continue
     out.push({ key: `od:${t.id}:${t.dueDate}`, kind: 'overdue', ref: 'task', text: t.title, detail: `due ${new Date(`${t.dueDate}T12:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`, task: t })
   }
+  // Dated ones by day, then undated newest first.
+  const open = todos.filter((t) => !t.doneAt).sort((a, b) => (a.due ?? '9').localeCompare(b.due ?? '9') || b.createdAt - a.createdAt)
+  for (const t of open) out.push({ key: `td:${t.id}:${t.due ?? ''}`, kind: 'to-do', ref: t.sessionTitle ?? 'me', text: t.text, detail: todoDetail(t), todo: t })
   return out
 }
+
+/** "due today", "late · 27 Oct", "Fri 31 Oct", or when it was added. */
+export function todoDetail(t: MyTodo, now = new Date()): string {
+  if (!t.due) return `added ${short(new Date(t.createdAt).toISOString())}`
+  const today = isoDay(now)
+  if (t.due < today) return `late · ${dayText(t.due, now)}`
+  return t.due === today ? 'due today' : dayText(t.due, now)
+}
+
+/** A to-do dated after today waits in Sleeping until its day. */
+export const todoLater = (n: NeedItem, now = new Date()) => !!n.todo?.due && n.todo.due > isoDay(now)
 
 /** "2 PRs · 1 thread · 1 task" */
 export function needsBreakdown(items: NeedItem[]): string {
   const prs = new Set(items.filter((i) => i.pr && i.kind !== 'reply needed').map((i) => i.pr!.id)).size
   const threads = items.filter((i) => i.kind === 'reply needed').length
   const tasks = items.filter((i) => i.kind === 'overdue').length
+  const todos = items.filter((i) => i.kind === 'to-do').length
   const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`
-  return [prs && n(prs, 'PR', 'PRs'), threads && n(threads, 'thread', 'threads'), tasks && n(tasks, 'task', 'tasks')].filter(Boolean).join(' · ') || 'nothing waiting'
+  return [prs && n(prs, 'PR', 'PRs'), threads && n(threads, 'thread', 'threads'), tasks && n(tasks, 'task', 'tasks'), todos && n(todos, 'to-do', 'to-dos')].filter(Boolean).join(' · ') || 'nothing waiting'
 }
 
 /** A snooze with no end: the item sleeps until it changes (its key does). */

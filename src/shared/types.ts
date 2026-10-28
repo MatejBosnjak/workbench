@@ -10,6 +10,7 @@ import type { Person, SessionPrLink, TaskDetail, TasksSnapshot } from './tasks'
 import type { Mark } from './marks'
 import type { CafHold, CafMode, CafUntil } from './caffeinate'
 import type { CleanupSnapshot } from './cleanup'
+import type { MyTodo, NewTodo, TodoPatch } from './todos'
 
 export type SessionState = 'running' | 'waiting' | 'failed' | 'idle'
 
@@ -131,6 +132,7 @@ export type MenuCommand =
   | { type: 'mark-step'; delta: 1 | -1 }
   | { type: 'focus' }
   | { type: 'theme'; theme: ThemeId }
+  | { type: 'capture-todo' }
 
 export type TabMenuPick = 'close' | 'others' | 'left' | 'right' | 'all'
 
@@ -230,6 +232,14 @@ export interface WorkbenchApi {
     discardDraft(id: number): Promise<void>
     /** Shows a confirm with the exact text and target, then posts. False when cancelled. */
     send(id: number, body: string): Promise<boolean>
+  }
+  /** My own to-dos in Needs you (not Productive's). Every change resends the list through onChanged. */
+  todos: {
+    list(): Promise<MyTodo[]>
+    onChanged(cb: (list: MyTodo[]) => void): () => void
+    add(t: NewTodo): Promise<number>
+    update(id: number, patch: TodoPatch): Promise<void>
+    remove(id: number): Promise<void>
   }
   ws: {
     /** The cached workstream now; a fresh load arrives through onChanged. */

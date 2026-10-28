@@ -134,16 +134,19 @@ Image: `docs/design/current/keys.png` (⌨ popover); TopBar and StatusBar appear
   | c | caffeinate popover |
   | z | sleep a Needs you item until tomorrow 08:00 |
   | ⇧Z | sleep a Needs you item until it changes |
+  | a | add a to-do (Needs you) |
+  | x / e | finish / edit the selected to-do (Needs you) |
   | m | mark the selected PR's replies seen (My PRs) |
   | ? | shortcuts popover |
 
-  ⌘ shortcuts (menu): ⌘T new session, ⇧⌘T new session in folder…, ⌘W close tab, ⌘K switch or run, ⌘I task sidebar, ⇧⌘I PR sidebar (only when the session has a PR), both per session, ⌘F focus, ⇧⌘[ / ⇧⌘] previous / next tab, ⌘[ / ⌘] previous / next bookmark, ⌘1–9 places and tabs.
+  ⌘ shortcuts (menu): ⌘T new session, ⇧⌘T new session in folder…, ⌘W close tab, ⌘K switch or run, ⌥⌘T add a to-do, ⌘I task sidebar, ⇧⌘I PR sidebar (only when the session has a PR), both per session, ⌘F focus, ⇧⌘[ / ⇧⌘] previous / next tab, ⌘[ / ⌘] previous / next bookmark, ⌘1–9 places and tabs.
 
 ## ⌘K palette
 
 Image: `docs/design/current/palette.png`. Code: `Palette.tsx`.
 
 - Groups: Sessions, Recently closed, Actions (new session, new session in folder…). Typing also searches Workstreams, Tasks, PRs and Themes (`Theme: <name>`, the current one marked) (mine and reviews, bots excluded); every query word must match. Rows show status and project for tasks, repo and author for PRs; no numbers.
+- `todo <text>` (or `to-do`) shows only **Add to-do: <text>**; ⏎ opens the to-do capture with the text filled in (see Needs you).
 - `/command` runs a slash command in the current running session. `/model` and `/effort` are refused there (they rewrite the global defaults); the picker covers them.
 
 ## Focus (⌘F)
@@ -157,11 +160,16 @@ Image: `docs/design/current/focus.png`. Code: `Focus.tsx`, `notify.ts`, `store.t
 
 ## Today › Needs you
 
-Image: `docs/design/current/today-needs.png`. Code: `TodayView.tsx` (Home, Peek), `needs.ts`, `NeedPreview.tsx`, `DraftPanel.tsx`, `src/main/drafts.ts`.
+Image: `docs/design/current/today-needs.png`, `docs/design/current/todo-capture.png`. Code: `TodayView.tsx` (Home, Peek), `needs.ts`, `NeedPreview.tsx`, `TodoPreview.tsx`, `TodoCapture.tsx`, `DraftPanel.tsx`, `src/main/drafts.ts`, `src/shared/todos.ts`, `src/main/store/repo.ts`.
 
 - **Counters** under the TopBar on every Today tab: Needs you, My tasks, My PRs, Reviews (the 5h limit lives in the status bar). Each has a big number with its breakdown stacked at the right (e.g. `2 PRs · 1 thread · 1 task`, `7 working · 10 in review`, `3 need a reply · 13 drafts`, `N waiting on authors · 11 bot PRs hidden`). Needs you leads: wider, a 52px number, violet, glowing while anything waits; the others are 28px. The active one (the tab shown) gets a near-white outline. Clicking a counter switches tab. Themes may draw the number their way: seven-segment digits on Ops console, two digits on MU/TH/UR, two Orbitron digits over unlit 8s on Night drive.
-- **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), and overdue tasks. Each row: kind, the PR's repo (or `task`), text, detail, and `zz`.
+- **Needs you** lists, newest first: changes requested, reply needed, CI failing, conflicts (on my PRs), overdue tasks, then my own to-dos. Each row: kind, the PR's repo (or `task`), text, detail, and `zz`. The counter's breakdown adds `N to-dos`.
   - `zz` / `z` sleeps an item until tomorrow 08:00; it wakes sooner if the item changes (a new message, push or due date). ⇧-click `zz` / ⇧Z (or "until it changes" on the PR card) sleeps it with no end date, until the item changes. Sleeping items sit in a **Sleeping** box with "wake".
+  - **To-dos** are mine, not Productive's: kept only in Workbench's SQLite (`todos`), never sent anywhere. Row: a tick box and `to-do` in teal; `me`, or the session it was captured from (its colour bar and title, kept after the tab closes); the text; the day (`due today`, `late · <day>` in red, or `added <time>` when undated). Dated ones come first by day, then undated newest first. One dated after today waits in **Sleeping** as `until <day>`; "wake" re-dates it to today.
+  - **Add line** under the rows (`a` focuses it): ⏎ adds; a day word at the end sets the date (`today`, `tomorrow`, a weekday = the next one, `3 nov` / `nov 3`, `2026-11-03`) and the line shows what it read (`due Fri 30 Oct`). Esc clears.
+  - `x` or the tick box finishes one; an **undo** line (`✓ <text> undo`) stays for 6 s. Done ones are kept a week, then dropped.
+  - **⌥⌘T** (Session menu › Add To-do…, also inside a terminal) opens a one-line capture over any screen, or ⌘K `todo <text>`, which opens it with the text filled in. Over a session there's a `link to <session>` row, on by default, ⇥ toggles. ⏎ adds, Esc cancels; focus goes back where it was (the terminal, mid-prompt).
+  - **To-do card** (sidebar, on a click or ⏎): text, due (a day word, `→ <day>` while typing, `not a day` in red) and note, all edited in place and saved on blur / ⏎ (`e` focuses the text); added; from (the session). ✓ done (`x`), ⏎ open session (or resume session when its tab is closed; ⏎ again on the row does the same), zz sleep until tomorrow, delete.
   - **Threads** box: up to six reply-needed conversations with the last message quoted; more link to My PRs.
 - **Needs reply:** a conversation (an unresolved review thread, or the PR's own conversation of comments plus review bodies) whose last message isn't mine and isn't marked seen. Bots and bare approvals don't count.
 - Click or ⏎ shows the item in the right sidebar (a task as the task card, where task links open in place; see Task card); ⏎ again or a double-click opens it (a PR in the GitHub pane at its last message; a task into its session).

@@ -7,6 +7,9 @@
   --term-font: 'JetBrains Mono', ui-monospace, monospace;
   --term-size: 13;
   --term-line: 1.25;
+  /* Session terminals: a sheet a step lighter than the ground, and roomier lines for reading. */
+  --term-read-line: 1.45;
+  --term-sheet: var(--card);
   --term-bold: bold;
 }
 

@@ -157,6 +157,11 @@ const t1 = mine.find((t) => withPr.has(t.id)) ?? mine[0] ?? snap.tasks[0]
 const t2 = mine.find((t) => t !== t1)
 const wantSession = !only.size || [...only].some((n) => n.startsWith('session') || n.startsWith('theme-') || ['focus', 'palette', 'caffeinate', 'memory', 'keys', 'picker'].includes(n))
 let sid = null
+const send = async (text) => {
+  await api(([id, t]) => window.workbench.writeSession(id, t), [sid, text])
+  await wait(400)
+  await api((id) => window.workbench.writeSession(id, '\r'), sid)
+}
 if (wantSession && t1) {
   const s = await api((id) => window.workbench.tasks.start(id), t1.id)
   sid = s.id
@@ -165,11 +170,6 @@ if (wantSession && t1) {
   if (extra) await api(([id, url]) => window.workbench.tasks.linkPr(id, url), [sid, extra.url])
   await click('.tab >> nth=-1')
   await until(async () => (await page.$eval('.term', (e) => e.innerText)).includes('lets look at this task'), 40_000)
-  const send = async (text) => {
-    await api(([id, t]) => window.workbench.writeSession(id, t), [sid, text])
-    await wait(400)
-    await api((id) => window.workbench.writeSession(id, '\r'), sid)
-  }
   await api((id) => window.workbench.writeSession(id, '\x15'), sid)
   await send('Reply with just: ok')
   await wait(12_000)
@@ -186,6 +186,21 @@ await shot('session', session)
 await shot('session-legend', async () => {
   await session()
   await click('.marks-legend-btn')
+})
+// Turn focus: leave the tab while claude answers, come back to "new since you left"; a long answer pins "you asked".
+await shot('session-focus', async () => {
+  await session()
+  await click('.place:has-text("Today")')
+  await send('Print the numbers 1 to 12, one per line, nothing else')
+  await wait(15_000)
+  await session()
+  await page.waitForSelector('.turn-since', { timeout: 20_000 })
+})
+await shot('session-pinned', async () => {
+  await session()
+  await send('Print the numbers 1 to 70, one per line, nothing else')
+  await page.waitForSelector('.turn-pin', { timeout: 40_000 })
+  await wait(3000)
 })
 await shot('session-task-side', async () => {
   await session()

@@ -3,6 +3,7 @@ import type { Terminal as XTerm } from '@xterm/xterm'
 import { candidates, MARK_LABEL, placeMarks, stepMark, type Mark } from '@shared/marks'
 import type { Session } from '@shared/types'
 import { onTerms, termFor } from './TermView'
+import { TurnFocus } from './TurnFocus'
 
 interface Placed {
   mark: Mark
@@ -55,7 +56,7 @@ export function stepMarks(dir: 1 | -1): void {
   stepActive?.(dir)
 }
 
-/** The bookmark rail beside a session's terminal: one mark per prompt, Subagent result and question. */
+/** The bookmark rail beside a session's terminal: one mark per prompt, Subagent result and question. Also lays the turn focus over the terminal. */
 export function MarkRail({ session }: { session: Session }) {
   const term = useSyncExternalStore(onTerms, () => termFor(session.id))
   const [marks, setMarks] = useState<Mark[]>([])
@@ -153,7 +154,9 @@ export function MarkRail({ session }: { session: Session }) {
     }
   }, [])
 
-  if (!placed.length || !wide) return null
+  const lastPrompt = placed.findLast((p) => p.mark.kind === 'prompt') ?? null
+  const focusLayer = term && <TurnFocus session={session} term={term} prompt={lastPrompt} />
+  if (!placed.length || !wide) return focusLayer
 
   const onKey = (e: React.KeyboardEvent, i: number) => {
     const to = e.key === 'ArrowDown' ? i + 1 : e.key === 'ArrowUp' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? placed.length - 1 : null
@@ -169,6 +172,8 @@ export function MarkRail({ session }: { session: Session }) {
   const top = (line: number) => `calc(8px + (100% - 16px) * ${Math.min(1, line / total)})`
 
   return (
+    <>
+    {focusLayer}
     <nav className="marks" aria-label="Bookmarks">
       {earlier.length > 0 && (
         <span className="marks-earlier" title={`${earlier.length} earlier, past the scrollback:\n${earlier.map((m) => `${time(m.at)}  ${m.text}`).join('\n')}`}>
@@ -215,6 +220,7 @@ export function MarkRail({ session }: { session: Session }) {
       </div>
       <Legend />
     </nav>
+    </>
   )
 }
 

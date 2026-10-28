@@ -29,6 +29,8 @@ export interface TermViewProps {
   autoFocus?: boolean
   /** Lines kept above the screen. */
   scrollback?: number
+  /** A session terminal: drawn on the lifted reading sheet with roomier lines. */
+  sheet?: boolean
 }
 
 /** Open terminals by id, for the bookmark rail, which reads their buffer. */
@@ -67,13 +69,13 @@ export function TermView(props: TermViewProps) {
   const hideCard = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
-    const font = termFont()
+    const font = termFont(props.sheet)
     const t = new XTerm({
       ...font,
       cursorBlink: true,
       allowProposedApi: true,
       scrollback: props.scrollback ?? 5_000,
-      theme: xtermTheme(),
+      theme: xtermTheme(props.sheet),
     })
     const f = new FitAddon()
     t.loadAddon(f)
@@ -196,9 +198,9 @@ export function TermView(props: TermViewProps) {
     const t = term.current
     if (!t || themed.current === theme) return
     themed.current = theme
-    const font = termFont()
+    const font = termFont(cb.current.sheet)
     void document.fonts.load(`${font.fontSize}px ${font.fontFamily}`).finally(() => {
-      t.options.theme = xtermTheme()
+      t.options.theme = xtermTheme(cb.current.sheet)
       Object.assign(t.options, font)
       if (el.current?.offsetParent) fit.current?.fit()
     })

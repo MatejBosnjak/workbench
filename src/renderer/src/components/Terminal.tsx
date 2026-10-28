@@ -17,6 +17,7 @@ export const Terminal = memo(function Terminal({ session, active }: { session: S
       open={open}
       revive={open}
       scrollback={10_000}
+      sheet
       exitMessage={`${session.state === 'failed' ? 'claude exited with an error' : 'claude exited'} · press Enter to resume`}
       onTitle={(raw) => {
         const title = cleanTitle(raw)

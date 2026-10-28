@@ -43,7 +43,7 @@ export class Supervisor {
       undefined,
       (id, data) => (id.startsWith('svc:') ? this.onServiceOutput(id.slice(4), data) : data),
     )
-    this.aws = new Aws(() => this.emit())
+    this.aws = new Aws(() => this.onAws())
     for (const def of config.services) this.states.set(def.name, this.initial(def, false))
     // brew is slow to answer; show the chips straight away.
     this.infra = config.infra.map((name) => ({ name, status: 'unknown' }))
@@ -197,7 +197,9 @@ export class Supervisor {
 
   /** Keeps the tail of a service's output, takes its shell's start / exit markers out, and follows them. */
   private onServiceOutput(name: string, data: string): string {
-    this.tails.set(name, ((this.tails.get(name) ?? '') + data).slice(-16_000))
+    const before = this.tails.get(name) ?? ''
+    this.tails.set(name, (before + data).slice(-16_000))
+    this.awsInOutput(name, before.slice(-200) + data)
     const { data: out, marks } = readMarks(data)
     if (!marks.length) return data
     let shown = ''
@@ -447,6 +449,21 @@ export class Supervisor {
     Object.assign(s, { status: stopped || code === 0 ? 'stopped' : 'crashed', exitCode: code, healthy: null })
     if (s.status === 'crashed') this.crashedOnAws(s)
     if (s.transient && (stopped || code === 0)) this.states.delete(name)
+    this.emit()
+  }
+
+  /** A running service printing an AWS expired-token error (sidekiq keeps running while its jobs fail): noted, and the login checked now. */
+  private awsInOutput(name: string, recent: string): void {
+    const s = this.states.get(name)
+    if (!s || s.status !== 'running' || s.note || !AWS_EXPIRED.test(recent)) return
+    s.note = 'AWS login expired'
+    void this.aws.check()
+    this.emit()
+  }
+
+  /** The login changed; once it holds again, running services drop their expired note. */
+  private onAws(): void {
+    if (this.aws.get()?.status === 'ok') for (const s of this.states.values()) if (s.status === 'running') s.note = null
     this.emit()
   }
 

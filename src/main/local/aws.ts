@@ -1,19 +1,23 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { AwsLogin } from '@shared/local'
 import { shellEnv, which } from '../shell-env'
 
 const CHECK_MS = 60_000
+/** The SDK refreshes a token this close to its end. */
+const REFRESH_WINDOW_MS = 5 * 60_000
 
 /** An AWS error in a service's output that means the SSO login is gone. */
-export const AWS_EXPIRED = /ExpiredToken|Token (is|has) expired|SSO session .*expired|run 'aws sso login'|The security token included in the request is (expired|invalid)|UnrecognizedClientException/i
+export const AWS_EXPIRED = /ExpiredToken|InvalidSSOToken|Token is invalid and failed to refresh|Token (is|has) expired|SSO session .*expired|run 'aws sso login'|The security token included in the request is (expired|invalid)|UnrecognizedClientException/i
 
-/** The first `[sso-session x]` in ~/.aws/config, its start URL, and a profile that uses it. */
-export function readSsoSession(text: string): { session: string; startUrl: string; profile: string | null } | null {
+/** The first `[sso-session x]` in ~/.aws/config, its start URL and region, and a profile that uses it. */
+export function readSsoSession(text: string): { session: string; startUrl: string; region: string | null; profile: string | null } | null {
   let section = ''
   const sessions = new Map<string, string>()
+  const regions = new Map<string, string>()
   const users = new Map<string, string>()
   for (const raw of text.split('\n')) {
     const line = raw.trim()
@@ -22,16 +26,18 @@ export function readSsoSession(text: string): { session: string; startUrl: strin
     const kv = /^(\w+)\s*=\s*(.+)$/.exec(line)
     if (!kv) continue
     if (section.startsWith('sso-session ') && kv[1] === 'sso_start_url') sessions.set(section.slice(12).trim(), kv[2]!.trim())
+    if (section.startsWith('sso-session ') && kv[1] === 'sso_region') regions.set(section.slice(12).trim(), kv[2]!.trim())
     if (kv[1] === 'sso_session' && !users.has(kv[2]!.trim())) users.set(kv[2]!.trim(), section === 'default' ? 'default' : section.replace(/^profile\s+/, ''))
   }
   const [session, startUrl] = [...sessions][0] ?? []
-  return session && startUrl ? { session, startUrl, profile: users.get(session) ?? null } : null
+  return session && startUrl ? { session, startUrl, region: regions.get(session) ?? null, profile: users.get(session) ?? null } : null
 }
 
 /**
- * The AWS SSO login behind the local stack: when its token runs out and a click to log in again. The access token in
- * ~/.aws/sso/cache lasts an hour and the SDK refreshes it while the session is alive, so a past expiry alone isn't
- * proof: then `aws sts get-caller-identity` decides (it refreshes if it can). Offline or other errors leave it unknown.
+ * The AWS SSO login behind the local stack: when its token runs out and a click to log in again. Checked the way the
+ * api's Ruby SDK sees it: the session's token in ~/.aws/sso/cache, refreshed with its refresh token (SSO-OIDC) when
+ * it is near its end, as the SDK would. Not `aws sts get-caller-identity`: the CLI answers from its own role
+ * credentials in ~/.aws/cli/cache for hours after the SSO session died. Offline leaves it unknown.
  */
 export class Aws {
   private state: AwsLogin | null = null
@@ -57,12 +63,13 @@ export class Aws {
       const cfg = join(homedir(), '.aws/config')
       const sso = existsSync(cfg) ? readSsoSession(readFileSync(cfg, 'utf8')) : null
       if (!sso) return this.set(null)
-      const until = cachedExpiry(sso.startUrl)
-      if (until && until > Date.now()) return this.set({ session: sso.session, status: 'ok', until, code: null })
-      const r = await run(['sts', 'get-caller-identity', ...(sso.profile ? ['--profile', sso.profile] : [])])
-      if (r.ok) return this.set({ session: sso.session, status: 'ok', until: cachedExpiry(sso.startUrl), code: null })
-      const expired = AWS_EXPIRED.test(r.err) || /sso|token|login/i.test(r.err)
-      this.set({ session: sso.session, status: expired ? 'expired' : 'unknown', until, code: null })
+      const token = readToken(sso.session)
+      if (!token) return this.set({ session: sso.session, status: 'expired', until: null, code: null })
+      if (token.until > Date.now() + REFRESH_WINDOW_MS) return this.set({ session: sso.session, status: 'ok', until: token.until, code: null })
+      const r = await refresh(token, sso.region)
+      const until = r === 'refreshed' ? (readToken(sso.session)?.until ?? null) : token.until
+      const status = r === 'refreshed' || token.until > Date.now() ? 'ok' : r === 'denied' ? 'expired' : 'unknown'
+      this.set({ session: sso.session, status, until, code: null })
     } finally {
       this.checking = false
     }
@@ -109,33 +116,49 @@ export class Aws {
   }
 }
 
-/** The newest token expiry cached for this start URL, or null. */
-function cachedExpiry(startUrl: string): number | null {
-  const dir = join(homedir(), '.aws/sso/cache')
-  if (!existsSync(dir)) return null
-  let best: number | null = null
-  for (const f of readdirSync(dir).filter((n) => n.endsWith('.json'))) {
-    try {
-      const d = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { startUrl?: string; expiresAt?: string; accessToken?: string }
-      if (d.startUrl !== startUrl || !d.accessToken || !d.expiresAt) continue
-      const t = Date.parse(d.expiresAt)
-      if (t && (!best || t > best)) best = t
-    } catch {
-      // another tool mid-write
-    }
-  }
-  return best
+interface CachedToken {
+  file: string
+  json: Record<string, unknown>
+  until: number
 }
 
-async function run(args: string[]): Promise<{ ok: boolean; err: string }> {
-  const env = await shellEnv()
-  const aws = which('aws', env)
-  if (!aws) return { ok: false, err: 'aws not found' }
-  return new Promise((done) => {
-    const p = spawn(aws, args, { env, timeout: 20_000 })
-    let err = ''
-    p.stderr.on('data', (d: Buffer) => (err += d.toString()))
-    p.on('error', (e) => done({ ok: false, err: e.message }))
-    p.on('close', (code) => done({ ok: code === 0, err }))
-  })
+/** The session's token as the SDKs cache it: ~/.aws/sso/cache/<sha1 of the sso-session name>.json. */
+function readToken(session: string): CachedToken | null {
+  const file = join(homedir(), '.aws/sso/cache', `${createHash('sha1').update(session, 'utf8').digest('hex')}.json`)
+  try {
+    const json = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>
+    const until = Date.parse(String(json.expiresAt))
+    return json.accessToken && until ? { file, json, until } : null
+  } catch {
+    return null // missing, or another tool mid-write
+  }
+}
+
+/** Refreshes the token the way the SDK does and writes it back. `denied`: no refresh token, or SSO refused it (session over). */
+async function refresh(t: CachedToken, configRegion: string | null): Promise<'refreshed' | 'denied' | 'offline'> {
+  const { clientId, clientSecret, refreshToken, registrationExpiresAt } = t.json
+  const region = (t.json.region as string | undefined) ?? configRegion
+  if (!clientId || !clientSecret || !refreshToken || !region) return 'denied'
+  if (registrationExpiresAt && Date.parse(String(registrationExpiresAt)) < Date.now()) return 'denied'
+  let res: Response
+  try {
+    res = await fetch(`https://oidc.${region}.amazonaws.com/token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clientId, clientSecret, grantType: 'refresh_token', refreshToken }),
+      signal: AbortSignal.timeout(20_000),
+    })
+  } catch {
+    return 'offline'
+  }
+  if (res.status >= 500) return 'offline'
+  if (!res.ok) return 'denied'
+  const r = (await res.json()) as { accessToken: string; expiresIn: number; refreshToken?: string }
+  const json: Record<string, unknown> = { ...t.json, accessToken: r.accessToken, expiresAt: new Date(Date.now() + r.expiresIn * 1000).toISOString().replace(/\.\d+Z$/, 'Z') }
+  if (r.refreshToken) json.refreshToken = r.refreshToken
+  else delete json.refreshToken
+  const tmp = `${t.file}.${process.pid}.tmp`
+  writeFileSync(tmp, JSON.stringify(json), { mode: 0o600 })
+  renameSync(tmp, t.file)
+  return 'refreshed'
 }

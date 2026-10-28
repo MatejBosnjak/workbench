@@ -17,6 +17,7 @@ function uptime(s: ServiceState, now: number): string {
 
 function stateText(s: ServiceState): string {
   if (s.status === 'crashed') return s.note ? `crashed · ${s.note}` : `exited · code ${s.exitCode}`
+  if (s.status === 'running' && s.note) return `running · ${s.note}`
   if (s.status === 'running' && s.def.port) return s.healthy ? `running · :${s.def.port}` : `starting · :${s.def.port}`
   return STATE[s.status]
 }

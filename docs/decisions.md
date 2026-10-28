@@ -97,3 +97,7 @@ A tab title cut with `…` next to the `···` running glyph read as two ellips
 
 A task's design lives in Productive's Figma custom field, and subtasks usually don't repeat it, so a subtask without one shows the nearest ancestor's. The mark sits after the title in grey and only takes Figma's colours on hover or selection (canvas: Figma link board, B): the brand colours on every linked row (A) would be the only coloured logo in a quiet list, and a separate column (C) put it away from the title and was empty on most rows. Inherited marks are fainter so a glance says whose link it is.
 
+
+## AWS login: checked as the SDK sees it, not with sts
+
+`aws sts get-caller-identity` kept the chip green for hours after the SSO session ended: the CLI answers from its own role credentials in `~/.aws/cli/cache` (12 h) and never touches the SSO token. The api's Ruby SDK doesn't share that cache, so it failed with `InvalidSSOToken: Token is invalid and failed to refresh` while Workbench said all was well. The check now reads the sso-session's cached token and, near its end, refreshes it through SSO-OIDC exactly like the SDK (same file, same rotation; refresh tokens are reusable, so racing the api's own refresh is harmless). Sidekiq doesn't crash on it either, its jobs just fail, so a running service's output is watched for the error too, not only a crash's.
